@@ -1,7 +1,9 @@
+import time
 import urwid
 from laser_compex import laser, OpMode, Trigger
 import schedule
 from scheduler import MyScheduler
+from arduino_trigger import arduino
 
 
 class MyOverlay(urwid.Overlay):
@@ -178,6 +180,11 @@ class LaserDisplay:
         self.curr_enegry_text = urwid.Text('Energy: 0 mJ')
         self.curr_reprate_text = urwid.Text('Rate: 0 Hz')
         self.curr_counts_text = urwid.Text('Count: 0')
+        self.shoot_freq_edit = urwid.Edit(('edit', "Shot freq. (Hz): "), edit_text='100')
+        self.shoot_count_edit = urwid.Edit(('edit', "Shot count: "), edit_text='10')
+        self.shoot_rep_edit = urwid.Edit(('edit', 'Shot repetitions count: '), edit_text='1')
+        self.shoot_rep_pause_edit = urwid.Edit(('edit', "Pause between reps. (ms): "), edit_text='100')
+        self.shoot_count_text = urwid.Text("Curr. shots count: 0")
 
     def main(self):
         self.view = self.setup_view()
@@ -215,7 +222,7 @@ class LaserDisplay:
                 ]),
                 self.reprate_edit,
                 self.counts_edit,
-                urwid.Button('Set', self.button_press, 'set')
+                urwid.Button('Set', self.button_press, 'fire_set')
             ]),
             urwid.Pile([
                 urwid.Columns([
@@ -248,11 +255,29 @@ class LaserDisplay:
                 ])
             ])
         ])
-        status_box = urwid.Filler(urwid.LineBox(status_panel))
+        status_box = urwid.LineBox(status_panel)
 
-        cols = urwid.Filler(urwid.Pile([op_mode_box, fire_mode_box]))
+        shoot_panel = urwid.Pile([
+            urwid.Text(('header', 'Shooting settings'), 'center'),
+            urwid.Divider(),
+            urwid.Columns([
+                urwid.Pile([
+                    self.shoot_freq_edit,
+                    self.shoot_count_edit,
+                    self.shoot_rep_edit,
+                    self.shoot_rep_pause_edit
+                ]),
+                urwid.Pile([
+                    self.shoot_count_text
+                ])
+            ]),
+            urwid.Button('Set & Start', self.button_press, 'shoot_set_start'),
+            urwid.Button('Stop', self.button_press, 'shoot_stop')
+        ])
+        shoot_box = urwid.LineBox(shoot_panel)
 
-        cols = urwid.Pile([cols, status_box])
+        cols = urwid.Filler(urwid.Pile([op_mode_box, fire_mode_box, shoot_box, status_box]))
+
         box = urwid.LineBox(cols)
         footer = urwid.Columns([urwid.Text('F12 - Close'), self.laser_ver_text])
         frame = urwid.Frame(body=box, footer=footer)
@@ -297,10 +322,20 @@ class LaserDisplay:
             del self.loop.Widget
         elif data == 'quit':
             raise urwid.ExitMainLoop()
-        elif data == 'set':
+        elif data == 'fire_set':
             laser.reprate = int(self.reprate_edit.edit_text)
             laser.counts = self.counts_edit.edit_text
-
+        elif data == 'shoot_set_start':
+            arduino.rep_sleep_time = float(self.shoot_rep_pause_edit.edit_text)
+            arduino.rep_count = int(self.shoot_rep_edit.edit_text)
+            time.sleep(0.1)
+            arduino.set_freq(self.shoot_freq_edit.edit_text)
+            time.sleep(0.1)
+            arduino.set_count(self.shoot_count_edit.edit_text)
+            time.sleep(0.1)
+            arduino.start()
+        elif data == 'shoot_stop':
+            arduino.stop()
 
     def quit_prompt(self):
         """Pop-up window that appears when you try to quit."""
