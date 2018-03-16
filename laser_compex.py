@@ -1,7 +1,8 @@
 import enum
 import threading
+import queue
 
-import serial
+import serial.threaded
 
 
 class OpMode(enum.Enum):
@@ -62,29 +63,54 @@ class StatusCodes(enum.IntEnum):
     ENTERED_VALUE_TOO_HIGH = 41
 
 
-class CompexLaser:
+class CompexException(Exception):
+    pass
+
+
+class CompexLaserProtocol(serial.threaded.LineReader):
+    TERMINATOR = b'\r'
+
     def __init__(self):
-        self.conn = serial.Serial('/dev/ttyUSB0', timeout=0.5)
+        super(CompexLaserProtocol, self).__init__()
+        self.alive = True
+        self.responses = queue.Queue()
         self.lock = threading.Lock()
+        self._awaiting_response_for = None
 
-    def _safe_set(self, cmd):
-        self.lock.acquire()
-        try:
-            self.conn.write(cmd.encode('ASCII'))
-        finally:
-            self.lock.release()
+    def stop(self):
+        """
+        Stop the event processing thread, abort pending commands, if any.
+        """
+        self.alive = False
+        self.responses.put('<exit>')  # TODO: ??
 
-    def _safe_get(self, cmd):
-        self.lock.acquire()
-        try:
-            self.conn.write(cmd.encode('ASCII'))
-            return self.conn.readline().decode()[:-1]
-        finally:
-            self.lock.release()
+    def handle_line(self, line):
+        """
+        Handle input from serial port, check for events.
+        """
+        self.responses.put(line)
+
+    def command(self, command):
+        """Send a command that doesn't respond"""
+        with self.lock:  # ensure that just one thread is sending commands at once
+            self.write_line(command)
+
+    def command_with_response(self, command, response='', timeout=5):
+        """
+        Set an Compex command and wait for the response.
+        """
+        with self.lock:  # ensure that just one thread is sending commands at once
+            self._awaiting_response_for = command
+            self.write_line(command)
+            response = self.responses.get()
+            self._awaiting_response_for = None
+            return response
 
     @property
     def opmode(self):
-        data = self._safe_get('OPMODE?\r').split(':')
+        data = self.command_with_response('OPMODE?')
+
+        data = data.split(':')
 
         try:
             opmode = OpMode(data[0])
@@ -98,11 +124,11 @@ class CompexLaser:
 
     @opmode.setter
     def opmode(self, mode):
-        self._safe_set('OPMODE={}\r'.format(mode.value))
+        self.command('OPMODE={}'.format(mode.value))
 
     @property
     def trigger(self):
-        data = self._safe_get('TRIGGER?\r')
+        data = self.command_with_response('TRIGGER?')
 
         try:
             return Trigger(data)
@@ -111,31 +137,28 @@ class CompexLaser:
 
     @property
     def reprate(self):
-        return int(self._safe_get('REPRATE?\r'))
+        return int(self.command_with_response('REPRATE?'))
 
     @reprate.setter
     def reprate(self, rate):
-        self._safe_set('REPRATE={}\r'.format(rate))
+        self.command('REPRATE={}'.format(rate))
 
     @property
     def counts(self):
-        return self._safe_get('COUNTS?\r')
+        return self.command_with_response('COUNTS?\r')
 
     @counts.setter
     def counts(self, counts):
-        self._safe_set('COUNTS={}\r'.format(counts))
+        self.command('COUNTS={}'.format(counts))
 
     @trigger.setter
     def trigger(self, mode):
-        self._safe_set('TRIGGER={}\r'.format(mode.value))
+        self.command('TRIGGER={}'.format(mode.value))
 
     @property
     def laser_type(self):
-        return self._safe_get('TYPE OF LASER?\r')
+        return self.command_with_response('TYPE OF LASER?')
 
     @property
     def version(self):
-        return self._safe_get('VERSION?\r')
-
-
-laser = CompexLaser()
+        return self.command_with_response('VERSION?')

@@ -1,9 +1,12 @@
 import time
-import urwid
-from laser_compex import laser, OpMode, Trigger
+
 import schedule
-from scheduler import MyScheduler
+import serial
+import urwid
+
 from arduino_trigger import arduino
+from laser_compex import OpMode, Trigger, CompexLaserProtocol
+from scheduler import MyScheduler
 
 
 class MyOverlay(urwid.Overlay):
@@ -185,17 +188,21 @@ class LaserDisplay:
         self.shoot_rep_edit = urwid.Edit(('edit', 'Shot repetitions count: '), edit_text='1')
         self.shoot_rep_pause_edit = urwid.Edit(('edit', "Pause between reps. (ms): "), edit_text='100')
         self.shoot_count_text = urwid.Text("Curr. shots count: 0")
+        ser = serial.serial_for_url('/dev/ttyUSB0', timeout=1)
+        self.laser_thread = serial.threaded.ReaderThread(ser, CompexLaserProtocol)
+        self.laser_thread.start()
+        transport, self.laser_conn = self.laser_thread.connect()
 
     def main(self):
         self.view = self.setup_view()
         self.loop.Widget = self.view
 
         self.update_status(True)
-
-        self.laser_ver_text.set_text('Connected - Laser: {}, Version: {}'.format(laser.laser_type, laser.version))
+        self.laser_ver_text.set_text(
+            'Connected - Laser: {}, Version: {}'.format(self.laser_conn.laser_type, self.laser_conn.version))
 
         schedule.default_scheduler = MyScheduler()
-        schedule.every(2).seconds.do(self.update_status)
+        schedule.every(1).second.do(self.update_status)
 
         self.loop.set_alarm_in(1, schedule.default_scheduler.run_urwid)
 
@@ -216,8 +223,10 @@ class LaserDisplay:
                 urwid.Columns([
                     urwid.Text("Trigger:"),
                     urwid.Pile([
-                        MyRadioButton(self.trigger_group, "Internal", on_state_change=self.trigger_changed, user_data=Trigger.INT),
-                        MyRadioButton(self.trigger_group, "External", on_state_change=self.trigger_changed, user_data=Trigger.EXT)
+                        MyRadioButton(self.trigger_group, "Internal", on_state_change=self.trigger_changed,
+                                      user_data=Trigger.INT),
+                        MyRadioButton(self.trigger_group, "External", on_state_change=self.trigger_changed,
+                                      user_data=Trigger.EXT)
                     ])
                 ]),
                 self.reprate_edit,
@@ -285,31 +294,31 @@ class LaserDisplay:
         return frame
 
     def op_mode_changed(self, radio, new_state, data):
-        laser.opmode = data
+        self.laser_conn.opmode = data
 
     def trigger_changed(self, radio, new_state, data):
-        laser.trigger = data
+        self.laser_conn.trigger = data
 
     def update_status(self, init=False):
-        self.curr_opmode = laser.opmode
+        self.curr_opmode = self.laser_conn.opmode
         if self.curr_opmode[0] in (OpMode.ON, OpMode.OFF_WAIT):
             self.opmode_group[1].set_state(True, do_callback=False)
         else:
             self.opmode_group[0].set_state(True, do_callback=False)
 
-        self.curr_trigger_mode = laser.trigger
+        self.curr_trigger_mode = self.laser_conn.trigger
         if self.curr_trigger_mode == Trigger.INT:
             self.trigger_group[0].set_state(True, do_callback=False)
         else:
             self.trigger_group[1].set_state(True, do_callback=False)
 
         self.curr_op_mode.set_text('Operation mode: {}'.format(self.curr_opmode))
-        self.curr_reprate_text.set_text('Rate: {} Hz'.format(laser.reprate))
-        self.curr_counts_text.set_text('Counts: {}'.format(laser.counts))
+        self.curr_reprate_text.set_text('Rate: {} Hz'.format(self.laser_conn.reprate))
+        self.curr_counts_text.set_text('Counts: {}'.format(self.laser_conn.counts))
 
         if init:
-            self.reprate_edit.set_edit_text(str(laser.reprate))
-            self.counts_edit.set_edit_text(str(laser.counts))
+            self.reprate_edit.set_edit_text(str(self.laser_conn.reprate))
+            self.counts_edit.set_edit_text(str(self.laser_conn.counts))
 
     def button_press(self, button, data):
         """Generic callback method for buttons (not key-presses!).
@@ -323,8 +332,8 @@ class LaserDisplay:
         elif data == 'quit':
             raise urwid.ExitMainLoop()
         elif data == 'fire_set':
-            laser.reprate = int(self.reprate_edit.edit_text)
-            laser.counts = self.counts_edit.edit_text
+            self.laser_conn.reprate = int(self.reprate_edit.edit_text)
+            self.laser_conn.counts = self.counts_edit.edit_text
         elif data == 'shoot_set_start':
             arduino.rep_sleep_time = float(self.shoot_rep_pause_edit.edit_text)
             arduino.rep_count = int(self.shoot_rep_edit.edit_text)
