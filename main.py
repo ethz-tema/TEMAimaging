@@ -4,7 +4,7 @@ import schedule
 import serial
 import urwid
 
-from arduino_trigger import arduino
+from arduino_trigger import ArduinoTriggerProtocol
 from laser_compex import OpMode, Trigger, CompexLaserProtocol
 from scheduler import MyScheduler
 
@@ -64,7 +64,8 @@ class MyRadioButton(urwid.CheckBox):
 
         # clear the state of each other radio button
         for cb in self.group:
-            if cb is self: continue
+            if cb is self:
+                continue
             if cb._state:
                 cb.set_state(False, do_callback and not from_toggle)
 
@@ -183,15 +184,20 @@ class LaserDisplay:
         self.curr_enegry_text = urwid.Text('Energy: 0 mJ')
         self.curr_reprate_text = urwid.Text('Rate: 0 Hz')
         self.curr_counts_text = urwid.Text('Count: 0')
-        self.shoot_freq_edit = urwid.Edit(('edit', "Shot freq. (Hz): "), edit_text='100')
+        self.shoot_freq_edit = urwid.Edit(('edit', "Shot freq. (Hz): "), edit_text='10')
         self.shoot_count_edit = urwid.Edit(('edit', "Shot count: "), edit_text='10')
-        self.shoot_rep_edit = urwid.Edit(('edit', 'Shot repetitions count: '), edit_text='1')
+        self.shoot_rep_edit = urwid.Edit(('edit', 'Shot repetitions count: '), edit_text='10')
         self.shoot_rep_pause_edit = urwid.Edit(('edit', "Pause between reps. (ms): "), edit_text='100')
         self.shoot_count_text = urwid.Text("Curr. shots count: 0")
-        ser = serial.serial_for_url('/dev/ttyUSB0', timeout=1)
-        self.laser_thread = serial.threaded.ReaderThread(ser, CompexLaserProtocol)
+        ser_laser = serial.serial_for_url('/dev/ttyUSB0', timeout=1)
+        self.laser_thread = serial.threaded.ReaderThread(ser_laser, CompexLaserProtocol)
         self.laser_thread.start()
         transport, self.laser_conn = self.laser_thread.connect()
+
+        ser_trigger = serial.serial_for_url('/dev/ttyACM0', timeout=1, baudrate=19200)
+        self.trigger_thread = serial.threaded.ReaderThread(ser_trigger, ArduinoTriggerProtocol)
+        self.trigger_thread.start()
+        transport, self.trigger_conn = self.trigger_thread.connect()
 
     def main(self):
         self.view = self.setup_view()
@@ -330,21 +336,23 @@ class LaserDisplay:
             # Go back, restore saved widgets from previous screen.
             del self.loop.Widget
         elif data == 'quit':
+            self.laser_conn.stop()
+            self.trigger_conn.stop()
             raise urwid.ExitMainLoop()
         elif data == 'fire_set':
             self.laser_conn.reprate = int(self.reprate_edit.edit_text)
             self.laser_conn.counts = self.counts_edit.edit_text
         elif data == 'shoot_set_start':
-            arduino.rep_sleep_time = float(self.shoot_rep_pause_edit.edit_text)
-            arduino.rep_count = int(self.shoot_rep_edit.edit_text)
+            self.trigger_conn.rep_sleep_time = float(self.shoot_rep_pause_edit.edit_text)
+            self.trigger_conn.rep_count = int(self.shoot_rep_edit.edit_text)
             time.sleep(0.1)
-            arduino.set_freq(self.shoot_freq_edit.edit_text)
+            self.trigger_conn.set_freq(self.shoot_freq_edit.edit_text)
             time.sleep(0.1)
-            arduino.set_count(self.shoot_count_edit.edit_text)
+            self.trigger_conn.set_count(self.shoot_count_edit.edit_text)
             time.sleep(0.1)
-            arduino.start()
+            self.trigger_conn.start_trigger()
         elif data == 'shoot_stop':
-            arduino.stop()
+            self.trigger_conn.stop_trigger()
 
     def quit_prompt(self):
         """Pop-up window that appears when you try to quit."""
