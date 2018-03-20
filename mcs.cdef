@@ -1,0 +1,57 @@
+#define SA_MCSCONTROL_VERSION_MAJOR                 2
+#define SA_MCSCONTROL_VERSION_MINOR                 0
+#define SA_MCSCONTROL_VERSION_UPDATE                11
+
+typedef unsigned int SA_STATUS;
+typedef unsigned int SA_INDEX;
+typedef unsigned int SA_PACKET_TYPE;
+
+// defines a data packet for the asynchronous mode
+typedef struct SA_packet {
+    SA_PACKET_TYPE packetType;                      // type of packet (see below)
+    SA_INDEX channelIndex;                          // source channel
+    unsigned int data1;                             // data field
+    signed int data2;                               // data field
+    signed int data3;                               // data field
+    unsigned int data4;                             // data field
+} SA_PACKET;
+
+
+
+SA_STATUS SA_OpenSystem(SA_INDEX *systemIndex,const char *locator,const char *options);
+
+SA_STATUS SA_CloseSystem(SA_INDEX systemIndex);
+
+SA_STATUS SA_FindSystems(const char *options,char *outBuffer,unsigned int *ioBufferSize);
+
+SA_STATUS SA_GetSystemLocator(SA_INDEX systemIndex,char *outBuffer,unsigned int *ioBufferSize);
+
+SA_STATUS SA_GetChannelType(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int *type);
+
+SA_STATUS SA_GetDLLVersion(unsigned int *version);
+
+SA_STATUS SA_GetNumberOfChannels(SA_INDEX systemIndex, unsigned int *channels);
+
+SA_STATUS SA_SetHCMEnabled(SA_INDEX systemIndex, unsigned int enabled);
+
+
+SA_STATUS SA_FindReferenceMark_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int direction, unsigned int holdTime, unsigned int autoZero);
+
+SA_STATUS SA_GetPhysicalPositionKnown_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int *known);
+
+SA_STATUS SA_GetPositionLimit_S(SA_INDEX systemIndex, SA_INDEX channelIndex, signed int *minPosition, signed int *maxPosition);
+
+SA_STATUS SA_SetPositionLimit_S(SA_INDEX systemIndex, SA_INDEX channelIndex, signed int minPosition, signed int maxPosition);
+
+SA_STATUS SA_SetClosedLoopMoveSpeed_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int speed);
+
+SA_STATUS SA_SetClosedLoopMoveAcceleration_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int acceleration);
+
+
+SA_STATUS SA_GotoPositionAbsolute_S(SA_INDEX systemIndex, SA_INDEX channelIndex, signed int position, unsigned int holdTime);
+
+SA_STATUS SA_GotoPositionRelative_S(SA_INDEX systemIndex, SA_INDEX channelIndex, signed int diff, unsigned int holdTime);
+
+SA_STATUS SA_GetPosition_S(SA_INDEX systemIndex, SA_INDEX channelIndex, signed int *position);
+
+SA_STATUS SA_GetStatus_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int *status);
