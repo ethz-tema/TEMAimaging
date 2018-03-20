@@ -1,6 +1,6 @@
-from cffi import FFI
-import time
+from cffi import FFI, error
 from enum import IntEnum
+import time
 
 
 class SAError(IntEnum):
@@ -57,7 +57,7 @@ class SAError(IntEnum):
     SA_OTHER_ERROR = 255
 
 
-class SAHCMStatus(IntEnum):
+class SAHCMMode(IntEnum):
     SA_HCM_DISABLED = 0
     SA_HCM_ENABLED = 1
     SA_HCM_CONTROLS_DISABLED = 2
@@ -86,9 +86,25 @@ class SAFindRefMarkDirection(IntEnum):
     SA_BACKWARD_FORWARD_DIRECTION_ABORT_ON_ENDSTOP = 7
 
 
+class MCSAxis(IntEnum):
+    X = 0
+    Y = 1
+    Z = 2
+
+
 class MCSError(Exception):
     def __init__(self, status):
-        self.status = status
+        self.status = SAError(status)
+
+
+ffi = FFI()
+try:
+    ffi.cdef(open('mcs.cdef', 'r').read())
+    lib = ffi.dlopen('libmcscontrol.so')
+except error.FFIError:
+    pass
+except error.CDefError:
+    pass
 
 
 class MCSStage:
@@ -104,93 +120,136 @@ class MCSStage:
         out = ffi.new('char[4096]')
         out_size = ffi.new('unsigned int *', ffi.sizeof(out))
         if cls.check_return(lib.SA_FindSystems(b'', out, out_size)):
-            return ffi.unpack(out, out_size[0])
+            return ffi.unpack(out, out_size[0]).split('\n')
 
+    def __init__(self, conn_id):
+        self.id = conn_id
+        self.handle = 0
+        self.is_open = False
+        self._num_channels = None
 
-ffi = FFI()
-ffi.cdef(open('mcs.cdef', 'r').read())
+    def open_mcs(self):
+        if not self.is_open:
+            handle = ffi.new('SA_INDEX *')
+            locator = str(self.id).encode('ASCII')
 
-lib = ffi.dlopen('libmcscontrol.so')
+            if self.check_return(lib.SA_OpenSystem(handle, locator, b'sync')):
+                self.handle = handle[0]
+                self.is_open = True
+            else:
+                self.is_open = False
 
+    def close_mcs(self):
+        if self.is_open:
+            if self.check_return(lib.SA_CloseSystem(self.handle)):
+                self.is_open = False
 
+    def get_axis_status(self, axis):
+        if self.is_open:
+            s = ffi.new('unsigned int *')
+            self.check_return(lib.SA_GetStatus_S(self.handle, axis, s))
+            return s[0]
 
-version = ffi.new('unsigned int *')
-lib.SA_GetDLLVersion(version)
-print('Version: {}'.format(version[0]))
+    def wait_until_status(self, axis=None, status=SAChannelStatus.SA_STOPPED_STATUS):
+        if axis is None:
+            statuses = {}
+            while True:
+                for a in MCSAxis:
+                    statuses[a] = self.get_axis_status(a) == status
+                    if all(statuses.values()):
+                        return
+                    time.sleep(0.01)
+        else:
+            s = self.get_axis_status(axis)
+            while True:
+                s = self.get_axis_status(axis)
+                if SAChannelStatus(s) == status:
+                    break
+                time.sleep(0.01)
 
-mcs_handle = ffi.new('SA_INDEX *')
-locator = 'usb:ix:0'.encode('ASCII')
-options = 'sync'.encode('ASCII')
+    def set_hcm_mode(self, mode):
+        if self.is_open:
+            self.check_return(lib.SA_SetHCMEnabled(self.handle, mode))
 
-error = lib.SA_OpenSystem(mcs_handle, locator, options)
-if error:
-    print("Error OpenSystem: {}".format(SAError(error)))
+    @property
+    def num_channels(self):
+        if self._num_channels is not None:
+            return self._num_channels
 
-num_channels = ffi.new('unsigned int *')
-error = lib.SA_GetNumberOfChannels(mcs_handle[0], num_channels)
-print('Number of channels: {}'.format(num_channels[0]))
+        if self.is_open:
+            ch = ffi.new('unsigned int *')
+            if self.check_return(lib.SA_GetNumberOfChannels(self.handle, ch)):
+                self._num_channels = ch[0]
+                return self._num_channels
 
-ch_type = ffi.new('unsigned int *')
-for i in range(3):
-    error = lib.SA_GetChannelType(mcs_handle[0], i, ch_type)
-    if error:
-        print(SAError(error))
-        continue
-    print('Channel {} Type: {}'.format(i, ch_type[0]))
+    def get_position_limit(self, axis):
+        if self.is_open:
+            min_limit = ffi.new('int *')
+            max_limit = ffi.new('int *')
+            self.check_return(lib.SA_GetPositionLimit_S(self.handle, axis, min_limit, max_limit))
 
-known = ffi.new('unsigned int *')
-lib.SA_GetPhysicalPositionKnown_S(mcs_handle[0], 0, known)
-print('Known: {}'.format(known[0]))
-if not known[0]:
-    error = lib.SA_FindReferenceMark_S(mcs_handle[0], 0, 0, 5000, 1)
-    print(SAError(error))
-    lib.SA_FindReferenceMark_S(mcs_handle[0], 1, 0, 5000, 1)
-    print(SAError(error))
-    lib.SA_FindReferenceMark_S(mcs_handle[0], 2, 0, 5000, 1)
-    print(SAError(error))
-    status = ffi.new('unsigned int *')
-    lib.SA_GetStatus_S(mcs_handle[0], 0, status)
-    while status[0] == SAChannelStatus.SA_FINDING_REF_STATUS:
-        lib.SA_GetStatus_S(mcs_handle[0], 0, status)
-        time.sleep(0.1)
+            return min_limit[0], max_limit[0]
 
-error = lib.SA_SetPositionLimit_S(mcs_handle[0], 0, -25000000, 25000000)
-print(SAError(error))
-error = lib.SA_SetPositionLimit_S(mcs_handle[0], 1, -34000000, 35000000)
-print(SAError(error))
-error = lib.SA_SetPositionLimit_S(mcs_handle[0], 2, -750000, 2700000)
-print(SAError(error))
+    def set_position_limit(self, axis, min_limit, max_limit):
+        if self.is_open:
+            self.check_return(lib.SA_SetPositionLimit_S(self.handle, axis, min_limit, max_limit))
 
-for i in range(3):
-    error = lib.SA_SetClosedLoopMoveSpeed_S(mcs_handle[0], i, 20000000)
-    print(SAError(error))
-    #lib.SA_SetClosedLoopMoveAcceleration_S(mcs_handle[0], i, 0)
+    def find_reference(self, axis, hold_time=0):
+        if self.is_open:
+            if not self.get_position_known(axis):
+                self.check_return(
+                    lib.SA_FindReferenceMark_S(self.handle, axis, SAFindRefMarkDirection.SA_BACKWARD_FORWARD_DIRECTION,
+                                               hold_time, 1))
 
+    def find_references(self, hold_time=0):
+        for a in MCSAxis:
+            self.find_reference(a, hold_time)
 
-#lib.SA_SetHCMEnabled(mcs_handle[0], SAHCMStatus.SA_HCM_ENABLED)
+        self.wait_until_status()
 
-#for i in range(0):
-#    lib.SA_GotoPositionRelative_S(mcs_handle[0], 0, 1000000, 0)
-#    lib.SA_GotoPositionRelative_S(mcs_handle[0], 1, 1000000, 0)
-#    lib.SA_GotoPositionRelative_S(mcs_handle[0], 2, 500000, 0)
+    def get_position_known(self, axis=None):
+        if axis is None:
+            return [self.get_position_known(axis) for axis in MCSAxis]
 
-lib.SA_GotoPositionAbsolute_S(mcs_handle[0], 0, 4000000, 10000)
-lib.SA_GotoPositionAbsolute_S(mcs_handle[0], 1, -2537744, 10000)
-error = lib.SA_GotoPositionAbsolute_S(mcs_handle[0], 2, 5000000, 10000)
-print(SAError(error))
+        if self.is_open:
+            known = ffi.new('unsigned int *')
+            lib.SA_GetPhysicalPositionKnown_S(self.handle, axis, known)
+            return known
 
+    def get_position(self, axis=None):
+        if axis is None:
+            return [self.get_position(axis) for axis in MCSAxis]
 
-status = ffi.new('unsigned int *')
-position = ffi.new('int *')
-lib.SA_GetStatus_S(mcs_handle[0], 0, status)
-lib.SA_GetPosition_S(mcs_handle[0], 0, position)
-print('Position: {} nm'.format(position[0]))
+        if self.is_open:
+            pos = ffi.new('int *')
+            self.check_return(lib.SA_GetPosition_S(self.handle, axis, pos))
+            return pos[0]
 
-while status[0] == 4:
-    time.sleep(0.05)
-    lib.SA_GetStatus_S(mcs_handle[0], 0, status)
+    def move(self, axis, position, hold_time=0, relative=False, wait=True):
+        if self.is_open:
+            if relative:
+                self.check_return(lib.SA_GotoPositionRelative_S(self.handle, axis, position, hold_time))
+            else:
+                self.check_return(lib.SA_GotoPositionAbsolute_S(self.handle, axis, position, hold_time))
 
-    lib.SA_GetPosition_S(mcs_handle[0], 0, position)
-    print('Position: {} nm'.format(position[0]))
+            if wait:
+                self.wait_until_status(axis)
 
-lib.SA_CloseSystem(mcs_handle[0])
+# stage = MCSStage('usb:ix:0')
+
+# stage.open_mcs()
+# stage.find_references()
+
+# stage.set_position_limit(MCSAxis.X, -25000000, 25000000)
+# stage.set_position_limit(MCSAxis.Y, -34000000, 35000000)
+# stage.set_position_limit(MCSAxis.Z, -750000, 2700000)
+
+# for i in range(5):
+#    stage.move(MCSAxis.X, 100000, relative=True)
+
+# stage.close_mcs()
+
+# for i in range(3):
+#    error = lib.SA_SetClosedLoopMoveSpeed_S(mcs_handle[0], i, 20000000)
+#    print(SAError(error))
+# lib.SA_SetClosedLoopMoveAcceleration_S(mcs_handle[0], i, 0)
