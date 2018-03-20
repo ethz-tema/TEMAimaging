@@ -67,7 +67,7 @@ class ArduinoTriggerProtocol(serial.threaded.LineReader):
 
     def command_with_response(self, command, response='', timeout=5):
         """
-        Set an Compex command and wait for the response.
+        Send a command and wait for the response.
         """
         with self.lock:  # ensure that just one thread is sending commands at once
             self._awaiting_response_for = command
@@ -82,6 +82,15 @@ class ArduinoTriggerProtocol(serial.threaded.LineReader):
     def set_count(self, counts):
         self.command('C{}'.format(counts))
 
+    def go(self):
+        self.command('G')
+
+    def go_and_wait(self):
+        self.command('G')
+        self.done = False
+        while not self.done:
+            pass
+
     def start_trigger(self):
         self.cease_continuous_run.clear()
         self.stop_done_event.clear()
@@ -95,7 +104,7 @@ class ArduinoTriggerProtocol(serial.threaded.LineReader):
 
                 while not self.cease_continuous_run.is_set() and counter < self.rep_count:
                     if self.done:
-                        self.command('G')
+                        self.go()
                         counter += 1
                         self.done = False
 
