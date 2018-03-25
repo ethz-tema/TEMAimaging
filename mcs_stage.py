@@ -1,6 +1,5 @@
 from cffi import FFI, error
 from enum import IntEnum
-import time
 
 
 class SAError(IntEnum):
