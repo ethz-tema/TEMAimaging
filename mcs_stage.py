@@ -214,7 +214,7 @@ class MCSStage:
         if self.is_open:
             known = ffi.new('unsigned int *')
             lib.SA_GetPhysicalPositionKnown_S(self.handle, axis, known)
-            return known
+            return known[0]
 
     def get_position(self, axis=None):
         if axis is None:
