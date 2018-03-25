@@ -150,22 +150,15 @@ class MCSStage:
             self.check_return(lib.SA_GetStatus_S(self.handle, axis, s))
             return s[0]
 
-    def wait_until_status(self, axis=None, status=SAChannelStatus.SA_STOPPED_STATUS):
-        if axis is None:
-            statuses = {}
-            while True:
-                for a in MCSAxis:
-                    statuses[a] = self.get_axis_status(a) == status
-                    if all(statuses.values()):
-                        return
-                    time.sleep(0.01)
-        else:
-            s = self.get_axis_status(axis)
-            while True:
-                s = self.get_axis_status(axis)
-                if SAChannelStatus(s) == status:
-                    break
-                time.sleep(0.01)
+    def wait_until_status(self, axes=None, status=SAChannelStatus.SA_STOPPED_STATUS):
+        if axes is None:
+            axes = [MCSAxis.X, MCSAxis.Y, MCSAxis.Z]
+        statuses = {}
+        while True:
+            for a in axes:
+                statuses[a] = self.get_axis_status(a) == status
+            if all(statuses.values()):
+                return
 
     def set_hcm_mode(self, mode):
         if self.is_open:
@@ -233,7 +226,7 @@ class MCSStage:
                 self.check_return(lib.SA_GotoPositionAbsolute_S(self.handle, axis, position, hold_time))
 
             if wait:
-                self.wait_until_status(axis)
+                self.wait_until_status([axis])
 
 # stage = MCSStage('usb:ix:0')
 
