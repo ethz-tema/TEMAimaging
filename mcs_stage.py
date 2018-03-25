@@ -94,7 +94,7 @@ class MCSAxis(IntEnum):
 
 class MCSError(Exception):
     def __init__(self, status):
-        self.status = SAError(status)
+        self.status = status
 
 
 ffi = FFI()
@@ -111,7 +111,7 @@ class MCSStage:
     @staticmethod
     def check_return(status):
         if status != SAError.SA_OK:
-            raise MCSError(status)
+            raise MCSError(SAError(status))
         else:
             return True
 
