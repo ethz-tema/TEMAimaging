@@ -13,14 +13,18 @@ class LineScan:
         self.laser = None
         self.trigger = None
         self.stage = None
+        self._skip_move = True
 
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: laser_compex.CompexLaserProtocol
-        self.trigger = trigger # type: arduino_trigger.ArduinoTriggerProtocol
+        self.trigger = trigger  # type: arduino_trigger.ArduinoTriggerProtocol
         self.trigger.set_count(self.shot_count)
         self.stage = stage
 
     def next_move(self):
+        if self._skip_move:
+            self._skip_move = False
+            return True
         if self.spot_count > 0:
             x = math.sin(self.direction) * self.spot_size * 1e9
             y = math.cos(self.direction) * self.spot_size * 1e9
