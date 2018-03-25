@@ -1,7 +1,9 @@
 import math
-from mcs_stage import MCSAxis, MCSStage
+from mcs_stage import MCSAxis, MCSStage, MCSError
 import laser_compex
 import arduino_trigger
+import threading
+import logging
 
 
 class LineScan:
@@ -163,13 +165,24 @@ class Engraver:
 
 class MeasurementController:
     def __init__(self, laser, trigger, stage):
-        self.laser = laser # type: laser_compex.CompexLaserProtocol
+        self.laser = laser  # type: laser_compex.CompexLaserProtocol
         self.trigger = trigger  # type: arduino_trigger.ArduinoTriggerProtocol
         self.stage = stage  # type: MCSStage
 
     def start_scan(self, scan):
         scan.set_instruments(self.laser, self.trigger, self.stage)
-        while scan.next_move():
-            scan.next_shot()
+        stop_scan = threading.Event()
 
+        class MeasureThread(threading.Thread):
+            @classmethod
+            def run(cls):
+                try:
+                    while scan.next_move() and not stop_scan.is_set():
+                        scan.next_shot()
+                except MCSError as e:
+                    logging.exception(e)
 
+        thread = MeasureThread()
+        thread.start()
+
+        return stop_scan
