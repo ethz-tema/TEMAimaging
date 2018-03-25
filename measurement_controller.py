@@ -48,41 +48,62 @@ class Engraver:
         self.laser = None
         self.trigger = None
         self.stage = None
-        self._curr_pos = [0, 0]
+        self._dist_list = []
+        self._curr_step = 0
+        self.init_steps()
 
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: laser_compex.CompexLaserProtocol
-        self.trigger = trigger # type: arduino_trigger.ArduinoTriggerProtocol
+        self.trigger = trigger  # type: arduino_trigger.ArduinoTriggerProtocol
         self.trigger.set_count(self.shot_count)
         self.stage = stage
 
+    def init_steps(self):
+        self.image.show()
+        line = 0
+        col = 0
+        i = 0
+        coord_matrix = [[0 for _ in range(self.image.size[0])] for _ in range(self.image.size[1])]
+        for pixel in self._image_data:
+            coord_matrix[line][col] = 1 if pixel == 255 else 0
+            col += 1
+
+            if (i + 1) % self.image.size[0] == 0:
+                line += 1
+                col = 0
+
+            i += 1
+
+        self._dist_list = []
+        prev = (0, 0)
+        for x in range(self.image.size[1]):
+            for y in range(self.image.size[0]):
+                if not coord_matrix[x][y]:
+                    self._dist_list.append((x - prev[0], y - prev[1]))
+                    prev = (x, y)
+
     def next_move(self):
-        if self._curr_pos[0] == self.image.size[0] and self._curr_pos[1] == self.image.size[1]:
+        if self._curr_step >= len(self._dist_list):
             return False
 
-        y = self.spot_size * 1e9
-        x = 0
-        if self._curr_pos[0] == self.image.size[0]:
-            x = - self.spot_size * 1e9
-            y = - self.image.size[0] * self.spot_size * 1e9
-            self._curr_pos[0] = 0
-            self._curr_pos[1] += 1
-        else:
-            self._curr_pos[0] += 1
+        dx = self._dist_list[self._curr_step][0] * self.spot_size * 1e9
+        dy = self._dist_list[self._curr_step][1] * self.spot_size * 1e9
+        self.stage.move(MCSAxis.X, int(dx), relative=True, wait=False)
+        self.stage.move(MCSAxis.Y, int(dy), relative=True, wait=False)
+        axes_moved = []
+        if dx != 0:
+            axes_moved.append(MCSAxis.X)
+        if dy != 0:
+            axes_moved.append(MCSAxis.Y)
+        self.stage.wait_until_status(axes_moved)
 
-        self.stage.move(MCSAxis.X, int(x), relative=True, wait=False)
-        self.stage.move(MCSAxis.Y, int(y), relative=True, wait=False)
-        self.stage.wait_until_status()
+        self.trigger.go_and_wait()
+        self._curr_step += 1
+
         return True
 
     def next_shot(self):
-        if self._curr_pos[0] == self.image.size[0] and self._curr_pos[1] == self.image.size[1]:
-            return False
-        elif self._image_data[self._curr_pos[0] + self._curr_pos[1] * self.image.size[1]] == 0:
-            self.trigger.go_and_wait()
-            return True
-        else:
-            return True
+        pass
 
 
 class MeasurementController:
