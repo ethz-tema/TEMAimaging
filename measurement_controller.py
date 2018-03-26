@@ -7,7 +7,7 @@ import logging
 
 
 class LineScan:
-    def __init__(self, spot_size, spot_count, direction, shot_count=1):
+    def __init__(self, spot_size, spot_count, direction, shot_count=1, cleaning=False):
         self.spot_size = spot_size
         self.spot_count = spot_count
         self.direction = math.radians(direction)
@@ -16,6 +16,7 @@ class LineScan:
         self.trigger = None
         self.stage = None
         self._skip_move = True
+        self._cleaning = cleaning
 
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: laser_compex.CompexLaserProtocol
@@ -40,13 +41,13 @@ class LineScan:
 
     def next_shot(self):
         if self.spot_count > 0:
-            self.trigger.go_and_wait()
+            self.trigger.go_and_wait(self._cleaning)
             return True
         return False
 
 
 class RectangleScan:
-    def __init__(self, x_size, y_size, spot_size, direction, shot_count=1):
+    def __init__(self, x_size, y_size, spot_size, direction, shot_count=1, cleaning=False):
         self.x_steps = int(x_size / spot_size)
         self.y_steps = int(y_size / spot_size)
         self.spot_size = spot_size
@@ -58,6 +59,7 @@ class RectangleScan:
         self._curr_step = 0
         self._backwards = False
         self._steps = self.x_steps * self.y_steps
+        self._cleaning = cleaning
 
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: laser_compex.CompexLaserProtocol
@@ -66,7 +68,7 @@ class RectangleScan:
         self.stage = stage
 
     def next_move(self):
-        self.trigger.go_and_wait()
+        self.trigger.go_and_wait(self._cleaning)
 
         if self._curr_step + 1 == self._steps:
             return False
@@ -97,7 +99,7 @@ class RectangleScan:
 
 
 class Engraver:
-    def __init__(self, spot_size, shot_count, image):
+    def __init__(self, spot_size, shot_count, image, cleaning=False):
         self.spot_size = spot_size
         self.shot_count = shot_count
         self.image = image
@@ -107,6 +109,7 @@ class Engraver:
         self.stage = None
         self._dist_list = []
         self._curr_step = 0
+        self._cleaning = cleaning
         self.init_steps()
 
     def set_instruments(self, laser, trigger, stage):
@@ -154,7 +157,7 @@ class Engraver:
             axes_moved.append(MCSAxis.Y)
         self.stage.wait_until_status(axes_moved)
 
-        self.trigger.go_and_wait()
+        self.trigger.go_and_wait(self._cleaning)
         self._curr_step += 1
 
         return True

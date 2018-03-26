@@ -85,11 +85,17 @@ class ArduinoTriggerProtocol(serial.threaded.LineReader):
     def go(self):
         self.command('G')
 
-    def go_and_wait(self):
+    def go_and_wait(self, cleaning=False):
+        if cleaning:
+            self.single_shot()
+            time.sleep(200 / 1000)  # TODO: make this configurable
         self.command('G')
         self.done = False
         while not self.done:
             pass
+
+    def single_shot(self):
+        self.command_with_response('I')
 
     def start_trigger(self):
         self.cease_continuous_run.clear()
