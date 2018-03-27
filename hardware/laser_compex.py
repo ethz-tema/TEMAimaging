@@ -27,7 +27,7 @@ class OpMode(enum.Enum):
     ENERGY_CAL = 'ENERGY CAL'
 
 
-class Trigger(enum.Enum):
+class TriggerModes(enum.Enum):
     INT = 'INT'
     EXT = 'EXT'
 
@@ -131,7 +131,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         data = self.command_with_response('TRIGGER?')
 
         try:
-            return Trigger(data)
+            return TriggerModes(data)
         except ValueError:
             return None
 
