@@ -22,7 +22,7 @@ class RectangleScan:
 
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: laser_compex.CompexLaserProtocol
-        self.trigger = trigger  # type: arduino_trigger.ArduinoTriggerProtocol
+        self.trigger = trigger  # type: arduino_trigger.ArduTrigger
         self.trigger.set_count(self.shot_count)
         self.stage = stage
 

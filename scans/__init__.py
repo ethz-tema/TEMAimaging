@@ -9,7 +9,7 @@ from mcs_stage import MCSStage, MCSError
 class MeasurementController:
     def __init__(self, laser, trigger, stage):
         self.laser = laser  # type: laser_compex.CompexLaserProtocol
-        self.trigger = trigger  # type: arduino_trigger.ArduinoTriggerProtocol
+        self.trigger = trigger  # type: arduino_trigger.ArduTrigger
         self.stage = stage  # type: MCSStage
 
     def start_scan(self, scan):

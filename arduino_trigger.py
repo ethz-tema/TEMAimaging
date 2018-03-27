@@ -5,11 +5,11 @@ import time
 import serial.threaded
 
 
-class ArduinoTriggerProtocol(serial.threaded.LineReader):
+class ArduTrigger(serial.threaded.LineReader):
     TERMINATOR = b'\n'
 
     def __init__(self):
-        super(ArduinoTriggerProtocol, self).__init__()
+        super(ArduTrigger, self).__init__()
         self.alive = True
         self.responses = queue.Queue()
         self.lock = threading.Lock()
