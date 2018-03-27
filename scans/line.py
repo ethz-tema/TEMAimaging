@@ -1,8 +1,8 @@
 import math
 
-import arduino_trigger
-import laser_compex
-from mcs_stage import MCSAxis
+from hardware.arduino_trigger import ArduTrigger
+from hardware.laser_compex import CompexLaserProtocol
+from hardware.mcs_stage import MCSAxis
 
 
 class LineScan:
@@ -18,8 +18,8 @@ class LineScan:
         self._cleaning = cleaning
 
     def set_instruments(self, laser, trigger, stage):
-        self.laser = laser  # type: laser_compex.CompexLaserProtocol
-        self.trigger = trigger  # type: arduino_trigger.ArduTrigger
+        self.laser = laser  # type: CompexLaserProtocol
+        self.trigger = trigger  # type: ArduTrigger
         self.trigger.set_count(self.shot_count)
         self.stage = stage
 

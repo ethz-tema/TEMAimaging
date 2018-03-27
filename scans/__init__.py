@@ -1,15 +1,15 @@
 import logging
 import threading
 
-import arduino_trigger
-import laser_compex
-from mcs_stage import MCSStage, MCSError
+from hardware.mcs_stage import MCSStage, MCSError
+from hardware.arduino_trigger import ArduTrigger
+from hardware.laser_compex import CompexLaserProtocol
 
 
 class MeasurementController:
     def __init__(self, laser, trigger, stage):
-        self.laser = laser  # type: laser_compex.CompexLaserProtocol
-        self.trigger = trigger  # type: arduino_trigger.ArduTrigger
+        self.laser = laser  # type: CompexLaserProtocol
+        self.trigger = trigger  # type: ArduTrigger
         self.stage = stage  # type: MCSStage
 
     def start_scan(self, scan):
