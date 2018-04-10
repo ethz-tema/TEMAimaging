@@ -98,7 +98,7 @@ class MCSError(Exception):
 
 ffi = FFI()
 try:
-    ffi.cdef(open('mcs.cdef', 'r').read())
+    ffi.cdef(open('hardware/mcs.cdef', 'r').read())
     lib = ffi.dlopen('libmcscontrol.so')
 except error.FFIError:
     pass
