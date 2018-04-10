@@ -3,10 +3,15 @@ import time
 import schedule
 import serial
 import urwid
+import signal
 
-from arduino_trigger import ArduinoTriggerProtocol
-from laser_compex import OpMode, Trigger, CompexLaserProtocol
+from hardware.arduino_trigger import ArduTrigger
+from hardware.laser_compex import OpMode, TriggerModes, CompexLaserProtocol
 from scheduler import MyScheduler
+from hardware.mcs_stage import MCSStage, MCSAxis
+from scans import MeasurementController, rectangle, engraver
+from hardware.shutter import Shutter, AIODevice
+from PIL import Image
 
 
 class MyOverlay(urwid.Overlay):
@@ -166,12 +171,13 @@ class LaserDisplay:
         self.ldap = None
         self.data_manager = None
         self.opmode_group = []
+        self.shutter_group = []
         self.trigger_group = []
         self.energy_mode_group = []
         self.curr_op_mode = urwid.Text('Operation mode: OFF')
         self.laser_ver_text = urwid.Text('Not connected')
         self.curr_opmode = OpMode.OFF
-        self.curr_trigger_mode = Trigger.INT
+        self.curr_trigger_mode = TriggerModes.INT
         self.reprate_edit = urwid.Edit(('edit', 'Rate (Hz):'))
         self.counts_edit = urwid.Edit(('edit', 'Counts:'))
         self.curr_reprate = 0
@@ -184,20 +190,33 @@ class LaserDisplay:
         self.curr_enegry_text = urwid.Text('Energy: 0 mJ')
         self.curr_reprate_text = urwid.Text('Rate: 0 Hz')
         self.curr_counts_text = urwid.Text('Count: 0')
-        self.shoot_freq_edit = urwid.Edit(('edit', "Shot freq. (Hz): "), edit_text='10')
+        self.shoot_freq_edit = urwid.Edit(('edit', "Shot freq. (Hz): "), edit_text='100')
         self.shoot_count_edit = urwid.Edit(('edit', "Shot count: "), edit_text='10')
         self.shoot_rep_edit = urwid.Edit(('edit', 'Shot repetitions count: '), edit_text='10')
         self.shoot_rep_pause_edit = urwid.Edit(('edit', "Pause between reps. (ms): "), edit_text='100')
         self.shoot_count_text = urwid.Text("Curr. shots count: 0")
-        ser_laser = serial.serial_for_url('/dev/ttyUSB0', timeout=1)
+        ser_laser = serial.serial_for_url('/dev/ttyUSB1', timeout=1)
         self.laser_thread = serial.threaded.ReaderThread(ser_laser, CompexLaserProtocol)
         self.laser_thread.start()
         transport, self.laser_conn = self.laser_thread.connect()
 
+        #self.shutter_con = Shutter(AIODevice(), 24)
+
         ser_trigger = serial.serial_for_url('/dev/ttyACM0', timeout=1, baudrate=19200)
-        self.trigger_thread = serial.threaded.ReaderThread(ser_trigger, ArduinoTriggerProtocol)
+        self.trigger_thread = serial.threaded.ReaderThread(ser_trigger, ArduTrigger)
         self.trigger_thread.start()
         transport, self.trigger_conn = self.trigger_thread.connect()
+
+        self.stage = MCSStage('usb:ix:0')
+        self.stage.open_mcs()
+        self.stage.find_references()
+        self.stage.set_position_limit(MCSAxis.X, -25000000, 25000000)
+        self.stage.set_position_limit(MCSAxis.Y, -34000000, 35400000)
+        self.stage.set_position_limit(MCSAxis.Z, -750000, 2700000)
+        self.stage.move(MCSAxis.Z, 888000)
+
+        self.meas_ctrl = MeasurementController(self.laser_conn, self.trigger_conn, self.stage)
+        self.stop_scan_event = None
 
     def main(self):
         self.view = self.setup_view()
@@ -220,6 +239,11 @@ class LaserDisplay:
                 urwid.Text("Operation mode"),
                 MyRadioButton(self.opmode_group, 'Off', on_state_change=self.op_mode_changed, user_data=OpMode.OFF),
                 MyRadioButton(self.opmode_group, 'On', on_state_change=self.op_mode_changed, user_data=OpMode.ON)
+            ]),
+            urwid.Pile([
+                urwid.Text("Shutter"),
+                MyRadioButton(self.shutter_group, 'Closed', on_state_change=self.shutter_changed, user_data=False),
+                MyRadioButton(self.shutter_group, 'Open', on_state_change=self.shutter_changed, user_data=True)
             ])
         ])
         op_mode_box = urwid.LineBox(op_mode_panel)
@@ -227,12 +251,12 @@ class LaserDisplay:
         fire_mode_panel = urwid.Columns([
             urwid.Pile([
                 urwid.Columns([
-                    urwid.Text("Trigger:"),
+                    urwid.Text("TriggerModes:"),
                     urwid.Pile([
                         MyRadioButton(self.trigger_group, "Internal", on_state_change=self.trigger_changed,
-                                      user_data=Trigger.INT),
+                                      user_data=TriggerModes.INT),
                         MyRadioButton(self.trigger_group, "External", on_state_change=self.trigger_changed,
-                                      user_data=Trigger.EXT)
+                                      user_data=TriggerModes.EXT)
                     ])
                 ]),
                 self.reprate_edit,
@@ -291,16 +315,28 @@ class LaserDisplay:
         ])
         shoot_box = urwid.LineBox(shoot_panel)
 
-        cols = urwid.Filler(urwid.Pile([op_mode_box, fire_mode_box, shoot_box, status_box]))
+        scan_panel = urwid.Pile([
+            urwid.Text(('header', 'Scan settings'), 'center'),
+            urwid.Divider(),
+            urwid.Button('Set & Start', self.button_press, 'scan_set_start'),
+            urwid.Button('Stop', self.button_press, 'scan_stop'),
+        ])
+        scan_box = urwid.LineBox(scan_panel)
+
+        cols = urwid.Filler(urwid.Pile([op_mode_box, fire_mode_box, shoot_box, status_box, scan_box]))
 
         box = urwid.LineBox(cols)
-        footer = urwid.Columns([urwid.Text('F12 - Close'), self.laser_ver_text])
+        footer = urwid.Columns([urwid.Button('F12 - Close', self.button_press, 'quit'), self.laser_ver_text])
         frame = urwid.Frame(body=box, footer=footer)
 
         return frame
 
     def op_mode_changed(self, radio, new_state, data):
         self.laser_conn.opmode = data
+
+    def shutter_changed(self, radio, new_state, data):
+        pass
+        #self.shutter_con.set(data)
 
     def trigger_changed(self, radio, new_state, data):
         self.laser_conn.trigger = data
@@ -313,7 +349,7 @@ class LaserDisplay:
             self.opmode_group[0].set_state(True, do_callback=False)
 
         self.curr_trigger_mode = self.laser_conn.trigger
-        if self.curr_trigger_mode == Trigger.INT:
+        if self.curr_trigger_mode == TriggerModes.INT:
             self.trigger_group[0].set_state(True, do_callback=False)
         else:
             self.trigger_group[1].set_state(True, do_callback=False)
@@ -336,8 +372,11 @@ class LaserDisplay:
             # Go back, restore saved widgets from previous screen.
             del self.loop.Widget
         elif data == 'quit':
+            self.quit_prompt()
+        elif data == 'really_quit':
             self.laser_conn.stop()
             self.trigger_conn.stop()
+            self.stage.close_mcs()
             raise urwid.ExitMainLoop()
         elif data == 'fire_set':
             self.laser_conn.reprate = int(self.reprate_edit.edit_text)
@@ -353,13 +392,29 @@ class LaserDisplay:
             self.trigger_conn.start_trigger()
         elif data == 'shoot_stop':
             self.trigger_conn.stop_trigger()
+        elif data == 'scan_set_start':
+            self.trigger_conn.set_freq(self.shoot_freq_edit.edit_text)
+            time.sleep(0.1)
+            self.trigger_conn.set_count(self.shoot_count_edit.edit_text)
+            self.trigger_conn.rep_sleep_time = 0
+            time.sleep(0.1)
+            #scan = measurement_controller.LineScan(44 * 1e-6, 10, 45, 10)
+            image = Image.open('eth_logo.jpg').convert(mode='1').resize((400, 65))
+            scan = engraver.Engraver(60 * 1e-6, 7, image)
+            #scan = rectangle.RectangleScan(60 * 1e-5, 120 * 1e-6, 60 * 1e-6, 60, 10, False)
+            #rectangle.MCSAxis()
+            self.stop_scan_event = self.meas_ctrl.start_scan(scan)
+        elif data == 'scan_stop':
+            if self.stop_scan_event:
+                self.stop_scan_event.set()
+                self.stop_scan_event = None
 
     def quit_prompt(self):
         """Pop-up window that appears when you try to quit."""
         # Nothing fancy here.
         question = urwid.Text(("bold", "Really quit?"), "center")
         yes_btn = urwid.AttrMap(urwid.Button(
-            "Yes", self.button_press, "quit"), "error", None)
+            "Yes", self.button_press, "really_quit"), "error", None)
         no_btn = urwid.AttrMap(urwid.Button(
             "No", self.button_press, "back"), "ok", None)
 
@@ -378,12 +433,20 @@ class LaserDisplay:
         if key == 'f12':
             self.quit_prompt()
             return True
+        elif key == 'q':
+            self.quit_prompt()
+            return True
 
         return True
 
+    def handle_signal(self, signum, frame):
+        self.button_press(None, 'really_quit')
+
 
 def main():
-    LaserDisplay().main()
+    display = LaserDisplay()
+    signal.signal(signal.SIGINT, display.handle_signal)
+    display.main()
 
 
 if __name__ == '__main__':
