@@ -119,35 +119,35 @@ class StagePanel(wx.Panel):
 
     def init_ui(self):
         stage_move_xp = wx.Button(self)
-        stage_move_xp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD))
+        stage_move_xp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
         stage_move_xp.SetMinSize((40, 40))
 
         stage_move_xn = wx.Button(self)
-        stage_move_xn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_BACK))
+        stage_move_xn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
         stage_move_xn.SetMinSize((40, 40))
 
         stage_move_yp = wx.Button(self)
-        stage_move_yp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
+        stage_move_yp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_BACK))
         stage_move_yp.SetMinSize((40, 40))
 
         stage_move_yn = wx.Button(self)
-        stage_move_yn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
+        stage_move_yn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD))
         stage_move_yn.SetMinSize((40, 40))
 
         stage_focus_cp = wx.Button(self)
-        stage_focus_cp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
+        stage_focus_cp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
         stage_focus_cp.SetMinSize((40, 40))
 
         stage_focus_cn = wx.Button(self)
-        stage_focus_cn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
+        stage_focus_cn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
         stage_focus_cn.SetMinSize((40, 40))
 
         stage_focus_fp = wx.Button(self)
-        stage_focus_fp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
+        stage_focus_fp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
         stage_focus_fp.SetMinSize((30, 40))
 
         stage_focus_fn = wx.Button(self)
-        stage_focus_fn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
+        stage_focus_fn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
         stage_focus_fn.SetMinSize((30, 40))
 
         self.speed_slider.SetMinSize((200, 51))
@@ -156,14 +156,14 @@ class StagePanel(wx.Panel):
 
         button_sizer = wx.GridBagSizer(0, 0)
 
-        button_sizer.Add(stage_move_xp, (1, 2))
-        button_sizer.Add(stage_move_xn, (1, 0))
-        button_sizer.Add(stage_move_yp, (0, 1))
-        button_sizer.Add(stage_move_yn, (2, 1))
-        button_sizer.Add(stage_focus_cp, (0, 3), flag=wx.LEFT, border=10)
-        button_sizer.Add(stage_focus_cn, (2, 3), flag=wx.LEFT, border=10)
-        button_sizer.Add(stage_focus_fp, (0, 4), flag=wx.LEFT, border=2)
-        button_sizer.Add(stage_focus_fn, (2, 4), flag=wx.LEFT, border=2)
+        button_sizer.Add(stage_move_xp, (2, 1))
+        button_sizer.Add(stage_move_xn, (0, 1))
+        button_sizer.Add(stage_move_yp, (1, 0))
+        button_sizer.Add(stage_move_yn, (1, 2))
+        button_sizer.Add(stage_focus_cp, (2, 3), flag=wx.LEFT, border=10)
+        button_sizer.Add(stage_focus_cn, (0, 3), flag=wx.LEFT, border=10)
+        button_sizer.Add(stage_focus_fp, (2, 4), flag=wx.LEFT, border=2)
+        button_sizer.Add(stage_focus_fn, (0, 4), flag=wx.LEFT, border=2)
 
         button_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Focus", style=wx.ALIGN_CENTER), (1, 3), (1, 2),
                          wx.ALIGN_CENTER | wx.LEFT, border=10)
