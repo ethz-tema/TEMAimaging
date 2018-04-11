@@ -152,6 +152,7 @@ class StagePanel(wx.Panel):
 
         self.speed_slider.SetMinSize((200, 51))
         self.speed_slider.SetToolTip("XY Speed")
+        self.speed_slider.SetValue(10)
 
         button_sizer = wx.GridBagSizer(0, 0)
 
