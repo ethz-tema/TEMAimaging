@@ -7,6 +7,31 @@ from hardware.shutter import Shutter, AIODevice
 
 DEBUG = True
 
+laser_status_changed_event = wx.NewEventType()
+EVT_LASER_STATUS_CHANGED = wx.PyEventBinder(laser_status_changed_event, 1)
+
+
+class LaserStatusChangedEvent(wx.PyCommandEvent):
+    def __init__(self, evt_type, _id, status):
+        super().__init__(evt_type, _id)
+
+        self.status = status
+
+
+class LaserStatusPoller(wx.Timer):
+    def __init__(self, panel, laser, *args, **kw):
+        super().__init__(*args, **kw)
+        self._laser_panel = panel
+        self._laser = laser  # type: CompexLaserProtocol
+
+    def Notify(self):
+        if DEBUG:
+            wx.PostEvent(self._laser_panel,
+                         LaserStatusChangedEvent(laser_status_changed_event, self.GetId(), OpMode.OFF))
+        else:
+            wx.PostEvent(self._laser_panel,
+                     LaserStatusChangedEvent(laser_status_changed_event, self.GetId(), self._laser.opmode))
+
 
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
