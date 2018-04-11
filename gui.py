@@ -67,44 +67,78 @@ class LaserPanel(wx.Panel):
     def __init__(self, parent):
         super(LaserPanel, self).__init__(parent, wx.ID_ANY)
 
-        ser_laser = serial.serial_for_url('/dev/ttyUSB1', timeout=1)
-        self.laser_thread = serial.threaded.ReaderThread(ser_laser, CompexLaserProtocol)
-        self.laser_thread.start()
-        transport, self.laser = self.laser_thread.connect()
-        self.shutter = Shutter(AIODevice(), 24)
+        if not DEBUG:
+            ser_laser = serial.serial_for_url('/dev/ttyUSB0', timeout=1)
+            self.laser_thread = serial.threaded.ReaderThread(ser_laser, CompexLaserProtocol)
+            self.laser_thread.start()
+            transport, self.laser = self.laser_thread.connect()
+            self.shutter = Shutter(AIODevice(), 24)
+        else:
+            self.laser = None
+
+        self.laser_poller = LaserStatusPoller(self, self.laser)
+        self.laser_poller.Start(700)
+
+        self.Bind(EVT_LASER_STATUS_CHANGED, self.on_laser_status_changed)
+
+        self.laser_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Laser")
+        self.btn_laser_off = wx.Button(self.laser_box.GetStaticBox(), label="Off")
+        self.btn_laser_on = wx.Button(self.laser_box.GetStaticBox(), label="On")
 
         self.init_ui()
 
     def init_ui(self):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        btn_laser = wx.ToggleButton(self, label="Laser Off")
+        self.btn_laser_off.SetMinSize((40, 40))
+        self.btn_laser_on.SetMinSize((40, 40))
 
-        btn_shutter = wx.ToggleButton(self, label="Shutter Closed")
+        self.laser_box.Add(self.btn_laser_off, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
+        self.laser_box.Add(self.btn_laser_on, 0, wx.RIGHT, border=5)
 
-        main_sizer.Add(btn_laser, 0, wx.ALL, border=5)
-        main_sizer.Add(btn_shutter, 0, wx.ALL, border=5)
+        shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
 
-        self.Bind(wx.EVT_TOGGLEBUTTON, self.on_toggle_laser, btn_laser)
-        self.Bind(wx.EVT_TOGGLEBUTTON, self.on_toggle_shutter, btn_shutter)
+        btn_shutter_close = wx.Button(shutter_box.GetStaticBox(), label="Close")
+        btn_shutter_close.SetMinSize((40, 40))
+
+        btn_shutter_open = wx.Button(shutter_box.GetStaticBox(), label="Open")
+        btn_shutter_open.SetMinSize((40, 40))
+
+        shutter_box.Add(btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
+        shutter_box.Add(btn_shutter_open, 0, wx.RIGHT, border=5)
+
+        main_sizer.Add(self.laser_box, 0, wx.ALL, border=5)
+        main_sizer.Add(shutter_box, 0, wx.ALL, border=5)
+
+        self.Bind(wx.EVT_BUTTON, self.on_btn_laser_off, self.btn_laser_off)
+        self.Bind(wx.EVT_BUTTON, self.on_btn_laser_on, self.btn_laser_on)
+
+        self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_close, btn_shutter_close)
+        self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_open, btn_shutter_open)
 
         self.SetSizerAndFit(main_sizer)
 
-    def on_toggle_laser(self, e):
-        if e.EventObject.GetValue():
-            self.laser.opmode = OpMode.ON
-            e.EventObject.SetLabel("Laser On")
-        else:
-            self.laser.opmode = OpMode.OFF
-            e.EventObject.SetLabel("Laser Off")
+    def on_btn_laser_off(self, e):
+        self.laser.opmode = OpMode.OFF
 
-    def on_toggle_shutter(self, e):
-        if e.EventObject.GetValue():
-            self.shutter.set(True)
-            e.EventObject.SetLabel("Shutter Open")
+    def on_btn_laser_on(self, e):
+        self.laser.opmode = OpMode.ON
+
+    def on_btn_shutter_close(self, e):
+        self.shutter.set(False)
+
+    def on_btn_shutter_open(self, e):
+        self.shutter.set(True)
+
+    def on_laser_status_changed(self, e):
+        if e.status[0] == OpMode.ON:
+            self.btn_laser_on.SetBackgroundColour((0, 255, 0))
+            self.btn_laser_off.SetBackgroundColour(wx.NullColour)
+        elif e.status[0] == OpMode.OFF_WAIT:
+            self.btn_laser_on.SetBackgroundColour((255, 255, 0))
         else:
-            self.shutter.set(False)
-            e.EventObject.SetLabel("Shutter Closed")
+            self.btn_laser_on.SetBackgroundColour(wx.NullColour)
+            self.btn_laser_off.SetBackgroundColour(wx.NullColour)
 
 
 class StagePanel(wx.Panel):
