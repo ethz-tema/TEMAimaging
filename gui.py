@@ -1,14 +1,12 @@
 import serial
 import wx
+import wx.lib.pubsub.pub as pub
 
 from hardware.laser_compex import CompexLaserProtocol, OpMode
 from hardware.mcs_stage import MCSStage, MCSAxis
 from hardware.shutter import Shutter, AIODevice
 
 DEBUG = True
-
-laser_status_changed_event = wx.NewEventType()
-EVT_LASER_STATUS_CHANGED = wx.PyEventBinder(laser_status_changed_event, 1)
 
 
 class LaserStatusChangedEvent(wx.PyCommandEvent):
@@ -26,11 +24,9 @@ class LaserStatusPoller(wx.Timer):
 
     def Notify(self):
         if DEBUG:
-            wx.PostEvent(self._laser_panel,
-                         LaserStatusChangedEvent(laser_status_changed_event, self.GetId(), OpMode.OFF))
+            pub.sendMessage('laser.status_changed', status=(OpMode.ON,))
         else:
-            wx.PostEvent(self._laser_panel,
-                     LaserStatusChangedEvent(laser_status_changed_event, self.GetId(), self._laser.opmode))
+            pub.sendMessage('laser.status_changed', status=self._laser.opmode)
 
 
 class MainFrame(wx.Frame):
@@ -79,7 +75,7 @@ class LaserPanel(wx.Panel):
         self.laser_poller = LaserStatusPoller(self, self.laser)
         self.laser_poller.Start(700)
 
-        self.Bind(EVT_LASER_STATUS_CHANGED, self.on_laser_status_changed)
+        pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
 
         self.laser_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Laser")
         self.btn_laser_off = wx.Button(self.laser_box.GetStaticBox(), label="Off")
@@ -130,11 +126,11 @@ class LaserPanel(wx.Panel):
     def on_btn_shutter_open(self, e):
         self.shutter.set(True)
 
-    def on_laser_status_changed(self, e):
-        if e.status[0] == OpMode.ON:
+    def on_laser_status_changed(self, status):
+        if status[0] == OpMode.ON:
             self.btn_laser_on.SetBackgroundColour((0, 255, 0))
             self.btn_laser_off.SetBackgroundColour(wx.NullColour)
-        elif e.status[0] == OpMode.OFF_WAIT:
+        elif status[0] == OpMode.OFF_WAIT:
             self.btn_laser_on.SetBackgroundColour((255, 255, 0))
         else:
             self.btn_laser_on.SetBackgroundColour(wx.NullColour)
@@ -155,7 +151,7 @@ class StagePanel(wx.Panel):
 
         self.speed_slider = wx.Slider(self, minValue=1, maxValue=17, style=wx.SL_HORIZONTAL | wx.SL_LABELS)
 
-        self.speed_map = [None] * 18
+        self.speed_map = [1] * 18
         self.speed_map[1] = 1
         self.speed_map[2] = 200
         self.speed_map[3] = 500
