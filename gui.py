@@ -1,10 +1,9 @@
-import serial
 import wx
 import wx.lib.pubsub.pub as pub
 
 from hardware.laser_compex import CompexLaserProtocol, OpMode
-from hardware.mcs_stage import MCSStage, MCSAxis
-from hardware.shutter import Shutter, AIODevice
+from hardware.mcs_stage import MCSAxis
+from connection_mgr import conn_mgr, ConnectionManagerDialog
 
 DEBUG = True
 
@@ -29,6 +28,16 @@ class LaserStatusPoller(wx.Timer):
             pub.sendMessage('laser.status_changed', status=self._laser.opmode)
 
 
+class ShutterStatusPoller(wx.Timer):
+    def __init__(self, panel, shutter, *args, **kw):
+        super().__init__(*args, **kw)
+        self._laser_panel = panel
+        self._shutter = shutter
+
+    def Notify(self):
+            pub.sendMessage('shutter.status_changed', status=self._shutter.status)
+
+
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(MainFrame, self).__init__(*args, **kwargs)
@@ -37,12 +46,14 @@ class MainFrame(wx.Frame):
 
     def init_ui(self):
         file_menu = wx.Menu()
+        file_menu_conn_mgr = file_menu.Append(wx.ID_ANY, 'Connection Manager', 'Open connection manager')
         file_menu_close = file_menu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
 
         menubar = wx.MenuBar()
         menubar.Append(file_menu, '&File')
         self.SetMenuBar(menubar)
 
+        self.Bind(wx.EVT_MENU, self.on_connection_manager, file_menu_conn_mgr)
         self.Bind(wx.EVT_MENU, self.on_quit, file_menu_close)
 
         p = wx.Panel(self)
@@ -55,7 +66,15 @@ class MainFrame(wx.Frame):
         p.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)
 
+    def on_connection_manager(self, e):
+        dlg = ConnectionManagerDialog(self)
+        dlg.ShowModal()
+
     def on_quit(self, e):
+        conn_mgr.laser_disconnect()
+        conn_mgr.trigger_disconnect()
+        conn_mgr.shutter_disconnect()
+        conn_mgr.stage_disconnect()
         self.Close()
 
 
@@ -63,23 +82,21 @@ class LaserPanel(wx.Panel):
     def __init__(self, parent):
         super(LaserPanel, self).__init__(parent, wx.ID_ANY)
 
-        if not DEBUG:
-            ser_laser = serial.serial_for_url('/dev/ttyUSB0', timeout=1)
-            self.laser_thread = serial.threaded.ReaderThread(ser_laser, CompexLaserProtocol)
-            self.laser_thread.start()
-            transport, self.laser = self.laser_thread.connect()
-            self.shutter = Shutter(AIODevice(), 24)
-        else:
-            self.laser = None
+        self.laser_poller = None
+        self.shutter_poller = None
 
-        self.laser_poller = LaserStatusPoller(self, self.laser)
-        self.laser_poller.Start(700)
-
+        pub.subscribe(self.on_laser_connection_changed, 'laser.connection_changed')
         pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
+
+        pub.subscribe(self.on_shutter_connection_changed, 'shutter.connection_changed')
+        pub.subscribe(self.on_shutter_status_changed, 'shutter.status_changed')
 
         self.laser_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Laser")
         self.btn_laser_off = wx.Button(self.laser_box.GetStaticBox(), label="Off")
         self.btn_laser_on = wx.Button(self.laser_box.GetStaticBox(), label="On")
+
+        self.shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
+        self.btn_shutter_open = wx.Button(self.shutter_box.GetStaticBox(), label="Open")
 
         self.init_ui()
 
@@ -92,39 +109,43 @@ class LaserPanel(wx.Panel):
         self.laser_box.Add(self.btn_laser_off, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
         self.laser_box.Add(self.btn_laser_on, 0, wx.RIGHT, border=5)
 
-        shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
-
-        btn_shutter_close = wx.Button(shutter_box.GetStaticBox(), label="Close")
+        btn_shutter_close = wx.Button(self.shutter_box.GetStaticBox(), label="Close")
         btn_shutter_close.SetMinSize((40, 40))
 
-        btn_shutter_open = wx.Button(shutter_box.GetStaticBox(), label="Open")
-        btn_shutter_open.SetMinSize((40, 40))
+        self.btn_shutter_open.SetMinSize((40, 40))
 
-        shutter_box.Add(btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
-        shutter_box.Add(btn_shutter_open, 0, wx.RIGHT, border=5)
+        self.shutter_box.Add(btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
+        self.shutter_box.Add(self.btn_shutter_open, 0, wx.RIGHT, border=5)
 
         main_sizer.Add(self.laser_box, 0, wx.ALL, border=5)
-        main_sizer.Add(shutter_box, 0, wx.ALL, border=5)
+        main_sizer.Add(self.shutter_box, 0, wx.ALL, border=5)
 
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_off, self.btn_laser_off)
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_on, self.btn_laser_on)
 
         self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_close, btn_shutter_close)
-        self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_open, btn_shutter_open)
+        self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_open, self.btn_shutter_open)
 
         self.SetSizerAndFit(main_sizer)
 
     def on_btn_laser_off(self, e):
-        self.laser.opmode = OpMode.OFF
+        conn_mgr.laser.opmode = OpMode.OFF
 
     def on_btn_laser_on(self, e):
-        self.laser.opmode = OpMode.ON
+        conn_mgr.laser.opmode = OpMode.ON
 
     def on_btn_shutter_close(self, e):
-        self.shutter.set(False)
+        conn_mgr.shutter.close()
 
     def on_btn_shutter_open(self, e):
-        self.shutter.set(True)
+        conn_mgr.shutter.open()
+
+    def on_laser_connection_changed(self, connected):
+        if connected:
+            self.laser_poller = LaserStatusPoller(self, conn_mgr.laser)
+            self.laser_poller.Start(700)
+        else:
+            self.laser_poller.Stop()
 
     def on_laser_status_changed(self, status):
         if status[0] == OpMode.ON:
@@ -136,18 +157,23 @@ class LaserPanel(wx.Panel):
             self.btn_laser_on.SetBackgroundColour(wx.NullColour)
             self.btn_laser_off.SetBackgroundColour(wx.NullColour)
 
+    def on_shutter_connection_changed(self, connected):
+        if connected:
+            self.shutter_poller = ShutterStatusPoller(self, conn_mgr.shutter)
+            self.shutter_poller.Start(1000)
+        else:
+            self.shutter_poller.Stop()
+
+    def on_shutter_status_changed(self, status):
+        if status:
+            self.btn_shutter_open.SetBackgroundColour((0, 255, 0))
+        else:
+            self.btn_shutter_open.SetBackgroundColour(wx.NullColour)
+
 
 class StagePanel(wx.Panel):
     def __init__(self, parent):
         super(StagePanel, self).__init__(parent, wx.ID_ANY, style=wx.SUNKEN_BORDER)
-
-        self.stage = MCSStage('usb:ix:0')
-        if not DEBUG:
-            self.stage.open_mcs()
-            self.stage.find_references()
-            self.stage.set_position_limit(MCSAxis.X, -25000000, 25000000)
-            self.stage.set_position_limit(MCSAxis.Y, -34000000, 35400000)
-            self.stage.set_position_limit(MCSAxis.Z, -750000, 2700000)
 
         self.speed_slider = wx.Slider(self, minValue=1, maxValue=17, style=wx.SL_HORIZONTAL | wx.SL_LABELS)
 
@@ -240,13 +266,13 @@ class StagePanel(wx.Panel):
 
     def on_click_move(self, e, axis, direction):
         speed = self.speed_map[self.speed_slider.GetValue()]
-        self.stage.move(axis, speed * direction, relative=True)
+        conn_mgr.stage.move(axis, speed * direction, relative=True)
 
     def on_click_focus_c(self, e, direction):
-        self.stage.move(MCSAxis.Z, 10000 * direction, relative=True)
+        conn_mgr.stage.move(MCSAxis.Z, 10000 * direction, relative=True)
 
     def on_click_focus_f(self, e, direction):
-        self.stage.move(MCSAxis.Z, 100000 * direction, relative=True)
+        conn_mgr.stage.move(MCSAxis.Z, 100000 * direction, relative=True)
 
 
 class GeolasPyApp(wx.App):
