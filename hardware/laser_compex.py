@@ -77,12 +77,18 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         self.lock = threading.Lock()
         self._awaiting_response_for = None
 
+        self.connection_lost_cb = None
+
     def stop(self):
         """
         Stop the event processing thread, abort pending commands, if any.
         """
         self.alive = False
         self.responses.put('<exit>')  # TODO: ??
+
+    def connection_lost(self, exc):
+        if self.connection_lost_cb:
+            self.connection_lost_cb(exc)
 
     def handle_line(self, line):
         """
@@ -93,7 +99,10 @@ class CompexLaserProtocol(serial.threaded.LineReader):
     def command(self, command):
         """Send a command that doesn't respond"""
         with self.lock:  # ensure that just one thread is sending commands at once
-            self.write_line(command)
+            try:
+                self.write_line(command)
+            except serial.SerialException as exc:
+                self.connection_lost(exc)
 
     def command_with_response(self, command, response='', timeout=5):
         """
