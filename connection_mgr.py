@@ -4,7 +4,7 @@ import wx.lib.pubsub.pub as pub
 
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSStage, MCSAxis
-from hardware.shutter import Shutter, AIODevice
+from hardware.shutter import Shutter, AIODevice, ShutterException
 
 
 class ConnectionManager:
@@ -62,8 +62,11 @@ class ConnectionManager:
             self._shutter_device = AIODevice()
             try:
                 self._shutter_device.connect()
-            except:
+            except ShutterException:
                 return
+            finally:
+                self._shutter_device.disconnect()
+
             self.shutter = Shutter(self._shutter_device, 24)
 
             self.shutter_connected = True

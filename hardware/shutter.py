@@ -3,6 +3,10 @@ from AIOUSB import *
 MAX_DIO_BYTES = 32
 
 
+class ShutterException(Exception):
+    pass
+
+
 class Shutter:
     def __init__(self, dev, output):
         self.io_device = dev
@@ -33,7 +37,7 @@ class AIODevice:
         result = AIOUSB_Init()
         if result != AIOUSB_SUCCESS or AIOUSB_EnsureOpen(self.index) != AIOUSB_SUCCESS:
             self._connected = False
-            raise Exception(result)
+            raise ShutterException(result)
         self._connected = True
 
         DIO_ReadAllToDIOBuf(self.index, self.curr_status)
