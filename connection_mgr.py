@@ -2,6 +2,7 @@ import serial
 import wx
 import wx.lib.pubsub.pub as pub
 
+from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSStage, MCSAxis
 from hardware.shutter import Shutter, AIODevice, ShutterException
@@ -15,6 +16,7 @@ class ConnectionManager:
 
         self.trigger = None
         self.trigger_connected = False
+        self._trigger_thread = None
 
         self.shutter = None
         self.shutter_connected = False
@@ -49,11 +51,19 @@ class ConnectionManager:
 
     def trigger_connect(self):
         if not self.trigger_connected:
+            ser_trigger = serial.serial_for_url('/dev/ttyACM0', timeout=1, baudrate=19200)
+            self.trigger_thread = serial.threaded.ReaderThread(ser_trigger, ArduTrigger)
+            self.trigger_thread.start()
+
+            transport, self.trigger = self.trigger_thread.connect()
+
             self.trigger_connected = True
             pub.sendMessage('trigger.connection_changed', connected=True)
 
     def trigger_disconnect(self):
         if self.trigger_connected:
+            self._trigger_thread.stop()
+
             self.trigger_connected = False
             pub.sendMessage('trigger.connection_changed', connected=False)
 
