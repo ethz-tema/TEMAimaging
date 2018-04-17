@@ -139,8 +139,8 @@ class ConnectionManagerDialog(wx.Dialog):
         self.choice_stage_port = wx.Choice(self, wx.ID_ANY, choices=["usb:ix:0"])
         self.btn_stage_connect = wx.Button(self, wx.ID_ANY)
 
-        self.btn_save = wx.Button(self, wx.ID_SAVE, "Save")
-        self.btn_cancel = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        self.btn_save = wx.Button(self, wx.ID_SAVE)
+        self.btn_cancel = wx.Button(self, wx.ID_CANCEL)
 
         self.init_ui()
         self.Layout()
