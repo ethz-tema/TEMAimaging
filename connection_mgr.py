@@ -52,10 +52,10 @@ class ConnectionManager:
     def trigger_connect(self, port, rate):
         if not self.trigger_connected:
             ser_trigger = serial.serial_for_url(port, timeout=1, baudrate=rate)
-            self.trigger_thread = serial.threaded.ReaderThread(ser_trigger, ArduTrigger)
-            self.trigger_thread.start()
+            self._trigger_thread = serial.threaded.ReaderThread(ser_trigger, ArduTrigger)
+            self._trigger_thread.start()
 
-            transport, self.trigger = self.trigger_thread.connect()
+            transport, self.trigger = self._trigger_thread.connect()
 
             self.trigger_connected = True
             pub.sendMessage('trigger.connection_changed', connected=True)
@@ -139,12 +139,15 @@ class ConnectionManagerDialog(wx.Dialog):
         self.choice_stage_port = wx.Choice(self, wx.ID_ANY, choices=["usb:ix:0"])
         self.btn_stage_connect = wx.Button(self, wx.ID_ANY)
 
-        self.btn_close = wx.Button(self, wx.ID_ANY, "Close")
+        self.btn_save = wx.Button(self, wx.ID_SAVE, "Save")
+        self.btn_cancel = wx.Button(self, wx.ID_CANCEL, "Cancel")
 
         self.init_ui()
         self.Layout()
 
     def init_ui(self):
+        self.SetTitle("Connection Manager")
+
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         lbl_status_laser = wx.StaticText(self, wx.ID_ANY, "Status:")
@@ -174,10 +177,10 @@ class ConnectionManagerDialog(wx.Dialog):
         laser_grid_sizer.Add((0, 0), 0, 0, 0)
         laser_grid_sizer.Add((0, 0), 0, 0, 0)
         laser_grid_sizer.Add((0, 0), 0, 0, 0)
-        laser_grid_sizer.Add(self.btn_laser_connect, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_RIGHT, 0)
+        laser_grid_sizer.Add(self.btn_laser_connect, 0, 0, 0)
 
         laser_sizer.Add(laser_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(laser_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(laser_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Trigger
         trigger_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Trigger"), wx.VERTICAL)
@@ -197,7 +200,7 @@ class ConnectionManagerDialog(wx.Dialog):
         trigger_grid_sizer.Add(self.btn_trigger_connect, 0, 0, 0)
 
         trigger_sizer.Add(trigger_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(trigger_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(trigger_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Shutter
         shutter_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Shutter"), wx.VERTICAL)
@@ -215,11 +218,11 @@ class ConnectionManagerDialog(wx.Dialog):
         shutter_grid_sizer.Add((0, 0), 0, 0, 0)
         shutter_grid_sizer.Add((0, 0), 0, 0, 0)
         shutter_grid_sizer.Add((0, 0), 0, 0, 0)
-        shutter_grid_sizer.Add(self.btn_shutter_connect, 0, wx.ALIGN_RIGHT, 0)
+        shutter_grid_sizer.Add(self.btn_shutter_connect, 0, 0, 0)
         shutter_grid_sizer.AddGrowableCol(2)
 
         shutter_sizer.Add(shutter_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(shutter_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(shutter_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Stage
         stage_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Stage"), wx.VERTICAL)
@@ -236,13 +239,17 @@ class ConnectionManagerDialog(wx.Dialog):
         stage_grid_sizer.Add((0, 0), 0, 0, 0)
         stage_grid_sizer.Add((0, 0), 0, 0, 0)
         stage_grid_sizer.Add((0, 0), 0, 0, 0)
-        stage_grid_sizer.Add(self.btn_stage_connect, 0, wx.ALIGN_RIGHT, 0)
+        stage_grid_sizer.Add(self.btn_stage_connect, 0, 0, 0)
         stage_grid_sizer.AddGrowableCol(2)
 
         stage_sizer.Add(stage_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(stage_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(stage_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
-        sizer.Add(self.btn_close, 0, wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, 5)
+        # Buttons
+        sizer_buttons = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_buttons.Add(self.btn_save, 0, 0, 0)
+        sizer_buttons.Add(self.btn_cancel, 0, wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, 5)
+        sizer.Add(sizer_buttons, 0, wx.ALIGN_RIGHT, 0)
 
         self.choice_laser_port.SetSelection(0)
         self.choice_laser_rate.SetSelection(0)
@@ -261,6 +268,8 @@ class ConnectionManagerDialog(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.on_click_trigger, self.btn_trigger_connect)
         self.Bind(wx.EVT_BUTTON, self.on_click_shutter, self.btn_shutter_connect)
         self.Bind(wx.EVT_BUTTON, self.on_click_stage, self.btn_stage_connect)
+        self.Bind(wx.EVT_BUTTON, self.on_click_save, self.btn_save)
+        self.Bind(wx.EVT_BUTTON, self.on_click_cancel, self.btn_cancel)
 
         pub.subscribe(self.on_connection_changed_laser, 'laser.connection_changed')
         pub.subscribe(self.on_connection_changed_trigger, 'trigger.connection_changed')
@@ -269,6 +278,15 @@ class ConnectionManagerDialog(wx.Dialog):
 
         self.SetSizer(sizer)
         sizer.Fit(self)
+
+    # noinspection PyUnusedLocal
+    def on_click_cancel(self, e):
+        self.EndModal(wx.ID_CANCEL)
+
+    # noinspection PyUnusedLocal
+    def on_click_save(self, e):
+        # TODO: Implement saving settings (probably using SettingsManager)
+        self.EndModal(wx.ID_SAVE)
 
     # noinspection PyUnusedLocal
     def on_click_laser(self, e):
@@ -294,7 +312,8 @@ class ConnectionManagerDialog(wx.Dialog):
             conn_mgr.shutter_connect(self.num_shutter_output.GetValue())
 
     # noinspection PyUnusedLocal
-    def on_click_stage(self, e):
+    @staticmethod
+    def on_click_stage(e):
         if conn_mgr.stage_connected:
             conn_mgr.stage_disconnect()
         else:
