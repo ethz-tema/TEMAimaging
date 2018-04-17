@@ -252,41 +252,10 @@ class ConnectionManagerDialog(wx.Dialog):
 
         self.choice_stage_port.SetSelection(0)
 
-        if conn_mgr.laser_connected:
-            self.stxt_laser_status.SetLabel("Connected")
-            self.stxt_laser_status.SetForegroundColour(wx.Colour((0, 150, 0)))
-            self.btn_laser_connect.SetLabel("Disconnect")
-        else:
-            self.stxt_laser_status.SetLabel("Disconnected")
-            self.stxt_laser_status.SetForegroundColour(wx.Colour((255, 0, 0)))
-            self.btn_laser_connect.SetLabel("Connect")
-
-        if conn_mgr.trigger_connected:
-            self.stxt_trigger_status.SetLabel("Connected")
-            self.stxt_trigger_status.SetForegroundColour(wx.Colour((0, 150, 0)))
-            self.btn_trigger_connect.SetLabel("Disconnect")
-        else:
-            self.stxt_trigger_status.SetLabel("Disconnected")
-            self.stxt_trigger_status.SetForegroundColour(wx.Colour((255, 0, 0)))
-            self.btn_trigger_connect.SetLabel("Connect")
-
-        if conn_mgr.shutter_connected:
-            self.stxt_shutter_status.SetLabel("Connected")
-            self.stxt_shutter_status.SetForegroundColour(wx.Colour((0, 150, 0)))
-            self.btn_shutter_connect.SetLabel("Disconnect")
-        else:
-            self.stxt_shutter_status.SetLabel("Disconnected")
-            self.stxt_shutter_status.SetForegroundColour(wx.Colour((255, 0, 0)))
-            self.btn_shutter_connect.SetLabel("Connect")
-
-        if conn_mgr.stage_connected:
-            self.stxt_stage_status.SetLabel("Connected")
-            self.stxt_stage_status.SetForegroundColour(wx.Colour((0, 150, 0)))
-            self.btn_stage_connect.SetLabel("Disconnect")
-        else:
-            self.stxt_stage_status.SetLabel("Disconnected")
-            self.stxt_stage_status.SetForegroundColour(wx.Colour((255, 0, 0)))
-            self.btn_stage_connect.SetLabel("Connect")
+        self.on_connection_changed_laser(conn_mgr.laser_connected)
+        self.on_connection_changed_trigger(conn_mgr.trigger_connected)
+        self.on_connection_changed_shutter(conn_mgr.shutter_connected)
+        self.on_connection_changed_stage(conn_mgr.stage_connected)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_laser, self.btn_laser_connect)
         self.Bind(wx.EVT_BUTTON, self.on_click_trigger, self.btn_trigger_connect)
