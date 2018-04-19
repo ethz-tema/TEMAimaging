@@ -94,15 +94,220 @@ class MainFrame(wx.Frame):
         self.Close()
 
 
+class Param:
+    def __init__(self, step, key, value):
+        self.step = step
+        self.key = key
+        self.value = value
+
+
+class Step:
+    def __init__(self, name, params):
+        self.name = name
+        self.params = params
+        self.spot_size = 0
+        self.frequency = 0
+        self.shots_per_spot = 0
+        self.cleaning_shot = False
+
+
+class MeasurementViewModel(wx.dataview.PyDataViewModel):
+    def __init__(self):
+        super().__init__()
+
+        self.UseWeakRefs(True)
+
+        self.steps = [Step("Step 1", [Param("Step 1", "Key1", "2"), Param("Step 1", "Key2", "3")]), Step("Step 2", [Param("Step 2", "Key2", "4")])]
+
+    def GetColumnCount(self):
+        return 7
+
+    def GetColumnType(self, col):
+        mapper = {0: 'string', 1: 'PyObject', 2: 'PyObject', 3: 'PyObject', 4: 'PyObject', 5: 'PyObject', 6: 'PyObject'}
+        return mapper[col]
+
+    def HasContainerColumns(self, item):
+        return True
+
+    def GetChildren(self, item, children):
+        if not item:  # root node
+            for step in self.steps:
+                children.append(self.ObjectToItem(step))
+            return len(self.steps)
+
+        node = self.ItemToObject(item)
+        if isinstance(node, Step):
+            for param in node.params:
+                children.append(self.ObjectToItem(param))
+            return len(node.params)
+        return 0
+
+    def IsContainer(self, item):
+        if not item:  # root is container
+            return True
+
+        node = self.ItemToObject(item)
+        if isinstance(node, Step):
+            return True
+
+        return False
+
+    def GetParent(self, item):
+        if not item:
+            return wx.dataview.NullDataViewItem
+
+        node = self.ItemToObject(item)
+        if isinstance(node, Step):
+            return wx.dataview.NullDataViewItem
+        elif isinstance(node, Param):
+            for s in self.steps:
+                if s.name == node.step:
+                    return self.ObjectToItem(s)
+
+    def GetValue(self, item, col):
+        node = self.ItemToObject(item)
+
+        if isinstance(node, Step):
+            mapper = {0: node.name, 1: (False, ''), 2: (False, ''), 3: (True, str(node.spot_size)),
+                      4: (True, str(node.frequency)), 5: (True, str(node.shots_per_spot)),
+                      6: (True, node.cleaning_shot)}
+            return mapper[col]
+
+        elif isinstance(node, Param):
+            mapper = {0: "", 1: (True, str(node.key)), 2: (True, str(node.value)), 3: (False, ''), 4: (False, ''),
+                      5: (False, ''), 6: (False, False)}
+            return mapper[col]
+
+    def SetValue(self, variant, item, col):
+        node = self.ItemToObject(item)
+        if isinstance(node, Step):
+            if col == 3:
+                node.spot_size = int(variant)
+            if col == 4:
+                node.frequency = int(variant)
+            if col == 5:
+                node.shots_per_spot = int(variant)
+            if col == 6:
+                node.cleaning_shot = variant
+        return True
+
+
+class MyToggleRenderer(wx.dataview.DataViewCustomRenderer):
+    def __init__(self, *args, **kwargs):
+        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_ACTIVATABLE, *args, **kwargs)
+        self.value = None
+
+    def SetValue(self, value):
+        self.value = value
+        return True
+
+    def GetValue(self):
+        return False
+
+    def GetSize(self):
+        return wx.RendererNative.Get().GetCheckBoxSize(self.GetView())
+
+    def Render(self, cell, dc, state):
+        if not self.value[0]:
+            return True
+
+        flags = 0
+        if self.value[1]:
+            flags |= wx.CONTROL_CHECKED
+
+        wx.RendererNative.Get().DrawCheckBox(self.GetOwner().GetOwner(), dc, cell, flags)
+        return True
+
+    def ActivateCell(self, cell, model, item, col, mouseEvent):
+        if mouseEvent:
+            if not wx.Rect(self.GetSize()).Contains(mouseEvent.GetPosition()):
+                return False
+
+            model.ChangeValue(not self.value[1], item, col)
+            return True
+
+
+class MyTextRenderer(wx.dataview.DataViewCustomRenderer):
+    def __init__(self, *args, **kwargs):
+        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_EDITABLE, *args, **kwargs)
+        self.value = ""
+
+    def SetValue(self, value):
+        self.value = value
+        return True
+
+    def GetValue(self):
+        return False
+
+    def HasEditorCtrl(self):
+        return self.value[0]
+
+    def CreateEditorCtrl(self, parent, labelRect, value):
+        ctrl = wx.TextCtrl(parent,
+                           value=value[1],
+                           pos=labelRect.Position,
+                           size=labelRect.Size)
+
+        # select the text and put the caret at the end
+        ctrl.SetInsertionPointEnd()
+        ctrl.SelectAll()
+
+        return ctrl
+
+    def GetValueFromEditorCtrl(self, editor):
+        return editor.GetValue()
+
+    def Render(self, cell, dc, state):
+        if not self.value[0]:
+            return True
+
+        self.RenderText(self.value[1], 0, cell, dc, state)
+        return True
+
+    def GetSize(self):
+        if self.value[0] and self.value[1]:
+            return self.GetTextExtent(self.value[1])
+
+        return wx.Size(wx.dataview.DVC_DEFAULT_RENDERER_SIZE, wx.dataview.DVC_DEFAULT_RENDERER_SIZE)
+
+
 class MeasurementPanel(wx.Panel):
     def __init__(self, parent, *args, **kw):
         super(MeasurementPanel, self).__init__(parent, wx.ID_ANY, *args, **kw)
 
-        self.dvc = wx.dataview.DataViewCtrl(self, size=(600, 300),
+        self.dvc = wx.dataview.DataViewCtrl(self,
                                             style=wx.BORDER_THEME | wx.dataview.DV_ROW_LINES | wx.dataview.DV_VERT_RULES | wx.dataview.DV_MULTIPLE)
 
-        c1 = self.dvc.AppendTextColumn('Col1', 1, width=100)
-        c2 = self.dvc.AppendTextColumn('Col2', 2, width=100)
+        self.dvc.SetMinSize((700, 300))
+
+        self.dvc.AssociateModel(MeasurementViewModel())
+
+        c0 = self.dvc.AppendTextColumn('Step', 0)
+        c0.SetMinWidth(70)
+
+        c1 = wx.dataview.DataViewColumn('', MyTextRenderer(), 1, width=100)
+        c1.SetMinWidth(50)
+        self.dvc.AppendColumn(c1)
+
+        c2 = wx.dataview.DataViewColumn('', MyTextRenderer(), 2)
+        c2.SetMinWidth(50)
+        self.dvc.AppendColumn(c2)
+
+        c3 = wx.dataview.DataViewColumn('Spot Size', MyTextRenderer(), 3)
+        c3.SetMinWidth(50)
+        self.dvc.AppendColumn(c3)
+
+        c4 = wx.dataview.DataViewColumn('Frequency', MyTextRenderer(), 4)
+        c4.SetMinWidth(50)
+        self.dvc.AppendColumn(c4)
+
+        c5 = wx.dataview.DataViewColumn('Shots per Spot', MyTextRenderer(), 5, width=100)
+        c5.SetMinWidth(50)
+        self.dvc.AppendColumn(c5)
+
+        c6 = wx.dataview.DataViewColumn("Cleaning shot", MyToggleRenderer(), 6)
+        c6.SetMinWidth(50)
+        self.dvc.AppendColumn(c6)
 
         self.init_ui()
 
