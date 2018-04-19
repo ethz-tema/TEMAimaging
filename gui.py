@@ -1,4 +1,5 @@
 import wx
+import wx.dataview
 import wx.lib.pubsub.pub as pub
 
 from hardware.laser_compex import CompexLaserProtocol, OpMode
@@ -36,7 +37,7 @@ class ShutterStatusPoller(wx.Timer):
         self._shutter = shutter
 
     def Notify(self):
-            pub.sendMessage('shutter.status_changed', status=self._shutter.status)
+        pub.sendMessage('shutter.status_changed', status=self._shutter.status)
 
 
 class MainFrame(wx.Frame):
@@ -63,10 +64,17 @@ class MainFrame(wx.Frame):
         p = wx.Panel(self)
         laser = LaserPanel(p)
         stage = StagePanel(p)
+        measurement = MeasurementPanel(p)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(laser, 0, wx.ALL, border=5)
-        sizer.Add(stage, 0, wx.ALL, border=5)
+
+        vert_sizer = wx.BoxSizer(wx.VERTICAL)
+        vert_sizer.Add(laser, 0, wx.BOTTOM, border=5)
+        vert_sizer.Add(stage, 0, wx.ALL, border=0)
+
+        sizer.Add(measurement, 0, wx.ALL, border=5)
+        sizer.Add(vert_sizer, 0, wx.ALL, border=5)
+
         p.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)
 
@@ -84,6 +92,32 @@ class MainFrame(wx.Frame):
         conn_mgr.shutter_disconnect()
         conn_mgr.stage_disconnect()
         self.Close()
+
+
+class MeasurementPanel(wx.Panel):
+    def __init__(self, parent, *args, **kw):
+        super(MeasurementPanel, self).__init__(parent, wx.ID_ANY, *args, **kw)
+
+        self.dvc = wx.dataview.DataViewCtrl(self, size=(600, 300),
+                                            style=wx.BORDER_THEME | wx.dataview.DV_ROW_LINES | wx.dataview.DV_VERT_RULES | wx.dataview.DV_MULTIPLE)
+
+        c1 = self.dvc.AppendTextColumn('Col1', 1, width=100)
+        c2 = self.dvc.AppendTextColumn('Col2', 2, width=100)
+
+        self.init_ui()
+
+    def init_ui(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        btn_add_step = wx.Button(self, wx.ID_ANY, label="Add Step")
+        btn_sizer.Add(btn_add_step)
+
+        sizer.Add(self.dvc, 0, wx.EXPAND)
+        sizer.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, border=5)
+
+        self.SetSizerAndFit(sizer)
 
 
 class LaserPanel(wx.Panel):
@@ -125,8 +159,8 @@ class LaserPanel(wx.Panel):
         self.shutter_box.Add(btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
         self.shutter_box.Add(self.btn_shutter_open, 0, wx.RIGHT, border=5)
 
-        main_sizer.Add(self.laser_box, 0, wx.ALL, border=5)
-        main_sizer.Add(self.shutter_box, 0, wx.ALL, border=5)
+        main_sizer.Add(self.laser_box, 0, wx.BOTTOM, border=5)
+        main_sizer.Add(self.shutter_box, 0, wx.ALL, border=0)
 
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_off, self.btn_laser_off)
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_on, self.btn_laser_on)
