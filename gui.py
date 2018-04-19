@@ -4,6 +4,7 @@ import wx.lib.pubsub.pub as pub
 from hardware.laser_compex import CompexLaserProtocol, OpMode
 from hardware.mcs_stage import MCSAxis
 from connection_mgr import conn_mgr, ConnectionManagerDialog
+from settings_mgr import SettingsDialog
 
 DEBUG = True
 
@@ -47,13 +48,16 @@ class MainFrame(wx.Frame):
     def init_ui(self):
         file_menu = wx.Menu()
         file_menu_conn_mgr = file_menu.Append(wx.ID_ANY, 'Connection Manager', 'Open connection manager')
-        file_menu_close = file_menu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
+        file_menu_settings = file_menu.Append(wx.ID_PREFERENCES)
+        file_menu.Append(wx.ID_SEPARATOR)
+        file_menu_close = file_menu.Append(wx.ID_EXIT)
 
         menubar = wx.MenuBar()
         menubar.Append(file_menu, '&File')
         self.SetMenuBar(menubar)
 
         self.Bind(wx.EVT_MENU, self.on_connection_manager, file_menu_conn_mgr)
+        self.Bind(wx.EVT_MENU, self.on_settings, file_menu_settings)
         self.Bind(wx.EVT_MENU, self.on_quit, file_menu_close)
 
         p = wx.Panel(self)
@@ -68,6 +72,10 @@ class MainFrame(wx.Frame):
 
     def on_connection_manager(self, e):
         dlg = ConnectionManagerDialog(self)
+        dlg.ShowModal()
+
+    def on_settings(self, e):
+        dlg = SettingsDialog(self)
         dlg.ShowModal()
 
     def on_quit(self, e):
