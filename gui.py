@@ -2,9 +2,10 @@ import wx
 import wx.dataview
 import wx.lib.pubsub.pub as pub
 
+from connection_mgr import conn_mgr, ConnectionManagerDialog
 from hardware.laser_compex import CompexLaserProtocol, OpMode
 from hardware.mcs_stage import MCSAxis
-from connection_mgr import conn_mgr, ConnectionManagerDialog
+from scans import MeasurementController
 from settings_mgr import SettingsDialog
 
 DEBUG = True
@@ -64,6 +65,7 @@ class MainFrame(wx.Frame):
         p = wx.Panel(self)
         laser = LaserPanel(p)
         stage = StagePanel(p)
+        scan = ScanCtrlPanel(p)
         measurement = MeasurementPanel(p)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -71,6 +73,7 @@ class MainFrame(wx.Frame):
         vert_sizer = wx.BoxSizer(wx.VERTICAL)
         vert_sizer.Add(laser, 0, wx.BOTTOM, border=5)
         vert_sizer.Add(stage, 0, wx.ALL, border=0)
+        vert_sizer.Add(scan, 0, wx.ALL, border=0)
 
         sizer.Add(measurement, 0, wx.ALL, border=5)
         sizer.Add(vert_sizer, 0, wx.ALL, border=5)
@@ -95,15 +98,18 @@ class MainFrame(wx.Frame):
 
 
 class Param:
-    def __init__(self, step, key, value):
+    def __init__(self, step, key, key_name, value):
         self.step = step
         self.key = key
+        self.key_name = key_name  # Displayed in param list
         self.value = value
 
 
 class Step:
-    def __init__(self, name, params):
-        self.name = name
+    def __init__(self, index, scan_type, scan_type_str, params):
+        self.index = index
+        self.scan_type = scan_type
+        self.scan_type_str = scan_type_str
         self.params = params
         self.spot_size = 0
         self.frequency = 0
@@ -115,15 +121,16 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
     def __init__(self):
         super().__init__()
 
-        self.UseWeakRefs(True)
+        # self.UseWeakRefs(False)
 
-        self.steps = [Step("Step 1", [Param("Step 1", "Key1", "2"), Param("Step 1", "Key2", "3")]), Step("Step 2", [Param("Step 2", "Key2", "4")])]
+        self.steps = []
 
     def GetColumnCount(self):
-        return 7
+        return 8
 
     def GetColumnType(self, col):
-        mapper = {0: 'string', 1: 'PyObject', 2: 'PyObject', 3: 'PyObject', 4: 'PyObject', 5: 'PyObject', 6: 'PyObject'}
+        mapper = {0: 'string', 1: 'PyObject', 2: 'PyObject', 3: 'PyObject', 4: 'PyObject', 5: 'PyObject', 6: 'PyObject',
+                  7: 'PyObject'}
         return mapper[col]
 
     def HasContainerColumns(self, item):
@@ -137,7 +144,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
 
         node = self.ItemToObject(item)
         if isinstance(node, Step):
-            for param in node.params:
+            for param in node.params.values():
                 children.append(self.ObjectToItem(param))
             return len(node.params)
         return 0
@@ -161,34 +168,42 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             return wx.dataview.NullDataViewItem
         elif isinstance(node, Param):
             for s in self.steps:
-                if s.name == node.step:
+                if s.index == node.step:
                     return self.ObjectToItem(s)
 
     def GetValue(self, item, col):
         node = self.ItemToObject(item)
 
         if isinstance(node, Step):
-            mapper = {0: node.name, 1: (False, ''), 2: (False, ''), 3: (True, str(node.spot_size)),
-                      4: (True, str(node.frequency)), 5: (True, str(node.shots_per_spot)),
-                      6: (True, node.cleaning_shot)}
+            mapper = {0: str(node.index), 1: (True, False, node.scan_type_str), 2: (False, False, ''),
+                      3: (False, False, ''),
+                      4: (True, True, str(node.spot_size)),
+                      5: (True, True, str(node.frequency)), 6: (True, True, str(node.shots_per_spot)),
+                      7: (True, node.cleaning_shot)}
             return mapper[col]
 
         elif isinstance(node, Param):
-            mapper = {0: "", 1: (True, str(node.key)), 2: (True, str(node.value)), 3: (False, ''), 4: (False, ''),
-                      5: (False, ''), 6: (False, False)}
+            mapper = {0: "", 1: (False, False, ''), 2: (True, False, str(node.key_name)),
+                      3: (True, True, str(node.value)),
+                      4: (False, False, ''),
+                      5: (False, False, ''),
+                      6: (False, False, ''), 7: (False, False)}
             return mapper[col]
 
     def SetValue(self, variant, item, col):
         node = self.ItemToObject(item)
         if isinstance(node, Step):
-            if col == 3:
-                node.spot_size = int(variant)
             if col == 4:
-                node.frequency = int(variant)
+                node.spot_size = float(variant)
             if col == 5:
-                node.shots_per_spot = int(variant)
+                node.frequency = float(variant)
             if col == 6:
+                node.shots_per_spot = int(variant)
+            if col == 7:
                 node.cleaning_shot = variant
+        elif isinstance(node, Param):
+            if col == 3:
+                node.value = float(variant)
         return True
 
 
@@ -240,11 +255,11 @@ class MyTextRenderer(wx.dataview.DataViewCustomRenderer):
         return False
 
     def HasEditorCtrl(self):
-        return self.value[0]
+        return self.value[0] and self.value[1]
 
     def CreateEditorCtrl(self, parent, labelRect, value):
         ctrl = wx.TextCtrl(parent,
-                           value=value[1],
+                           value=value[2],
                            pos=labelRect.Position,
                            size=labelRect.Size)
 
@@ -261,53 +276,59 @@ class MyTextRenderer(wx.dataview.DataViewCustomRenderer):
         if not self.value[0]:
             return True
 
-        self.RenderText(self.value[1], 0, cell, dc, state)
+        self.RenderText(self.value[2], 0, cell, dc, state)
         return True
 
     def GetSize(self):
-        if self.value[0] and self.value[1]:
-            return self.GetTextExtent(self.value[1])
+        if self.value[0] and self.value[2]:
+            return self.GetTextExtent(self.value[2])
 
         return wx.Size(wx.dataview.DVC_DEFAULT_RENDERER_SIZE, wx.dataview.DVC_DEFAULT_RENDERER_SIZE)
 
 
 class MeasurementPanel(wx.Panel):
-    def __init__(self, parent, *args, **kw):
-        super(MeasurementPanel, self).__init__(parent, wx.ID_ANY, *args, **kw)
+    def __init__(self, parent, *args, **kwargs):
+        super(MeasurementPanel, self).__init__(parent, wx.ID_ANY, *args, **kwargs)
 
         self.dvc = wx.dataview.DataViewCtrl(self,
                                             style=wx.BORDER_THEME | wx.dataview.DV_ROW_LINES | wx.dataview.DV_VERT_RULES | wx.dataview.DV_MULTIPLE)
 
         self.dvc.SetMinSize((700, 300))
 
-        self.dvc.AssociateModel(MeasurementViewModel())
+        # self.model = MeasurementViewModel()
+
+        self.dvc.AssociateModel(measurement_model)
 
         c0 = self.dvc.AppendTextColumn('Step', 0)
         c0.SetMinWidth(70)
 
-        c1 = wx.dataview.DataViewColumn('', MyTextRenderer(), 1, width=100)
-        c1.SetMinWidth(50)
+        c1 = wx.dataview.DataViewColumn('Type', MyTextRenderer(), 1, width=100)
+        c1.SetMinWidth(100)
         self.dvc.AppendColumn(c1)
 
-        c2 = wx.dataview.DataViewColumn('', MyTextRenderer(), 2)
+        c2 = wx.dataview.DataViewColumn('', MyTextRenderer(), 2, width=100)
         c2.SetMinWidth(50)
         self.dvc.AppendColumn(c2)
 
-        c3 = wx.dataview.DataViewColumn('Spot Size', MyTextRenderer(), 3)
+        c3 = wx.dataview.DataViewColumn('', MyTextRenderer(), 3)
         c3.SetMinWidth(50)
         self.dvc.AppendColumn(c3)
 
-        c4 = wx.dataview.DataViewColumn('Frequency', MyTextRenderer(), 4)
+        c4 = wx.dataview.DataViewColumn('Spot Size', MyTextRenderer(), 4)
         c4.SetMinWidth(50)
         self.dvc.AppendColumn(c4)
 
-        c5 = wx.dataview.DataViewColumn('Shots per Spot', MyTextRenderer(), 5, width=100)
+        c5 = wx.dataview.DataViewColumn('Frequency', MyTextRenderer(), 5)
         c5.SetMinWidth(50)
         self.dvc.AppendColumn(c5)
 
-        c6 = wx.dataview.DataViewColumn("Cleaning shot", MyToggleRenderer(), 6)
+        c6 = wx.dataview.DataViewColumn('Shots per Spot', MyTextRenderer(), 6, width=100)
         c6.SetMinWidth(50)
         self.dvc.AppendColumn(c6)
+
+        c7 = wx.dataview.DataViewColumn("Cleaning shot", MyToggleRenderer(), 7)
+        c7.SetMinWidth(50)
+        self.dvc.AppendColumn(c7)
 
         self.init_ui()
 
@@ -322,7 +343,64 @@ class MeasurementPanel(wx.Panel):
         sizer.Add(self.dvc, 0, wx.EXPAND)
         sizer.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, border=5)
 
+        self.Bind(wx.EVT_BUTTON, self.on_click_add_step, btn_add_step)
+
         self.SetSizerAndFit(sizer)
+
+    def on_click_add_step(self, e):
+        dlg = AddScanDialog(self)
+        if dlg.ShowModal() == wx.ID_ADD:
+            scan_str = dlg.choice_scan_type.GetStringSelection()
+            scan_type = dlg.scan_choices[scan_str]
+
+            self.model = measurement_model
+            index = len(self.model.steps)
+            params = {k: Param(index, k, v[0], v[1]) for k, v in scan_type.parameter_map.items()}
+            step = Step(len(self.model.steps), scan_type, scan_str, params)
+            self.model.steps.append(step)
+            step_item = self.model.ObjectToItem(step)
+            self.model.ItemAdded(wx.dataview.NullDataViewItem, step_item)
+            for param in step.params.values():
+                self.model.ItemAdded(step_item, self.model.ObjectToItem(param))
+
+
+class AddScanDialog(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.scan_choices = {scan.__name__: scan
+                             for scan in MeasurementController.scan_types}
+        self.choice_scan_type = wx.Choice(self, wx.ID_ANY, choices=list(self.scan_choices))
+        self.btn_add = wx.Button(self, wx.ID_ADD, "")
+        self.btn_cancel = wx.Button(self, wx.ID_CANCEL, "")
+
+        self.init_ui()
+
+    def init_ui(self):
+        self.SetTitle("Add Scan")
+        self.choice_scan_type.SetSelection(0)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        choice_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_scan_type = wx.StaticText(self, wx.ID_ANY, "Scan Type:")
+        choice_sizer.Add(lbl_scan_type, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+        choice_sizer.Add(self.choice_scan_type, 0, wx.ALIGN_CENTER | wx.RIGHT, 5)
+        sizer.Add(choice_sizer, 1, wx.EXPAND, 0)
+
+        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer.Add(self.btn_add, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        btn_sizer.Add(self.btn_cancel, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.RIGHT | wx.TOP, 5)
+        sizer.Add(btn_sizer, 1, wx.EXPAND, 0)
+
+        self.Bind(wx.EVT_BUTTON, self.on_click_add, self.btn_add)
+
+        self.SetSizer(sizer)
+        sizer.Fit(self)
+        self.Layout()
+
+    def on_click_add(self, e):
+        self.EndModal(wx.ID_ADD)
 
 
 class LaserPanel(wx.Panel):
@@ -522,6 +600,39 @@ class StagePanel(wx.Panel):
         conn_mgr.stage.move(MCSAxis.Z, 100000 * direction, relative=True)
 
 
+class ScanCtrlPanel(wx.Panel):
+    def __init__(self, parent, *args, **kw):
+        super().__init__(parent, *args, **kw)
+
+        self.stop_event = None
+
+        self.init_ui()
+
+    def init_ui(self):
+        scan_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Scan")
+
+        btn_start_scan = wx.Button(self, wx.ID_ANY, 'Start')
+        btn_stop_scan = wx.Button(self, wx.ID_ANY, 'Stop')
+
+        scan_box.Add(btn_start_scan, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
+        scan_box.Add(btn_stop_scan, 0, wx.RIGHT, border=5)
+
+        self.Bind(wx.EVT_BUTTON, self.on_click_start_scan, btn_start_scan)
+        self.Bind(wx.EVT_BUTTON, self.on_click_stop_scan, btn_stop_scan)
+
+        self.SetSizerAndFit(scan_box)
+
+    def on_click_start_scan(self, e):
+        meas_ctlr = MeasurementController(None, None, None)
+        meas_ctlr.init_sequence(measurement_model.steps)
+
+        self.stop_event = meas_ctlr.start_sequence()
+
+    def on_click_stop_scan(self, e):
+        if self.stop_event:
+            self.stop_event.set()
+
+
 class GeolasPyApp(wx.App):
     def OnInit(self):
         frm = MainFrame(None, title="geolasPy", size=(700, 500))
@@ -529,6 +640,8 @@ class GeolasPyApp(wx.App):
         frm.Show()
         return True
 
+
+measurement_model = MeasurementViewModel()
 
 if __name__ == '__main__':
     GeolasPyApp(False).MainLoop()
