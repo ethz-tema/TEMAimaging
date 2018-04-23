@@ -6,12 +6,17 @@ from hardware.mcs_stage import MCSAxis
 
 
 class RectangleScan:
-    def __init__(self, x_size, y_size, spot_size, direction, shot_count=1, cleaning=False):
+    parameter_map = {'x_size': ('X Size', 0),
+                     'y_size': ('Y Size', 0),
+                     'direction': ('Direction', 0)}
+
+    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, x_size=1, y_size=1, direction=0):
         self.x_steps = int(x_size / spot_size)
         self.y_steps = int(y_size / spot_size)
         self.spot_size = spot_size
         self.direction = math.radians(direction)
         self.shot_count = shot_count
+        self.frequency = frequency
         self.laser = None
         self.trigger = None
         self.stage = None
@@ -20,10 +25,15 @@ class RectangleScan:
         self._steps = self.x_steps * self.y_steps
         self._cleaning = cleaning
 
+    @classmethod
+    def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
+        return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value, params['direction'].value)
+
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: CompexLaserProtocol
         self.trigger = trigger  # type: ArduTrigger
         self.trigger.set_count(self.shot_count)
+        self.trigger.set_freq(self.frequency)
         self.stage = stage
 
     def next_move(self):

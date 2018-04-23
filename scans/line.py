@@ -6,21 +6,30 @@ from hardware.mcs_stage import MCSAxis
 
 
 class LineScan:
-    def __init__(self, spot_size, spot_count, direction, shot_count=1, cleaning=False):
+    parameter_map = {'spot_count': ('Spot Count', 1),
+                     'direction': ('Direction', 0)}
+
+    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, spot_count=1, direction=0):
         self.spot_size = spot_size
         self.spot_count = spot_count
         self.direction = math.radians(direction)
         self.shot_count = shot_count
+        self.frequency = frequency
         self.laser = None
         self.trigger = None
         self.stage = None
         self._skip_move = True
         self._cleaning = cleaning
 
+    @classmethod
+    def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
+        return cls(spot_size, shot_count, frequency, cleaning, params['spot_count'].value, params['direction'].value)
+
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: CompexLaserProtocol
         self.trigger = trigger  # type: ArduTrigger
         self.trigger.set_count(self.shot_count)
+        self.trigger.set_freq(self.frequency)
         self.stage = stage
 
     def next_move(self):
