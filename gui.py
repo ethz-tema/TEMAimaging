@@ -62,6 +62,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_settings, file_menu_settings)
         self.Bind(wx.EVT_MENU, self.on_quit, file_menu_close)
 
+        self.Bind(wx.EVT_CLOSE, self.on_quit)
+
         p = wx.Panel(self)
         laser = LaserPanel(p)
         stage = StagePanel(p)
@@ -94,7 +96,7 @@ class MainFrame(wx.Frame):
         conn_mgr.trigger_disconnect()
         conn_mgr.shutter_disconnect()
         conn_mgr.stage_disconnect()
-        self.Close()
+        self.Destroy()
 
 
 class Param:
