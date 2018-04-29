@@ -2,27 +2,30 @@ import wx
 import wx.lib.pubsub.pub as pub
 
 from core.conn_mgr import conn_mgr
+from core.settings import Settings
 
 
 class ConnectionManagerDialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         super().__init__(parent, *args, **kw)
 
+        rate_choices = ['9600', '19200']
+
         # Laser
         self.stxt_laser_status = wx.StaticText(self, wx.ID_ANY)
         self.choice_laser_port = wx.ComboBox(self, wx.ID_ANY, choices=["/dev/ttyUSB0", "/dev/ttyUSB1"])
-        self.choice_laser_rate = wx.Choice(self, wx.ID_ANY, choices=["9600", "19200"])
+        self.choice_laser_rate = wx.Choice(self, wx.ID_ANY, choices=rate_choices)
         self.btn_laser_connect = wx.Button(self, wx.ID_ANY)
 
         # Trigger
         self.stxt_trigger_status = wx.StaticText(self, wx.ID_ANY)
         self.choice_trigger_port = wx.ComboBox(self, wx.ID_ANY, choices=["/dev/ttyACM0", "/dev/ttyACM1"])
-        self.choice_trigger_rate = wx.Choice(self, wx.ID_ANY, choices=["9600", "19200"])
+        self.choice_trigger_rate = wx.Choice(self, wx.ID_ANY, choices=rate_choices)
         self.btn_trigger_connect = wx.Button(self, wx.ID_ANY)
 
         # Shutter
         self.stxt_shutter_status = wx.StaticText(self, wx.ID_ANY)
-        self.num_shutter_output = wx.SpinCtrl(self, wx.ID_ANY, "24", min=1, max=32)
+        self.num_shutter_output = wx.SpinCtrl(self, wx.ID_ANY, min=1, max=32)
         self.btn_shutter_connect = wx.Button(self, wx.ID_ANY)
 
         # Stage
@@ -31,6 +34,7 @@ class ConnectionManagerDialog(wx.Dialog):
         self.btn_stage_connect = wx.Button(self, wx.ID_ANY)
 
         self.btn_save = wx.Button(self, wx.ID_SAVE)
+        self.btn_save.SetDefault()
         self.btn_cancel = wx.Button(self, wx.ID_CANCEL)
 
         self.init_ui()
@@ -50,8 +54,8 @@ class ConnectionManagerDialog(wx.Dialog):
         lbl_port_trigger = wx.StaticText(self, wx.ID_ANY, "Port:")
         lbl_port_stage = wx.StaticText(self, wx.ID_ANY, "Port:")
 
-        lbl_rate_laser = wx.StaticText(self, wx.ID_ANY, "Baud-Rate:")
-        lbl_rate_trigger = wx.StaticText(self, wx.ID_ANY, "Baud-Rate:")
+        lbl_rate_laser = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
+        lbl_rate_trigger = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
 
         def fill_sizer(s, count):
             for c in range(count):
@@ -131,13 +135,13 @@ class ConnectionManagerDialog(wx.Dialog):
         sizer_buttons.Realize()
         sizer.Add(sizer_buttons, 0, wx.ALIGN_RIGHT | wx.BOTTOM, 12)
 
-        self.choice_laser_port.SetSelection(0)
-        self.choice_laser_rate.SetSelection(0)
-
-        self.choice_trigger_port.SetSelection(0)
-        self.choice_trigger_rate.SetSelection(1)
-
-        self.choice_stage_port.SetSelection(0)
+        self.choice_laser_port.SetValue(Settings.get('laser.conn.port'))
+        self.choice_laser_rate.SetSelection(self.choice_laser_rate.FindString(str(Settings.get('laser.conn.rate'))))
+        self.choice_trigger_port.SetValue(Settings.get('trigger.conn.port'))
+        self.choice_trigger_rate.SetSelection(
+            self.choice_trigger_rate.FindString(str(Settings.get('trigger.conn.rate'))))
+        self.num_shutter_output.SetValue(Settings.get('shutter.output'))
+        self.choice_stage_port.SetValue(Settings.get('stage.conn.port'))
 
         self.on_connection_changed_laser(conn_mgr.laser_connected)
         self.on_connection_changed_trigger(conn_mgr.trigger_connected)
@@ -165,7 +169,17 @@ class ConnectionManagerDialog(wx.Dialog):
 
     # noinspection PyUnusedLocal
     def on_click_save(self, e):
-        # TODO: Implement saving settings (probably using SettingsManager)
+        Settings.set('laser.conn.port', self.choice_laser_port.GetValue())
+        Settings.set('laser.conn.rate', int(self.choice_laser_rate.GetStringSelection()))
+
+        Settings.set('trigger.conn.port', self.choice_trigger_port.GetValue())
+        Settings.set('trigger.conn.rate', int(self.choice_trigger_rate.GetStringSelection()))
+
+        Settings.set('shutter.output', self.num_shutter_output.GetValue())
+
+        Settings.set('stage.conn.port', self.choice_stage_port.GetValue())
+        Settings.save()
+
         self.EndModal(wx.ID_SAVE)
 
     # noinspection PyUnusedLocal

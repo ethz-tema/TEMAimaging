@@ -1,4 +1,16 @@
+laser:
+  conn:
+    port: /dev/ttyUSB0
+    rate: 9600
+trigger:
+  conn:
+    port: /dev/ttyACM0
+    rate: 19200
+shutter:
+  output: 24
 stage:
+  conn:
+    port: usb:ix:0
   pos_limit:
     X:
       min: -25000000
