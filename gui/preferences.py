@@ -1,13 +1,12 @@
 import wx
-
-
-class SettingsManager:
-    pass
+from core.settings import Settings
 
 
 class PreferencesBaseDialog(wx.Dialog):
     def __init__(self, parent, *args, **kw):
         super().__init__(parent, *args, **kw)
+
+        self.ctrl_map = {}
 
         self.notebook = wx.Notebook(self, wx.ID_ANY)
 
@@ -41,10 +40,24 @@ class PreferencesBaseDialog(wx.Dialog):
         sizer.Fit(self)
 
     def on_save(self, e):
-        pass
+        self._update_settings()
+        Settings.save()
 
     def on_apply(self, e):
         pass
+
+    def _update_settings(self):
+        for key, ctrl in self.ctrl_map.items():
+            if hasattr(ctrl, 'GetValue'):
+                value = ctrl.GetValue()
+            elif hasattr(ctrl, 'GetSelection'):
+                value = ctrl.GetSelection()
+            elif hasattr(ctrl, 'IsChecked'):
+                value = ctrl.IsChecked
+            else:
+                raise TypeError('No method found to get value from settings control')
+
+            Settings.set(key, value)
 
 
 class PreferencesDialog(PreferencesBaseDialog):
@@ -70,16 +83,46 @@ class PreferencesDialog(PreferencesBaseDialog):
         grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Maximum"), 0, wx.ALIGN_CENTER, 0)
 
         grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "X"), 0, wx.ALIGN_CENTER, 0)
-        grid_sizer.Add(wx.SpinCtrl(panel, wx.ID_ANY, "-25000000", min=-30000000, max=3000000), 0, 0, 0)
-        grid_sizer.Add(wx.SpinCtrl(panel, wx.ID_ANY, "25000000", min=-30000000, max=30000000), 0, 0, 0)
+
+        value = Settings.get('stage.pos_limit.X.min')
+        ctrl = wx.SpinCtrl(panel, wx.ID_ANY, min=-30000000, max=3000000)
+        ctrl.SetValue(value)
+        self.ctrl_map['stage.pos_limit.X.min'] = ctrl
+        grid_sizer.Add(ctrl, 0, 0, 0)
+
+        value = Settings.get('stage.pos_limit.X.max')
+        ctrl = wx.SpinCtrl(panel, wx.ID_ANY, min=-30000000, max=30000000)
+        ctrl.SetValue(value)
+        self.ctrl_map['stage.pos_limit.X.max'] = ctrl
+        grid_sizer.Add(ctrl, 0, 0, 0)
 
         grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Y"), 0, wx.ALIGN_CENTER, 0)
-        grid_sizer.Add(wx.SpinCtrl(panel, wx.ID_ANY, "-34000000", min=-40000000, max=40000000), 0, 0, 0)
-        grid_sizer.Add(wx.SpinCtrl(panel, wx.ID_ANY, "35400000", min=-40000000, max=40000000), 0, 0, 0)
+
+        value = Settings.get('stage.pos_limit.Y.min')
+        ctrl = wx.SpinCtrl(panel, wx.ID_ANY, min=-40000000, max=40000000)
+        ctrl.SetValue(value)
+        self.ctrl_map['stage.pos_limit.Y.min'] = ctrl
+        grid_sizer.Add(ctrl, 0, 0, 0)
+
+        value = Settings.get('stage.pos_limit.Y.max')
+        ctrl = wx.SpinCtrl(panel, wx.ID_ANY, min=-40000000, max=40000000)
+        ctrl.SetValue(value)
+        self.ctrl_map['stage.pos_limit.Y.max'] = ctrl
+        grid_sizer.Add(ctrl, 0, 0, 0)
 
         grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Z"), 0, wx.ALIGN_CENTER, 0)
-        grid_sizer.Add(wx.SpinCtrl(panel, wx.ID_ANY, "-750000", min=-800000, max=3000000), 0, 0, 0)
-        grid_sizer.Add(wx.SpinCtrl(panel, wx.ID_ANY, "2700000", min=-800000, max=3000000), 0, 0, 0)
+
+        value = Settings.get('stage.pos_limit.Z.min')
+        ctrl = wx.SpinCtrl(panel, wx.ID_ANY, min=-800000, max=3000000)
+        ctrl.SetValue(value)
+        self.ctrl_map['stage.pos_limit.Z.min'] = ctrl
+        grid_sizer.Add(ctrl, 0, 0, 0)
+
+        value = Settings.get('stage.pos_limit.Z.max')
+        ctrl = wx.SpinCtrl(panel, wx.ID_ANY, min=-800000, max=3000000)
+        ctrl.SetValue(value)
+        self.ctrl_map['stage.pos_limit.Z.max'] = ctrl
+        grid_sizer.Add(ctrl, 0, 0, 0)
 
         sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
