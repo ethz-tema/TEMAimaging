@@ -41,7 +41,7 @@ class PreferencesBaseDialog(wx.Dialog):
     def on_save(self, e):
         self._update_settings()
         Settings.save()
-        self.Close()
+        self.EndModal(wx.ID_SAVE)
 
     def _update_settings(self):
         for key, ctrl in self.ctrl_map.items():
