@@ -87,9 +87,9 @@ class ConnectionManager:
             self.shutter_connected = False
             pub.sendMessage('shutter.connection_changed', connected=False)
 
-    def stage_connect(self):
+    def stage_connect(self, port):
         if not self.stage_connected:
-            self.stage = MCSStage('usb:ix:0')
+            self.stage = MCSStage(port)
             self.stage.open_mcs()
 
             self.stage.open_mcs()

@@ -10,13 +10,13 @@ class ConnectionManagerDialog(wx.Dialog):
 
         # Laser
         self.stxt_laser_status = wx.StaticText(self, wx.ID_ANY)
-        self.choice_laser_port = wx.Choice(self, wx.ID_ANY, choices=["/dev/ttyUSB0", "/dev/ttyUSB1"])
+        self.choice_laser_port = wx.ComboBox(self, wx.ID_ANY, choices=["/dev/ttyUSB0", "/dev/ttyUSB1"])
         self.choice_laser_rate = wx.Choice(self, wx.ID_ANY, choices=["9600", "19200"])
         self.btn_laser_connect = wx.Button(self, wx.ID_ANY)
 
         # Trigger
         self.stxt_trigger_status = wx.StaticText(self, wx.ID_ANY)
-        self.choice_trigger_port = wx.Choice(self, wx.ID_ANY, choices=["/dev/ttyACM0", "/dev/ttyACM1"])
+        self.choice_trigger_port = wx.ComboBox(self, wx.ID_ANY, choices=["/dev/ttyACM0", "/dev/ttyACM1"])
         self.choice_trigger_rate = wx.Choice(self, wx.ID_ANY, choices=["9600", "19200"])
         self.btn_trigger_connect = wx.Button(self, wx.ID_ANY)
 
@@ -27,7 +27,7 @@ class ConnectionManagerDialog(wx.Dialog):
 
         # Stage
         self.stxt_stage_status = wx.StaticText(self, wx.ID_ANY)
-        self.choice_stage_port = wx.Choice(self, wx.ID_ANY, choices=["usb:ix:0"])
+        self.choice_stage_port = wx.ComboBox(self, wx.ID_ANY, choices=["usb:ix:0"])
         self.btn_stage_connect = wx.Button(self, wx.ID_ANY)
 
         self.btn_save = wx.Button(self, wx.ID_SAVE)
@@ -173,7 +173,7 @@ class ConnectionManagerDialog(wx.Dialog):
         if conn_mgr.laser_connected:
             conn_mgr.laser_disconnect()
         else:
-            conn_mgr.laser_connect(self.choice_laser_port.GetStringSelection(),
+            conn_mgr.laser_connect(self.choice_laser_port.GetValue(),
                                    self.choice_laser_rate.GetStringSelection())
 
     # noinspection PyUnusedLocal
@@ -181,7 +181,7 @@ class ConnectionManagerDialog(wx.Dialog):
         if conn_mgr.trigger_connected:
             conn_mgr.trigger_disconnect()
         else:
-            conn_mgr.trigger_connect(self.choice_trigger_port.GetStringSelection(),
+            conn_mgr.trigger_connect(self.choice_trigger_port.GetValue(),
                                      self.choice_trigger_rate.GetStringSelection())
 
     # noinspection PyUnusedLocal
@@ -192,12 +192,11 @@ class ConnectionManagerDialog(wx.Dialog):
             conn_mgr.shutter_connect(self.num_shutter_output.GetValue())
 
     # noinspection PyUnusedLocal
-    @staticmethod
-    def on_click_stage(e):
+    def on_click_stage(self, e):
         if conn_mgr.stage_connected:
             conn_mgr.stage_disconnect()
         else:
-            conn_mgr.stage_connect()
+            conn_mgr.stage_connect(self.choice_stage_port.GetValue())
 
     def on_connection_changed_laser(self, connected):
         if connected:
