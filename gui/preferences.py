@@ -50,7 +50,7 @@ class PreferencesBaseDialog(wx.Dialog):
             elif hasattr(ctrl, 'GetSelection'):
                 value = ctrl.GetSelection()
             elif hasattr(ctrl, 'IsChecked'):
-                value = ctrl.IsChecked
+                value = ctrl.IsChecked()
             else:
                 raise TypeError('No method found to get value from settings control')
 

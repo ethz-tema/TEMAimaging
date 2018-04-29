@@ -53,25 +53,26 @@ class ConnectionManagerDialog(wx.Dialog):
         lbl_rate_laser = wx.StaticText(self, wx.ID_ANY, "Baud-Rate:")
         lbl_rate_trigger = wx.StaticText(self, wx.ID_ANY, "Baud-Rate:")
 
+        def fill_sizer(s, count):
+            for c in range(count):
+                s.Add((0, 0), 0, 0, 0)
+
         # Laser
         laser_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Laser"), wx.VERTICAL)
         laser_grid_sizer = wx.FlexGridSizer(3, 4, 5, 5)
 
         laser_grid_sizer.Add(lbl_status_laser, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         laser_grid_sizer.Add(self.stxt_laser_status, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        laser_grid_sizer.Add((0, 0), 0, 0, 0)
-        laser_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(laser_grid_sizer, 2)
         laser_grid_sizer.Add(lbl_port_laser, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         laser_grid_sizer.Add(self.choice_laser_port, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         laser_grid_sizer.Add(lbl_rate_laser, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         laser_grid_sizer.Add(self.choice_laser_rate, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        laser_grid_sizer.Add((0, 0), 0, 0, 0)
-        laser_grid_sizer.Add((0, 0), 0, 0, 0)
-        laser_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(laser_grid_sizer, 3)
         laser_grid_sizer.Add(self.btn_laser_connect, 0, 0, 0)
 
         laser_sizer.Add(laser_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(laser_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(laser_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
         # Trigger
         trigger_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Trigger"), wx.VERTICAL)
@@ -79,19 +80,16 @@ class ConnectionManagerDialog(wx.Dialog):
 
         trigger_grid_sizer.Add(lbl_status_trigger, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         trigger_grid_sizer.Add(self.stxt_trigger_status, 0, 0, 0)
-        trigger_grid_sizer.Add((0, 0), 0, 0, 0)
-        trigger_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(trigger_grid_sizer, 2)
         trigger_grid_sizer.Add(lbl_port_trigger, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         trigger_grid_sizer.Add(self.choice_trigger_port, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         trigger_grid_sizer.Add(lbl_rate_trigger, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         trigger_grid_sizer.Add(self.choice_trigger_rate, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        trigger_grid_sizer.Add((0, 0), 0, 0, 0)
-        trigger_grid_sizer.Add((0, 0), 0, 0, 0)
-        trigger_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(trigger_grid_sizer, 3)
         trigger_grid_sizer.Add(self.btn_trigger_connect, 0, 0, 0)
 
         trigger_sizer.Add(trigger_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(trigger_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(trigger_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
         # Shutter
         shutter_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Shutter"), wx.VERTICAL)
@@ -99,21 +97,16 @@ class ConnectionManagerDialog(wx.Dialog):
 
         shutter_grid_sizer.Add(lbl_status_shutter, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         shutter_grid_sizer.Add(self.stxt_shutter_status, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        shutter_grid_sizer.Add((0, 0), 0, 0, 0)
-        shutter_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(shutter_grid_sizer, 2)
         lbl_output = wx.StaticText(self, wx.ID_ANY, "Output:")
         shutter_grid_sizer.Add(lbl_output, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         shutter_grid_sizer.Add(self.num_shutter_output, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        shutter_grid_sizer.Add((0, 0), 0, 0, 0)
-        shutter_grid_sizer.Add((0, 0), 0, 0, 0)
-        shutter_grid_sizer.Add((0, 0), 0, 0, 0)
-        shutter_grid_sizer.Add((0, 0), 0, 0, 0)
-        shutter_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(shutter_grid_sizer, 5)
         shutter_grid_sizer.Add(self.btn_shutter_connect, 0, 0, 0)
         shutter_grid_sizer.AddGrowableCol(2)
 
         shutter_sizer.Add(shutter_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(shutter_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(shutter_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
         # Stage
         stage_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Stage"), wx.VERTICAL)
@@ -121,26 +114,22 @@ class ConnectionManagerDialog(wx.Dialog):
 
         stage_grid_sizer.Add(lbl_status_stage, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         stage_grid_sizer.Add(self.stxt_stage_status, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        stage_grid_sizer.Add((0, 0), 0, 0, 0)
-        stage_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(stage_grid_sizer, 2)
         stage_grid_sizer.Add(lbl_port_stage, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         stage_grid_sizer.Add(self.choice_stage_port, 0, 0, 0)
-        stage_grid_sizer.Add((0, 0), 0, 0, 0)
-        stage_grid_sizer.Add((0, 0), 0, 0, 0)
-        stage_grid_sizer.Add((0, 0), 0, 0, 0)
-        stage_grid_sizer.Add((0, 0), 0, 0, 0)
-        stage_grid_sizer.Add((0, 0), 0, 0, 0)
+        fill_sizer(stage_grid_sizer, 5)
         stage_grid_sizer.Add(self.btn_stage_connect, 0, 0, 0)
         stage_grid_sizer.AddGrowableCol(2)
 
         stage_sizer.Add(stage_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(stage_sizer, 0, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(stage_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
         # Buttons
-        sizer_buttons = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_buttons.Add(self.btn_save, 0, 0, 0)
-        sizer_buttons.Add(self.btn_cancel, 0, wx.ALIGN_RIGHT | wx.BOTTOM | wx.LEFT | wx.RIGHT, 5)
-        sizer.Add(sizer_buttons, 0, wx.ALIGN_RIGHT, 0)
+        sizer_buttons = wx.StdDialogButtonSizer()
+        sizer_buttons.AddButton(self.btn_save)
+        sizer_buttons.AddButton(self.btn_cancel)
+        sizer_buttons.Realize()
+        sizer.Add(sizer_buttons, 0, wx.ALIGN_RIGHT | wx.BOTTOM, 12)
 
         self.choice_laser_port.SetSelection(0)
         self.choice_laser_rate.SetSelection(0)
