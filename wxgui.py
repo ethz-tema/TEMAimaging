@@ -6,9 +6,9 @@ from connection_mgr import conn_mgr, ConnectionManagerDialog
 from hardware.laser_compex import CompexLaserProtocol, OpMode
 from hardware.mcs_stage import MCSAxis
 from scans import MeasurementController
-from settings_mgr import SettingsDialog
+from gui.preferences import PreferencesDialog
 
-DEBUG = True
+DEBUG = False
 
 
 class LaserStatusChangedEvent(wx.PyCommandEvent):
@@ -88,7 +88,7 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
 
     def on_settings(self, e):
-        dlg = SettingsDialog(self)
+        dlg = PreferencesDialog(self)
         dlg.ShowModal()
 
     def on_quit(self, e):
