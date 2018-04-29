@@ -19,9 +19,13 @@ class SettingsDialog(wx.Dialog):
         self.num_stage_z_min = wx.SpinCtrl(self.nb_settings_stage, wx.ID_ANY, "-750000", min=-800000, max=3000000)
         self.num_stage_z_max = wx.SpinCtrl(self.nb_settings_stage, wx.ID_ANY, "2700000", min=-800000, max=3000000)
 
-        self.btn_ok = wx.Button(self, wx.ID_OK)
+        self.btn_save = wx.Button(self, wx.ID_SAVE)
         self.btn_apply = wx.Button(self, wx.ID_APPLY)
         self.btn_cancel = wx.Button(self, wx.ID_CANCEL)
+        self.btn_save.SetDefault()
+
+        self.btn_save.Bind(wx.EVT_BUTTON, self.on_save)
+        self.btn_apply.Bind(wx.EVT_BUTTON, self.on_apply)
 
         self.init_ui()
 
@@ -60,11 +64,19 @@ class SettingsDialog(wx.Dialog):
         sizer.Add(self.nb_settings, 5, wx.ALL | wx.EXPAND, 5)
 
         # Buttons
-        btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        btn_sizer.Add(self.btn_ok, 0, wx.ALIGN_BOTTOM | wx.RIGHT, 5)
-        btn_sizer.Add(self.btn_apply, 0, wx.ALIGN_BOTTOM | wx.RIGHT, 5)
-        btn_sizer.Add(self.btn_cancel, 0, wx.ALIGN_BOTTOM, 5)
+        btn_sizer = wx.StdDialogButtonSizer()
+        btn_sizer.AddButton(self.btn_cancel)
+        btn_sizer.AddButton(self.btn_save)
+        btn_sizer.AddButton(self.btn_apply)
+        btn_sizer.Realize()
+
         sizer.Add(btn_sizer, 1, wx.ALIGN_RIGHT | wx.ALL, 5)
 
         self.SetSizer(sizer)
         sizer.Fit(self)
+
+    def on_save(self, e):
+        pass
+
+    def on_apply(self, e):
+        pass
