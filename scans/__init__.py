@@ -1,12 +1,12 @@
 import logging
 import threading
 
-from hardware.mcs_stage import MCSStage, MCSError
+from gui.conn_mgr import conn_mgr
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
+from hardware.mcs_stage import MCSStage, MCSError
 from scans.line import LineScan
 from scans.rectangle import RectangleScan
-from connection_mgr import conn_mgr
 
 
 class MeasurementController:

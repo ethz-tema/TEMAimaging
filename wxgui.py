@@ -2,7 +2,8 @@ import wx
 import wx.dataview
 import wx.lib.pubsub.pub as pub
 
-from connection_mgr import conn_mgr, ConnectionManagerDialog
+from core.conn_mgr import conn_mgr
+from gui.conn_mgr import ConnectionManagerDialog
 from gui.dialogs import AddScanDialog
 from gui.preferences import PreferencesDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
