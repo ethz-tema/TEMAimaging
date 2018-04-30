@@ -27,9 +27,9 @@ class AddScanDialog(wx.Dialog):
         sizer.Add(choice_sizer, 1, wx.EXPAND, 0)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        btn_sizer.Add(self.btn_add, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        btn_sizer.Add(self.btn_cancel, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.RIGHT | wx.TOP, 5)
-        sizer.Add(btn_sizer, 1, wx.EXPAND, 0)
+        btn_sizer.Add(self.btn_cancel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
+        btn_sizer.Add(self.btn_add, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.RIGHT | wx.TOP, 5)
+        sizer.Add(btn_sizer, 1, wx.ALIGN_RIGHT, 0)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_add, self.btn_add)
 
