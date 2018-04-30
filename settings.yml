@@ -21,3 +21,4 @@ stage:
     Z:
       min: -750000
       max: 2700000
+  find_ref_on_connect: true

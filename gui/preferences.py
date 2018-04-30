@@ -73,6 +73,18 @@ class PreferencesDialog(PreferencesBaseDialog):
 
         border = wx.BoxSizer(wx.VERTICAL)
 
+        sizer = wx.StaticBoxSizer(wx.StaticBox(panel, wx.ID_ANY, "General"),
+                                  wx.HORIZONTAL)
+        grid_sizer = wx.GridBagSizer(hgap=3, vgap=3)
+
+        ctrl = wx.CheckBox(panel, wx.ID_ANY, 'Find position references when connection is established')
+        ctrl.SetValue(Settings.get('stage.find_ref_on_connect'))
+        self.ctrl_map['stage.find_ref_on_connect'] = ctrl
+        grid_sizer.Add(ctrl, pos=(0, 0), span=(1, 2))
+
+        sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
+        border.Add(sizer, 0, wx.ALL | wx.EXPAND, 10)
+
         sizer = wx.StaticBoxSizer(wx.StaticBox(panel, wx.ID_ANY, "Position Limits"),
                                   wx.HORIZONTAL)
         grid_sizer = wx.FlexGridSizer(4, 3, 5, 5)

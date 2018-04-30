@@ -1,6 +1,7 @@
 import serial
 from wx.lib.pubsub import pub
 
+from core.settings import Settings
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSStage, MCSAxis
@@ -92,11 +93,15 @@ class ConnectionManager:
             self.stage = MCSStage(port)
             self.stage.open_mcs()
 
-            self.stage.open_mcs()
-            self.stage.find_references()
-            self.stage.set_position_limit(MCSAxis.X, -25000000, 25000000)
-            self.stage.set_position_limit(MCSAxis.Y, -34000000, 35400000)
-            self.stage.set_position_limit(MCSAxis.Z, -750000, 2700000)
+            if Settings.get('stage.find_ref_on_connect'):
+                self.stage.find_references()
+
+            self.stage.set_position_limit(MCSAxis.X, Settings.get('stage.pos_limit.X.min'),
+                                          Settings.get('stage.pos_limit.X.max'))
+            self.stage.set_position_limit(MCSAxis.Y, Settings.get('stage.pos_limit.Y.min'),
+                                          Settings.get('stage.pos_limit.Y.max'))
+            self.stage.set_position_limit(MCSAxis.Z, Settings.get('stage.pos_limit.Z.min'),
+                                          Settings.get('stage.pos_limit.Z.max'))
 
             self.stage_connected = True
             pub.sendMessage('stage.connection_changed', connected=True)
