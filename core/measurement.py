@@ -1,3 +1,5 @@
+import copy
+
 import wx
 import wx.dataview
 
@@ -28,7 +30,11 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
 
         # self.UseWeakRefs(False)
 
-        self.steps = []
+        self._steps = []
+
+    @property
+    def steps(self):
+        return copy.deepcopy(self._steps)
 
     def GetColumnCount(self):
         return 8
@@ -43,9 +49,9 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
 
     def GetChildren(self, item, children):
         if not item:  # root node
-            for step in self.steps:
+            for step in self._steps:
                 children.append(self.ObjectToItem(step))
-            return len(self.steps)
+            return len(self._steps)
 
         node = self.ItemToObject(item)
         if isinstance(node, Step):
@@ -72,7 +78,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         if isinstance(node, Step):
             return wx.dataview.NullDataViewItem
         elif isinstance(node, Param):
-            for s in self.steps:
+            for s in self._steps:
                 if s.index == node.step:
                     return self.ObjectToItem(s)
 
@@ -114,10 +120,10 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
     def delete_step(self, item):
         node = self.ItemToObject(item)
         if isinstance(node, Step):
-            self.steps.remove(node)
+            self._steps.remove(node)
             self.ItemDeleted(wx.dataview.NullDataViewItem, item)
-            for i in range(len(self.steps)):
-                step = self.steps[i]
+            for i in range(len(self._steps)):
+                step = self._steps[i]
                 if step.index != i:
                     step.index = i
                     self.ItemChanged(self.ObjectToItem(step))
@@ -127,10 +133,10 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                         self.ItemChanged(self.ObjectToItem(p))
 
     def append_step(self, type, name):
-        index = len(self.steps)
+        index = len(self._steps)
         params = {k: Param(index, k, v[0], v[1]) for k, v in type.parameter_map.items()}
-        step = Step(len(self.steps), type, name, params)
-        self.steps.append(step)
+        step = Step(len(self._steps), type, name, params)
+        self._steps.append(step)
         step_item = self.ObjectToItem(step)
         self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
         for param in step.params.values():
