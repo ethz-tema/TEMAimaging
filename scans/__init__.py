@@ -10,7 +10,7 @@ from scans.rectangle import RectangleScan
 
 
 class MeasurementController:
-    scan_types = [LineScan, RectangleScan]
+    scan_types = {"Line Scan": LineScan, "Rectangle Scan": RectangleScan}
 
     def __init__(self, laser, trigger, stage):
         self.laser = laser  # type: CompexLaserProtocol

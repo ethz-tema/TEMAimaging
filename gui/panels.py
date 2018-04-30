@@ -3,13 +3,42 @@ import wx.dataview
 from wx.lib.pubsub import pub
 
 from core.conn_mgr import conn_mgr
-from core.measurement import measurement_model, Param, Step
+from core.measurement import measurement_model, Step
 from core.utils import LaserStatusPoller, ShutterStatusPoller
 from gui.dialogs import AddScanDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
 from hardware.laser_compex import OpMode
 from hardware.mcs_stage import MCSAxis
 from scans import MeasurementController
+
+
+class MeasurementDVContextMenu(wx.Menu):
+    def __init__(self, dvc, dv_item, *args, **kw):
+        super().__init__(*args, **kw)
+
+        self.dvc = dvc
+
+        menu_item = self.Append(wx.ID_ADD, "Add step")
+        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
+
+        menu_item = self.Append(wx.ID_DELETE, "Delete")
+        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
+
+        menu_item = self.Append(wx.ID_ANY, "Set position")
+        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_set_position(e, item), menu_item)
+
+    def on_click_add(self, e, item):
+        print("on_click_add {}".format(item))
+
+    def on_click_delete(self, e, item):
+        node = self.dvc.GetModel().ItemToObject(item)
+        if isinstance(node, Step):
+            self.dvc.GetModel().delete_step(node)
+            self.dvc.GetModel().ItemDeleted(wx.dataview.NullDataViewItem, item)
+
+    def on_click_set_position(self, e, item):
+        # TODO: Implement
+        print("on_click_set_position")
 
 
 class MeasurementPanel(wx.Panel):
@@ -70,6 +99,7 @@ class MeasurementPanel(wx.Panel):
         sizer.Add(btn_sizer, 0, wx.TOP | wx.ALIGN_RIGHT, border=5)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_add_step, btn_add_step)
+        self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_context_menu)
 
         self.SetSizerAndFit(sizer)
 
@@ -77,17 +107,16 @@ class MeasurementPanel(wx.Panel):
         dlg = AddScanDialog(self)
         if dlg.ShowModal() == wx.ID_ADD:
             scan_str = dlg.choice_scan_type.GetStringSelection()
-            scan_type = dlg.scan_choices[scan_str]
+            scan_type = MeasurementController.scan_types[scan_str]
 
-            self.model = measurement_model
-            index = len(self.model.steps)
-            params = {k: Param(index, k, v[0], v[1]) for k, v in scan_type.parameter_map.items()}
-            step = Step(len(self.model.steps), scan_type, scan_str, params)
-            self.model.steps.append(step)
-            step_item = self.model.ObjectToItem(step)
-            self.model.ItemAdded(wx.dataview.NullDataViewItem, step_item)
-            for param in step.params.values():
-                self.model.ItemAdded(step_item, self.model.ObjectToItem(param))
+            measurement_model.append_step(scan_type, scan_str)
+
+    def on_context_menu(self, e):
+        item = e.GetItem()
+        if item.IsOk():
+            node = self.dvc.GetModel().ItemToObject(item)
+            if isinstance(node, Step):
+                self.PopupMenu(MeasurementDVContextMenu(self.dvc, item), e.GetPosition())
 
 
 class LaserPanel(wx.Panel):
