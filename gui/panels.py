@@ -66,7 +66,7 @@ class MeasurementPanel(wx.Panel):
         btn_add_step = wx.Button(self, wx.ID_ANY, label="Add Step")
         btn_sizer.Add(btn_add_step)
 
-        sizer.Add(self.dvc, 0, wx.EXPAND)
+        sizer.Add(self.dvc, 1, wx.EXPAND)
         sizer.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, border=5)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_add_step, btn_add_step)

@@ -43,7 +43,7 @@ class MainFrame(wx.Frame):
         vert_sizer.Add(stage, 0, wx.ALL, border=0)
         vert_sizer.Add(scan, 0, wx.ALL, border=0)
 
-        sizer.Add(measurement, 0, wx.ALL, border=5)
+        sizer.Add(measurement, 1, wx.ALL | wx.EXPAND, border=5)
         sizer.Add(vert_sizer, 0, wx.ALL, border=5)
 
         p.SetSizerAndFit(sizer)
@@ -67,7 +67,7 @@ class MainFrame(wx.Frame):
 
 class GeolasPyApp(wx.App):
     def OnInit(self):
-        frm = MainFrame(None, title="geolasPy", size=(700, 500))
+        frm = MainFrame(None, title="geolasPy")
 
         frm.Show()
         return True
