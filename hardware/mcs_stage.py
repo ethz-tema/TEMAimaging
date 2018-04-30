@@ -1,5 +1,6 @@
-from cffi import FFI, error
 from enum import IntEnum
+
+from cffi import FFI, error
 
 
 class SAError(IntEnum):
@@ -184,7 +185,8 @@ class MCSStage:
 
     def set_position_limit(self, axis, min_limit, max_limit):
         if self.is_open:
-            self.check_return(lib.SA_SetPositionLimit_S(self.handle, axis, min_limit, max_limit))
+            if self.get_position_known(axis):
+                self.check_return(lib.SA_SetPositionLimit_S(self.handle, axis, min_limit, max_limit))
 
     def find_reference(self, axis, hold_time=0):
         if self.is_open:
