@@ -43,8 +43,8 @@ class MainFrame(wx.Frame):
         vert_sizer.Add(stage, 0, wx.ALL, border=0)
         vert_sizer.Add(scan, 0, wx.ALL, border=0)
 
-        sizer.Add(measurement, 1, wx.ALL | wx.EXPAND, border=5)
-        sizer.Add(vert_sizer, 0, wx.ALL, border=5)
+        sizer.Add(measurement, 1, wx.ALL | wx.EXPAND, border=10)
+        sizer.Add(vert_sizer, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, border=10)
 
         p.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)

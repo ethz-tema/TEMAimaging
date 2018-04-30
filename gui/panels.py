@@ -19,37 +19,37 @@ class MeasurementPanel(wx.Panel):
         self.dvc = wx.dataview.DataViewCtrl(self,
                                             style=wx.BORDER_THEME | wx.dataview.DV_ROW_LINES | wx.dataview.DV_VERT_RULES | wx.dataview.DV_MULTIPLE)
 
-        self.dvc.SetMinSize((700, 300))
+        self.dvc.SetMinSize((800, 300))
 
         # self.model = MeasurementViewModel()
 
         self.dvc.AssociateModel(measurement_model)
 
         c0 = self.dvc.AppendTextColumn('Step', 0)
-        c0.SetMinWidth(70)
+        c0.SetMinWidth(50)
 
-        c1 = wx.dataview.DataViewColumn('Type', SequenceEditorTextRenderer(), 1, width=100)
+        c1 = wx.dataview.DataViewColumn('Type', SequenceEditorTextRenderer(), 1)
         c1.SetMinWidth(100)
         self.dvc.AppendColumn(c1)
 
-        c2 = wx.dataview.DataViewColumn('', SequenceEditorTextRenderer(), 2, width=100)
-        c2.SetMinWidth(50)
+        c2 = wx.dataview.DataViewColumn('', SequenceEditorTextRenderer(), 2)
+        c2.SetMinWidth(100)
         self.dvc.AppendColumn(c2)
 
         c3 = wx.dataview.DataViewColumn('', SequenceEditorTextRenderer(), 3)
-        c3.SetMinWidth(50)
+        c3.SetMinWidth(100)
         self.dvc.AppendColumn(c3)
 
         c4 = wx.dataview.DataViewColumn('Spot Size', SequenceEditorTextRenderer(), 4)
-        c4.SetMinWidth(50)
+        c4.SetMinWidth(70)
         self.dvc.AppendColumn(c4)
 
         c5 = wx.dataview.DataViewColumn('Frequency', SequenceEditorTextRenderer(), 5)
-        c5.SetMinWidth(50)
+        c5.SetMinWidth(75)
         self.dvc.AppendColumn(c5)
 
-        c6 = wx.dataview.DataViewColumn('Shots per Spot', SequenceEditorTextRenderer(), 6, width=100)
-        c6.SetMinWidth(50)
+        c6 = wx.dataview.DataViewColumn('Shots per Spot', SequenceEditorTextRenderer(), 6)
+        c6.SetMinWidth(100)
         self.dvc.AppendColumn(c6)
 
         c7 = wx.dataview.DataViewColumn("Cleaning shot", SequenceEditorToggleRenderer(), 7)
@@ -67,7 +67,7 @@ class MeasurementPanel(wx.Panel):
         btn_sizer.Add(btn_add_step)
 
         sizer.Add(self.dvc, 1, wx.EXPAND)
-        sizer.Add(btn_sizer, 0, wx.ALL | wx.ALIGN_RIGHT, border=5)
+        sizer.Add(btn_sizer, 0, wx.TOP | wx.ALIGN_RIGHT, border=5)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_add_step, btn_add_step)
 
