@@ -111,8 +111,20 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                 node.value = float(variant)
         return True
 
-    def delete_step(self, step):
-        self.steps.remove(step)
+    def delete_step(self, item):
+        node = self.ItemToObject(item)
+        if isinstance(node, Step):
+            self.steps.remove(node)
+            self.ItemDeleted(wx.dataview.NullDataViewItem, item)
+            for i in range(len(self.steps)):
+                step = self.steps[i]
+                if step.index != i:
+                    step.index = i
+                    self.ItemChanged(self.ObjectToItem(step))
+
+                    for k, p in step.params.items():
+                        p.step = i
+                        self.ItemChanged(self.ObjectToItem(p))
 
     def append_step(self, type, name):
         index = len(self.steps)

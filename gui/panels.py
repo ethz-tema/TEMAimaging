@@ -33,8 +33,7 @@ class MeasurementDVContextMenu(wx.Menu):
     def on_click_delete(self, e, item):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
-            self.dvc.GetModel().delete_step(node)
-            self.dvc.GetModel().ItemDeleted(wx.dataview.NullDataViewItem, item)
+            self.dvc.GetModel().delete_step(item)
 
     def on_click_set_position(self, e, item):
         # TODO: Implement
