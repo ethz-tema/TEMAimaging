@@ -99,6 +99,7 @@ class MeasurementPanel(wx.Panel):
 
         self.Bind(wx.EVT_BUTTON, self.on_click_add_step, btn_add_step)
         self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_context_menu)
+        self.dvc.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
         self.SetSizerAndFit(sizer)
 
@@ -116,6 +117,15 @@ class MeasurementPanel(wx.Panel):
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
                 self.PopupMenu(MeasurementDVContextMenu(self.dvc, item), e.GetPosition())
+
+    def on_key_down(self, e):
+        key = e.GetKeyCode()
+        if key == wx.WXK_DELETE:
+            if self.dvc.HasSelection():
+                item = self.dvc.GetSelection()
+                node = self.dvc.GetModel().ItemToObject(item)
+                if isinstance(node, Step):
+                    self.dvc.GetModel().delete_step(item)
 
 
 class LaserPanel(wx.Panel):

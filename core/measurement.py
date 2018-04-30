@@ -128,7 +128,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                     step.index = i
                     self.ItemChanged(self.ObjectToItem(step))
 
-                    for k, p in step.params.items():
+                    for p in step.params.values():
                         p.step = i
                         self.ItemChanged(self.ObjectToItem(p))
 
