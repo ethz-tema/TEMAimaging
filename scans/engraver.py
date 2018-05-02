@@ -1,9 +1,12 @@
+from core.scanner_registry import ScannerMeta
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSAxis
 
 
-class Engraver:
+class Engraver(metaclass=ScannerMeta):
+    display_name = "Engraver"
+
     def __init__(self, spot_size, shot_count, image, cleaning=False):
         self.spot_size = spot_size
         self.shot_count = shot_count

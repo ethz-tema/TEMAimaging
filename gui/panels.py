@@ -2,14 +2,14 @@ import wx
 import wx.dataview
 from wx.lib.pubsub import pub
 
+import core.scanner_registry
 from core.conn_mgr import conn_mgr
-from core.measurement import measurement_model, Step
+from core.measurement import measurement_model, Step, MeasurementController
 from core.utils import LaserStatusPoller, ShutterStatusPoller
 from gui.dialogs import AddScanDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
 from hardware.laser_compex import OpMode
 from hardware.mcs_stage import MCSAxis
-from scans import MeasurementController
 
 
 class MeasurementDVContextMenu(wx.Menu):
@@ -32,7 +32,7 @@ class MeasurementDVContextMenu(wx.Menu):
         dlg = AddScanDialog(self.dvc)
         if dlg.ShowModal() == wx.ID_ADD:
             scan_str = dlg.choice_scan_type.GetStringSelection()
-            scan_type = MeasurementController.scan_types[scan_str]
+            scan_type = core.scanner_registry.scanners[scan_str]
             if item:
                 node = self.dvc.GetModel().ItemToObject(item)
                 if isinstance(node, Step):
@@ -117,7 +117,7 @@ class MeasurementPanel(wx.Panel):
         dlg = AddScanDialog(self)
         if dlg.ShowModal() == wx.ID_ADD:
             scan_str = dlg.choice_scan_type.GetStringSelection()
-            scan_type = MeasurementController.scan_types[scan_str]
+            scan_type = core.scanner_registry.scanners[scan_str]
 
             measurement_model.append_step(scan_type, scan_str)
 

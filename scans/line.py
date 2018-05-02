@@ -1,13 +1,16 @@
 import math
 
+from core.scanner_registry import ScannerMeta
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSAxis
 
 
-class LineScan:
+class LineScan(metaclass=ScannerMeta):
     parameter_map = {'spot_count': ('Spot Count', 1),
                      'direction': ('Direction', 0)}
+
+    display_name = "Line Scan"
 
     def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, spot_count=1, direction=0):
         self.spot_size = spot_size

@@ -1,6 +1,6 @@
 import wx
 
-from scans import MeasurementController
+import core.scanner_registry
 
 
 class AddScanDialog(wx.Dialog):
@@ -8,7 +8,7 @@ class AddScanDialog(wx.Dialog):
         super().__init__(*args, **kwargs)
 
         self.choice_scan_type = wx.Choice(self, wx.ID_ANY,
-                                          choices=list(sorted(MeasurementController.scan_types.keys())))
+                                          choices=list(sorted(core.scanner_registry.scanners.keys())))
         self.btn_add = wx.Button(self, wx.ID_ADD, "")
         self.btn_cancel = wx.Button(self, wx.ID_CANCEL, "")
 

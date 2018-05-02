@@ -1,14 +1,17 @@
 import math
 
+from core.scanner_registry import ScannerMeta
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSAxis
 
 
-class RectangleScan:
+class RectangleScan(metaclass=ScannerMeta):
     parameter_map = {'x_size': ('X Size', 0),
                      'y_size': ('Y Size', 0),
                      'direction': ('Direction', 0)}
+
+    display_name = "Rectangle Scan"
 
     def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, x_size=1, y_size=1, direction=0):
         self.x_steps = int(x_size / spot_size)
@@ -27,7 +30,8 @@ class RectangleScan:
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
-        return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value, params['direction'].value)
+        return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value,
+                   params['direction'].value)
 
     def set_instruments(self, laser, trigger, stage):
         self.laser = laser  # type: CompexLaserProtocol
