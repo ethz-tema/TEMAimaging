@@ -21,14 +21,24 @@ class MeasurementDVContextMenu(wx.Menu):
         menu_item = self.Append(wx.ID_ADD, "Add step")
         self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
 
-        menu_item = self.Append(wx.ID_DELETE, "Delete")
-        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
+        if dv_item:
+            menu_item = self.Append(wx.ID_DELETE, "Delete")
+            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
 
-        menu_item = self.Append(wx.ID_ANY, "Set position")
-        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_set_position(e, item), menu_item)
+            menu_item = self.Append(wx.ID_ANY, "Set position")
+            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_set_position(e, item), menu_item)
 
     def on_click_add(self, e, item):
-        print("on_click_add {}".format(item))
+        dlg = AddScanDialog(self.dvc)
+        if dlg.ShowModal() == wx.ID_ADD:
+            scan_str = dlg.choice_scan_type.GetStringSelection()
+            scan_type = MeasurementController.scan_types[scan_str]
+            if item:
+                node = self.dvc.GetModel().ItemToObject(item)
+                if isinstance(node, Step):
+                    self.dvc.GetModel().insert_step(scan_type, scan_str, node.index)
+            else:
+                self.dvc.GetModel().append_step(scan_type, scan_str)
 
     def on_click_delete(self, e, item):
         node = self.dvc.GetModel().ItemToObject(item)
@@ -117,6 +127,8 @@ class MeasurementPanel(wx.Panel):
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
                 self.PopupMenu(MeasurementDVContextMenu(self.dvc, item), e.GetPosition())
+        else:
+            self.PopupMenu(MeasurementDVContextMenu(self.dvc, None), e.GetPosition())
 
     def on_key_down(self, e):
         key = e.GetKeyCode()

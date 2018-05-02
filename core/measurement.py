@@ -117,30 +117,44 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                 node.value = float(variant)
         return True
 
+    def _recalculate_ids(self):
+        for i in range(len(self._steps)):
+            step = self._steps[i]
+            if step.index != i:
+                step.index = i
+                self.ItemChanged(self.ObjectToItem(step))
+
+                for p in step.params.values():
+                    p.step = i
+                    self.ItemChanged(self.ObjectToItem(p))
+
     def delete_step(self, item):
         node = self.ItemToObject(item)
         if isinstance(node, Step):
             self._steps.remove(node)
             self.ItemDeleted(wx.dataview.NullDataViewItem, item)
-            for i in range(len(self._steps)):
-                step = self._steps[i]
-                if step.index != i:
-                    step.index = i
-                    self.ItemChanged(self.ObjectToItem(step))
+            self._recalculate_ids()
 
-                    for p in step.params.values():
-                        p.step = i
-                        self.ItemChanged(self.ObjectToItem(p))
-
-    def append_step(self, type, name):
+    def append_step(self, typ, name):
         index = len(self._steps)
-        params = {k: Param(index, k, v[0], v[1]) for k, v in type.parameter_map.items()}
-        step = Step(len(self._steps), type, name, params)
+        params = {k: Param(index, k, v[0], v[1]) for k, v in typ.parameter_map.items()}
+        step = Step(len(self._steps), typ, name, params)
         self._steps.append(step)
         step_item = self.ObjectToItem(step)
         self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
         for param in step.params.values():
             self.ItemAdded(step_item, self.ObjectToItem(param))
+
+    def insert_step(self, typ, name, position):
+        index = len(self._steps)
+        params = {k: Param(index, k, v[0], v[1]) for k, v in typ.parameter_map.items()}
+        step = Step(len(self._steps), typ, name, params)
+        self._steps.insert(position, step)
+        step_item = self.ObjectToItem(step)
+        self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
+        for param in step.params.values():
+            self.ItemAdded(step_item, self.ObjectToItem(param))
+        self._recalculate_ids()
 
 
 measurement_model = MeasurementViewModel()
