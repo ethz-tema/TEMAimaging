@@ -4,7 +4,9 @@ import threading
 
 import wx
 import wx.dataview
+from ruamel.yaml import YAML
 
+import core.scanner_registry
 from core.conn_mgr import conn_mgr
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
@@ -64,18 +66,16 @@ class MeasurementController:
 
 
 class Param:
-    def __init__(self, step, key, key_name, value):
-        self.step = step
+    def __init__(self, step_index, key, value):
+        self.step_index = step_index
         self.key = key
-        self.key_name = key_name  # Displayed in param list
         self.value = value
 
 
 class Step:
-    def __init__(self, index, scan_type, scan_type_str, params):
+    def __init__(self, index, scan_type, params):
         self.index = index
         self.scan_type = scan_type
-        self.scan_type_str = scan_type_str
         self.params = params
         self.spot_size = 0
         self.frequency = 0
@@ -114,7 +114,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
 
         node = self.ItemToObject(item)
         if isinstance(node, Step):
-            for param in node.params.values():
+            for param in sorted(node.params.values(), key=lambda k: k.key):
                 children.append(self.ObjectToItem(param))
             return len(node.params)
         return 0
@@ -138,14 +138,14 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             return wx.dataview.NullDataViewItem
         elif isinstance(node, Param):
             for s in self._steps:
-                if s.index == node.step:
+                if s.index == node.step_index:
                     return self.ObjectToItem(s)
 
     def GetValue(self, item, col):
         node = self.ItemToObject(item)
 
         if isinstance(node, Step):
-            mapper = {0: str(node.index), 1: (True, False, node.scan_type_str), 2: (False, False, ''),
+            mapper = {0: str(node.index), 1: (True, False, node.scan_type.display_name), 2: (False, False, ''),
                       3: (False, False, ''),
                       4: (True, True, str(node.spot_size)),
                       5: (True, True, str(node.frequency)), 6: (True, True, str(node.shots_per_spot)),
@@ -153,7 +153,8 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             return mapper[col]
 
         elif isinstance(node, Param):
-            mapper = {0: "", 1: (False, False, ''), 2: (True, False, str(node.key_name)),
+            mapper = {0: "", 1: (False, False, ''),
+                      2: (True, False, str(core.scanner_registry.get_param_display_str(node.key))),
                       3: (True, True, str(node.value)),
                       4: (False, False, ''),
                       5: (False, False, ''),
@@ -194,20 +195,20 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             self.ItemDeleted(wx.dataview.NullDataViewItem, item)
             self._recalculate_ids()
 
-    def append_step(self, typ, name):
+    def append_step(self, typ):
         index = len(self._steps)
-        params = {k: Param(index, k, v[0], v[1]) for k, v in typ.parameter_map.items()}
-        step = Step(len(self._steps), typ, name, params)
+        params = {k: Param(index, k, v[1]) for k, v in typ.parameter_map.items()}
+        step = Step(len(self._steps), typ, params)
         self._steps.append(step)
         step_item = self.ObjectToItem(step)
         self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
         for param in step.params.values():
             self.ItemAdded(step_item, self.ObjectToItem(param))
 
-    def insert_step(self, typ, name, position):
+    def insert_step(self, typ, position):
         index = len(self._steps)
-        params = {k: Param(index, k, v[0], v[1]) for k, v in typ.parameter_map.items()}
-        step = Step(len(self._steps), typ, name, params)
+        params = {k: Param(index, k, v[1]) for k, v in typ.parameter_map.items()}
+        step = Step(len(self._steps), typ, params)
         self._steps.insert(position, step)
         step_item = self.ObjectToItem(step)
         self.ItemAdded(wx.dataview.NullDataViewItem, step_item)

@@ -10,7 +10,8 @@ class ScannerMeta(type):
         return new_cls
 
 
-scanners = {}
+scanners_by_name = {}
+scanners_by_display_name = {}
 _param_map = {}
 
 
@@ -22,7 +23,8 @@ def _import_scanners():
 def register(scanner):
     if hasattr(scanner, 'parameter_map'):
         _param_map.update(scanner.parameter_map)
-    scanners[scanner.display_name] = scanner
+    scanners_by_name[scanner.__name__] = scanner
+    scanners_by_display_name[scanner.display_name] = scanner
 
 
 def get_param_display_str(name):
