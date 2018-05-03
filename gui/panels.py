@@ -100,18 +100,55 @@ class MeasurementPanel(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer_left = wx.BoxSizer(wx.HORIZONTAL)
+        btn_sizer_right = wx.BoxSizer(wx.HORIZONTAL)
+
+        btn_open_sequence = wx.Button(self, wx.ID_OPEN)
+        btn_sizer_left.Add(btn_open_sequence, 0)
+
+        btn_save_sequence = wx.Button(self, wx.ID_SAVE)
+        btn_sizer_left.Add(btn_save_sequence, 0, wx.LEFT, border=5)
 
         btn_add_step = wx.Button(self, wx.ID_ANY, label="Add Step")
-        btn_sizer.Add(btn_add_step)
+        btn_sizer_right.Add(btn_add_step)
+
+        btn_sizer.Add(btn_sizer_left, 1)
+        btn_sizer.Add(btn_sizer_right, 0)
 
         sizer.Add(self.dvc, 1, wx.EXPAND)
-        sizer.Add(btn_sizer, 0, wx.TOP | wx.ALIGN_RIGHT, border=5)
+        sizer.Add(btn_sizer, 0, wx.EXPAND | wx.TOP, border=5)
 
+        btn_open_sequence.Bind(wx.EVT_BUTTON, self.on_click_open_sequence)
+        btn_save_sequence.Bind(wx.EVT_BUTTON, self.on_click_save_sequence)
         self.Bind(wx.EVT_BUTTON, self.on_click_add_step, btn_add_step)
         self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_context_menu)
         self.dvc.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
         self.SetSizerAndFit(sizer)
+
+    def on_click_open_sequence(self, e):
+        with wx.FileDialog(self, "Open Sequence", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fd:
+            if fd.ShowModal() == wx.ID_CANCEL:
+                return
+
+            path = fd.GetPath()
+            try:
+                with open(path, 'r') as file:
+                    self.dvc.GetModel().load_model(file)
+            except IOError:
+                raise
+
+    def on_click_save_sequence(self, e):
+        with wx.FileDialog(self, "Save sequence", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+            if fd.ShowModal() == wx.ID_CANCEL:
+                return
+
+            path = fd.GetPath()
+            try:
+                with open(path, 'w') as file:
+                    self.dvc.GetModel().dump_model(file)
+            except IOError:
+                raise
 
     def on_click_add_step(self, e):
         dlg = AddScanDialog(self)

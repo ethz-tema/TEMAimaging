@@ -71,6 +71,12 @@ class Param:
         self.key = key
         self.value = value
 
+    def __getstate__(self):
+        return {'value': self.value}
+
+    def __setstate__(self, state):
+        self.value = state['value']
+
 
 class Step:
     def __init__(self, index, scan_type, params):
@@ -81,6 +87,29 @@ class Step:
         self.frequency = 0
         self.shots_per_spot = 0
         self.cleaning_shot = False
+
+    def __getstate__(self):
+        return {
+            'scan_type': self.scan_type.__name__,
+            'params': self.params,
+            'spot_size': self.spot_size,
+            'frequency': self.frequency,
+            'shots_per_spot': self.shots_per_spot,
+            'cleaning_shot': self.cleaning_shot}
+
+    def __setstate__(self, state):
+        self.index = None
+        for k, v in state.items():
+            if k == 'params':
+                self.params = {}
+                for param_k, param_v in v.items():
+                    param_v.step_index = None
+                    param_v.key = param_k
+                    self.params[param_k] = param_v
+            elif k == 'scan_type':
+                self.scan_type = core.scanner_registry.scanners_by_name.get(v)
+            else:
+                setattr(self, k, v)
 
 
 class MeasurementViewModel(wx.dataview.PyDataViewModel):
@@ -177,16 +206,41 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                 node.value = float(variant)
         return True
 
-    def _recalculate_ids(self):
+    def _recalculate_ids(self, notify=True):
         for i in range(len(self._steps)):
             step = self._steps[i]
             if step.index != i:
                 step.index = i
-                self.ItemChanged(self.ObjectToItem(step))
+                if notify:
+                    self.ItemChanged(self.ObjectToItem(step))
 
                 for p in step.params.values():
-                    p.step = i
-                    self.ItemChanged(self.ObjectToItem(p))
+                    p.step_index = i
+                    if notify:
+                        self.ItemChanged(self.ObjectToItem(p))
+
+    def dump_model(self, stream):
+        yaml = YAML()
+        yaml.register_class(Step)
+        yaml.register_class(Param)
+
+        yaml.dump(self._steps, stream)
+
+    def load_model(self, stream):
+        yaml = YAML()
+        yaml.register_class(Step)
+        yaml.register_class(Param)
+
+        self._steps = []
+        self.Cleared()
+        self._steps = yaml.load(stream)
+
+        self._recalculate_ids(False)
+        for step in self._steps:
+            step_item = self.ObjectToItem(step)
+            self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
+            for param in step.params.values():
+                self.ItemAdded(step_item, self.ObjectToItem(param))
 
     def delete_step(self, item):
         node = self.ItemToObject(item)
