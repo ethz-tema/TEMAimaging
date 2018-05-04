@@ -3,6 +3,8 @@ import threading
 import time
 
 import serial.threaded
+import wx
+from wx.lib.pubsub import pub
 
 
 class ArduTrigger(serial.threaded.LineReader):
@@ -25,6 +27,7 @@ class ArduTrigger(serial.threaded.LineReader):
         self._event_thread.name = 'at-event'
         self._event_thread.start()
         self.done = False
+        self.send_done_msg = False
 
     def stop(self):
         """
@@ -59,6 +62,8 @@ class ArduTrigger(serial.threaded.LineReader):
         if event == 'D':
             time.sleep(self.rep_sleep_time / 1000)
             self.done = True
+            if self.send_done_msg:
+                wx.CallAfter(pub.sendMessage, 'trigger.done')
 
     def command(self, command):
         """Send a command that doesn't respond"""

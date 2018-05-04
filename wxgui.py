@@ -3,7 +3,7 @@ import wx.dataview
 
 from core.conn_mgr import conn_mgr
 from gui.conn_mgr import ConnectionManagerDialog
-from gui.panels import LaserPanel, StagePanel, ScanCtrlPanel, MeasurementPanel
+from gui.panels import LaserPanel, StagePanel, ScanCtrlPanel, MeasurementPanel, LaserManualShootPanel
 from gui.preferences import PreferencesDialog
 
 
@@ -33,6 +33,7 @@ class MainFrame(wx.Frame):
         p = wx.Panel(self)
         laser = LaserPanel(p)
         stage = StagePanel(p)
+        laser_manual = LaserManualShootPanel(p)
         scan = ScanCtrlPanel(p)
         measurement = MeasurementPanel(p)
 
@@ -40,7 +41,8 @@ class MainFrame(wx.Frame):
 
         vert_sizer = wx.BoxSizer(wx.VERTICAL)
         vert_sizer.Add(laser, 0, wx.BOTTOM, border=5)
-        vert_sizer.Add(stage, 0, wx.ALL, border=0)
+        vert_sizer.Add(stage, 0, wx.BOTTOM, border=5)
+        vert_sizer.Add(laser_manual, 0, wx.BOTTOM, border=5)
         vert_sizer.Add(scan, 0, wx.ALL, border=0)
 
         sizer.Add(measurement, 1, wx.ALL | wx.EXPAND, border=10)

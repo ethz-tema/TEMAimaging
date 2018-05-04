@@ -270,6 +270,65 @@ class LaserPanel(wx.Panel):
             self.btn_shutter_open.SetBackgroundColour(wx.NullColour)
 
 
+class LaserManualShootPanel(wx.Panel):
+    def __init__(self, parent, *args, **kw):
+        super().__init__(parent, wx.ID_ANY, *args, **kw)
+
+        self.btn_start_stop = wx.Button(self, label='Start')
+
+        self.num_shots = wx.SpinCtrl(self, wx.ID_ANY, max=100000, initial=100)
+        self.num_frequency = wx.SpinCtrl(self, wx.ID_ANY, max=100, initial=50)
+
+        self.trigger_running = False
+
+        self.init_ui()
+
+    def init_ui(self):
+        main_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label='Laser Manual Control')
+        grid_sizer = wx.GridBagSizer(5, 5)
+
+        grid_sizer.Add(wx.StaticText(self, wx.ID_ANY, 'Shots: '), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        grid_sizer.Add(self.num_shots, (0, 1))
+        grid_sizer.Add(wx.StaticText(self, wx.ID_ANY, 'Frequency (Hz): '), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        grid_sizer.Add(self.num_frequency, (1, 1))
+        grid_sizer.Add(self.btn_start_stop, (2, 0), (1, 2), flag=wx.EXPAND)
+
+        main_sizer.Add(grid_sizer, 0, wx.ALL, 5)
+
+        self.btn_start_stop.Bind(wx.EVT_BUTTON, self.on_click_start_stop)
+        pub.subscribe(self.on_trigger_done, 'trigger.done')
+
+        self.SetSizerAndFit(main_sizer)
+
+    def toogle_ui(self, enable):
+        if enable:
+            self.num_shots.Enable()
+            self.num_frequency.Enable()
+            self.btn_start_stop.SetLabelText('Start')
+        else:
+            self.num_shots.Disable()
+            self.num_frequency.Disable()
+            self.btn_start_stop.SetLabelText('Stop')
+
+    def on_click_start_stop(self, e):
+        if self.trigger_running:
+            conn_mgr.trigger.stop_trigger()
+            self.trigger_running = False
+            self.toogle_ui(True)
+        else:
+            conn_mgr.trigger.send_done_msg = True
+            conn_mgr.trigger.set_freq(self.num_frequency.GetValue())
+            conn_mgr.trigger.set_count(self.num_shots.GetValue())
+            conn_mgr.trigger.go()
+            self.trigger_running = True
+            self.toogle_ui(False)
+
+    def on_trigger_done(self):
+        conn_mgr.trigger.send_done_msg = False
+        self.trigger_running = False
+        self.toogle_ui(True)
+
+
 class StagePanel(wx.Panel):
     def __init__(self, parent):
         super(StagePanel, self).__init__(parent, wx.ID_ANY, style=wx.SUNKEN_BORDER)
