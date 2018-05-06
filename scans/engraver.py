@@ -1,6 +1,5 @@
+from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.arduino_trigger import ArduTrigger
-from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSAxis
 
 
@@ -12,19 +11,15 @@ class Engraver(metaclass=ScannerMeta):
         self.shot_count = shot_count
         self.image = image
         self._image_data = list(image.getdata())
-        self.laser = None
-        self.trigger = None
-        self.stage = None
+        self.laser = conn_mgr.laser
+        self.trigger = conn_mgr.trigger
+        self.stage = conn_mgr.stage
         self._dist_list = []
         self._curr_step = 0
         self._cleaning = cleaning
         self.init_steps()
 
-    def set_instruments(self, laser, trigger, stage):
-        self.laser = laser  # type: CompexLaserProtocol
-        self.trigger = trigger  # type: ArduTrigger
         self.trigger.set_count(self.shot_count)
-        self.stage = stage
 
     def init_steps(self):
         self.image.show()

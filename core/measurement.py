@@ -7,7 +7,6 @@ import wx.dataview
 from ruamel.yaml import YAML
 
 import core.scanner_registry
-from core.conn_mgr import conn_mgr
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSError, MCSStage
@@ -21,7 +20,6 @@ class MeasurementController:
         self.sequence = []
 
     def start_scan(self, scan):
-        scan.set_instruments(self.laser, self.trigger, self.stage)
         stop_scan = threading.Event()
 
         class MeasureThread(threading.Thread):
@@ -53,7 +51,6 @@ class MeasurementController:
             def run(cls):
                 try:
                     for scan in self.sequence:
-                        scan.set_instruments(conn_mgr.laser, conn_mgr.trigger, conn_mgr.stage)
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
                 except MCSError as e:

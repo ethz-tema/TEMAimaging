@@ -1,8 +1,7 @@
 import math
 
+from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.arduino_trigger import ArduTrigger
-from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSAxis
 
 
@@ -20,25 +19,21 @@ class RectangleScan(metaclass=ScannerMeta):
         self.direction = math.radians(direction)
         self.shot_count = shot_count
         self.frequency = frequency
-        self.laser = None
-        self.trigger = None
-        self.stage = None
+        self.laser = conn_mgr.laser
+        self.trigger = conn_mgr.trigger
+        self.stage = conn_mgr.stage
         self._curr_step = 0
         self._backwards = False
         self._steps = self.x_steps * self.y_steps
         self._cleaning = cleaning
 
+        self.trigger.set_count(self.shot_count)
+        self.trigger.set_freq(self.frequency)
+
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
         return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value,
                    params['direction'].value)
-
-    def set_instruments(self, laser, trigger, stage):
-        self.laser = laser  # type: CompexLaserProtocol
-        self.trigger = trigger  # type: ArduTrigger
-        self.trigger.set_count(self.shot_count)
-        self.trigger.set_freq(self.frequency)
-        self.stage = stage
 
     def next_move(self):
         self.trigger.go_and_wait(self._cleaning)
