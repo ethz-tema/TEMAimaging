@@ -427,7 +427,6 @@ class StagePanel(wx.Panel):
         main_sizer.Add(self.speed_slider, 0, wx.ALL, 10)
         main_sizer.Add(pos_sizer, 0, wx.ALL, 10)
 
-
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=1: self.on_click_move(e, a, d), stage_move_xp)
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=-1: self.on_click_move(e, a, d), stage_move_xn)
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Y, d=1: self.on_click_move(e, a, d), stage_move_yp)

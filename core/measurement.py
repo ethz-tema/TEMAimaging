@@ -200,7 +200,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                 node.cleaning_shot = variant
         elif isinstance(node, Param):
             if col == 3:
-                node.value = float(variant)
+                node.value = type(node.value)(variant)
         return True
 
     def _recalculate_ids(self, notify=True):
