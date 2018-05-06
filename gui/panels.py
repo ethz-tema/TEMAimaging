@@ -241,7 +241,7 @@ class LaserPanel(wx.Panel):
 
     def on_laser_connection_changed(self, connected):
         if connected:
-            self.laser_poller = LaserStatusPoller(self, conn_mgr.laser)
+            self.laser_poller = LaserStatusPoller(conn_mgr.laser)
             self.laser_poller.Start(700)
         else:
             self.laser_poller.Stop()
@@ -258,7 +258,7 @@ class LaserPanel(wx.Panel):
 
     def on_shutter_connection_changed(self, connected):
         if connected:
-            self.shutter_poller = ShutterStatusPoller(self, conn_mgr.shutter)
+            self.shutter_poller = ShutterStatusPoller(conn_mgr.shutter)
             self.shutter_poller.Start(1000)
         else:
             self.shutter_poller.Stop()
@@ -335,6 +335,13 @@ class StagePanel(wx.Panel):
 
         self.speed_slider = wx.Slider(self, minValue=1, maxValue=17, style=wx.SL_HORIZONTAL | wx.SL_LABELS)
 
+        self.txt_x_pos = wx.TextCtrl(self, size=(150, -1))
+        self.txt_x_pos.Disable()
+        self.txt_y_pos = wx.TextCtrl(self, size=(150, -1))
+        self.txt_y_pos.Disable()
+        self.txt_z_pos = wx.TextCtrl(self, size=(150, -1))
+        self.txt_z_pos.Disable()
+
         self.speed_map = [1] * 18
         self.speed_map[1] = 1
         self.speed_map[2] = 200
@@ -407,10 +414,19 @@ class StagePanel(wx.Panel):
         button_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Focus", style=wx.ALIGN_CENTER), (1, 3), (1, 2),
                          wx.ALIGN_CENTER | wx.LEFT, border=10)
 
+        pos_sizer = wx.FlexGridSizer(3, 2, 5, 5)
+        pos_sizer.Add(wx.StaticText(self, wx.ID_ANY, "X (nm): "), flag=wx.ALIGN_CENTER_VERTICAL)
+        pos_sizer.Add(self.txt_x_pos)
+        pos_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Y (nm): "), flag=wx.ALIGN_CENTER)
+        pos_sizer.Add(self.txt_y_pos)
+        pos_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Z (nm): "), flag=wx.ALIGN_CENTER_VERTICAL)
+        pos_sizer.Add(self.txt_z_pos)
+
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(button_sizer, 0, wx.ALL, 10)
         main_sizer.Add(self.speed_slider, 0, wx.ALL, 10)
-        self.SetSizerAndFit(main_sizer)
+        main_sizer.Add(pos_sizer, 0, wx.ALL, 10)
+
 
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=1: self.on_click_move(e, a, d), stage_move_xp)
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=-1: self.on_click_move(e, a, d), stage_move_xn)
@@ -422,6 +438,10 @@ class StagePanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_f(e, d), stage_focus_fp)
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_f(e, d), stage_focus_fn)
 
+        pub.subscribe(self.on_stage_position_changed, 'stage.position_changed')
+
+        self.SetSizerAndFit(main_sizer)
+
     def on_click_move(self, e, axis, direction):
         speed = self.speed_map[self.speed_slider.GetValue()]
         conn_mgr.stage.move(axis, speed * direction, relative=True)
@@ -431,6 +451,11 @@ class StagePanel(wx.Panel):
 
     def on_click_focus_f(self, e, direction):
         conn_mgr.stage.move(MCSAxis.Z, 100000 * direction, relative=True)
+
+    def on_stage_position_changed(self, position):
+        self.txt_x_pos.SetValue(str(position[0]))
+        self.txt_y_pos.SetValue(str(position[1]))
+        self.txt_z_pos.SetValue(str(position[2]))
 
 
 class ScanCtrlPanel(wx.Panel):

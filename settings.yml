@@ -22,3 +22,4 @@ stage:
       min: -750000
       max: 2700000
   find_ref_on_connect: true
+  position_poll_rate: 0.1

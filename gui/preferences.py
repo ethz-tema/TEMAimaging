@@ -82,6 +82,13 @@ class PreferencesDialog(PreferencesBaseDialog):
         self.ctrl_map['stage.find_ref_on_connect'] = ctrl
         grid_sizer.Add(ctrl, pos=(0, 0), span=(1, 2))
 
+        grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Position polling rate (sec)"), pos=(1, 0), span=(1, 1),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+        ctrl = wx.SpinCtrlDouble(panel, wx.ID_ANY, max=5, initial=0.1, inc=0.1)
+        ctrl.SetValue(Settings.get('stage.position_poll_rate'))
+        self.ctrl_map['stage.position_poll_rate'] = ctrl
+        grid_sizer.Add(ctrl, pos=(1, 1), span=(1, 1), flag=wx.ALIGN_RIGHT)
+
         sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
         border.Add(sizer, 0, wx.ALL | wx.EXPAND, 10)
 

@@ -1,6 +1,7 @@
 import serial
 from wx.lib.pubsub import pub
 
+from core import utils
 from core.settings import Settings
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
@@ -24,6 +25,7 @@ class ConnectionManager:
 
         self.stage = None
         self.stage_connected = False
+        self._stage_position_poller = None
 
     def laser_connect(self, port, rate):
         if not self.laser_connected:
@@ -106,8 +108,12 @@ class ConnectionManager:
             self.stage_connected = True
             pub.sendMessage('stage.connection_changed', connected=True)
 
+            self._stage_position_poller = utils.StagePositionPoller(self.stage)
+            self._stage_position_poller.start()
+
     def stage_disconnect(self):
         if self.stage_connected:
+            self._stage_position_poller.stop()
             self.stage.close_mcs()
 
             self.stage_connected = False
