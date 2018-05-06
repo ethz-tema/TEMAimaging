@@ -10,6 +10,9 @@ class MainFrame(wx.Frame):
     def __init__(self, *args, **kwargs):
         super(MainFrame, self).__init__(*args, **kwargs)
 
+        icon = wx.Icon('logo.png')
+        self.SetIcon(icon)
+
         self.init_ui()
 
     def init_ui(self):
