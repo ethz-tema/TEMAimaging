@@ -36,9 +36,11 @@ class MeasurementDVContextMenu(wx.Menu):
             if item:
                 node = self.dvc.GetModel().ItemToObject(item)
                 if isinstance(node, Step):
-                    self.dvc.GetModel().insert_step(scan_type, node.index)
+                    step_item = self.dvc.GetModel().insert_step(scan_type, node.index)
+                    self.dvc.Expand(step_item)
             else:
-                self.dvc.GetModel().append_step(scan_type)
+                step_item = self.dvc.GetModel().append_step(scan_type)
+                self.dvc.Expand(step_item)
 
     def on_click_delete(self, e, item):
         node = self.dvc.GetModel().ItemToObject(item)
@@ -156,7 +158,8 @@ class MeasurementPanel(wx.Panel):
             scan_str = dlg.choice_scan_type.GetStringSelection()
             scan_type = core.scanner_registry.scanners_by_display_name[scan_str]
 
-            measurement_model.append_step(scan_type)
+            step_item = measurement_model.append_step(scan_type)
+            self.dvc.Expand(step_item)
 
     def on_context_menu(self, e):
         item = e.GetItem()

@@ -255,6 +255,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
         for param in step.params.values():
             self.ItemAdded(step_item, self.ObjectToItem(param))
+        return step_item
 
     def insert_step(self, typ, position):
         index = len(self._steps)
@@ -266,6 +267,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         for param in step.params.values():
             self.ItemAdded(step_item, self.ObjectToItem(param))
         self._recalculate_ids()
+        return step_item
 
 
 measurement_model = MeasurementViewModel()
