@@ -87,6 +87,9 @@ class ArduTrigger(serial.threaded.LineReader):
     def set_count(self, counts):
         self.command('C{}'.format(counts))
 
+    def set_first_only(self, on):
+        self.command('O{}'.format(1 if on else 0))
+
     def go(self):
         self.command('G')
 
