@@ -51,6 +51,7 @@ class MeasurementController:
             def run(cls):
                 try:
                     for scan in self.sequence:
+                        scan.init_scan()
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
                 except MCSError as e:
