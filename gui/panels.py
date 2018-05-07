@@ -13,20 +13,25 @@ from hardware.mcs_stage import MCSAxis
 
 
 class MeasurementDVContextMenu(wx.Menu):
-    def __init__(self, dvc, dv_item, *args, **kw):
+    def __init__(self, parent, dv_item, *args, **kw):
         super().__init__(*args, **kw)
 
-        self.dvc = dvc
+        self.dvc = parent.dvc
 
         menu_item = self.Append(wx.ID_ADD, "Add step")
         self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
 
         if dv_item:
-            menu_item = self.Append(wx.ID_DELETE, "Delete")
+            menu_item = self.Append(wx.ID_DELETE, "Delete", )
             self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
 
-            menu_item = self.Append(wx.ID_ANY, "Set position")
-            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_set_position(e, item), menu_item)
+            self.AppendSeparator()
+
+            menu_item = self.Append(wx.ID_ANY, "&Set start position\tCtrl-S")
+            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_start_position(e, item), menu_item)
+
+            menu_item = self.Append(wx.ID_ANY, "&Set end position (Z only)\tCtrl-E")
+            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_end_position(e, item), menu_item)
 
     def on_click_add(self, e, item):
         dlg = AddScanDialog(self.dvc)
@@ -46,10 +51,6 @@ class MeasurementDVContextMenu(wx.Menu):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             self.dvc.GetModel().delete_step(item)
-
-    def on_click_set_position(self, e, item):
-        # TODO: Implement
-        print("on_click_set_position")
 
 
 class MeasurementPanel(wx.Panel):
@@ -161,23 +162,47 @@ class MeasurementPanel(wx.Panel):
             step_item = measurement_model.append_step(scan_type)
             self.dvc.Expand(step_item)
 
+    def on_click_set_start_position(self, e, item):
+        if item:
+            node = self.dvc.GetModel().ItemToObject(item)
+            if isinstance(node, Step):
+                node.params['x_start'].value = conn_mgr.stage.get_position(MCSAxis.X) / 10e9
+                node.params['y_start'].value = conn_mgr.stage.get_position(MCSAxis.Y) / 10e9
+                node.params['z_start'].value = conn_mgr.stage.get_position(MCSAxis.Z) / 10e9
+                self.dvc.GetModel().edit_step(node)
+
+    def on_click_set_end_position(self, e, item):
+        if item:
+            node = self.dvc.GetModel().ItemToObject(item)
+            if isinstance(node, Step):
+                node.params['z_end'].value = conn_mgr.stage.get_position(MCSAxis.Z) / 10e9
+                self.dvc.GetModel().edit_step(node)
+
     def on_context_menu(self, e):
         item = e.GetItem()
         if item.IsOk():
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                self.PopupMenu(MeasurementDVContextMenu(self.dvc, item), e.GetPosition())
+                self.PopupMenu(MeasurementDVContextMenu(self, item), e.GetPosition())
         else:
-            self.PopupMenu(MeasurementDVContextMenu(self.dvc, None), e.GetPosition())
+            self.PopupMenu(MeasurementDVContextMenu(self, None), e.GetPosition())
 
     def on_key_down(self, e):
         key = e.GetKeyCode()
+        ctrl = e.CmdDown()
         if key == wx.WXK_DELETE:
             if self.dvc.HasSelection():
                 item = self.dvc.GetSelection()
                 node = self.dvc.GetModel().ItemToObject(item)
                 if isinstance(node, Step):
                     self.dvc.GetModel().delete_step(item)
+        elif ctrl:
+            if key == ord('E'):
+                if self.dvc.HasSelection():
+                    self.on_click_set_end_position(e, self.dvc.GetSelection())
+            elif key == ord('S'):
+                if self.dvc.HasSelection():
+                    self.on_click_set_start_position(e, self.dvc.GetSelection())
 
 
 class LaserPanel(wx.Panel):

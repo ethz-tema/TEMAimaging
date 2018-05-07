@@ -269,5 +269,10 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         self._recalculate_ids()
         return step_item
 
+    def edit_step(self, step):
+        del self._steps[step.index]
+        self._steps.insert(step.index, step)
+        self.ItemChanged(self.ObjectToItem(step))
+
 
 measurement_model = MeasurementViewModel()
