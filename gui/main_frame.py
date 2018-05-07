@@ -1,4 +1,5 @@
 import wx
+from wx.lib.pubsub import pub
 
 from core.conn_mgr import conn_mgr
 from gui.conn_mgr import ConnectionManagerDialog
@@ -13,6 +14,8 @@ class MainFrame(wx.Frame):
         icon = wx.Icon('logo.png')
         self.SetIcon(icon)
 
+        self.status_bar = self.CreateStatusBar()
+
         self.init_ui()
 
     def init_ui(self):
@@ -25,12 +28,6 @@ class MainFrame(wx.Frame):
         menubar = wx.MenuBar()
         menubar.Append(file_menu, '&File')
         self.SetMenuBar(menubar)
-
-        self.Bind(wx.EVT_MENU, self.on_connection_manager, file_menu_conn_mgr)
-        self.Bind(wx.EVT_MENU, self.on_settings, file_menu_settings)
-        self.Bind(wx.EVT_MENU, self.on_quit, file_menu_close)
-
-        self.Bind(wx.EVT_CLOSE, self.on_quit)
 
         p = wx.Panel(self)
         laser = LaserPanel(p)
@@ -50,6 +47,14 @@ class MainFrame(wx.Frame):
         sizer.Add(measurement, 1, wx.ALL | wx.EXPAND, border=10)
         sizer.Add(vert_sizer, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, border=10)
 
+        self.Bind(wx.EVT_MENU, self.on_connection_manager, file_menu_conn_mgr)
+        self.Bind(wx.EVT_MENU, self.on_settings, file_menu_settings)
+        self.Bind(wx.EVT_MENU, self.on_quit, file_menu_close)
+
+        self.Bind(wx.EVT_CLOSE, self.on_quit)
+
+        pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
+
         p.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)
 
@@ -60,6 +65,9 @@ class MainFrame(wx.Frame):
     def on_settings(self, e):
         dlg = PreferencesDialog(self)
         dlg.ShowModal()
+
+    def on_laser_status_changed(self, status):
+        self.status_bar.SetStatusText('Laser status: ' + str(status))
 
     def on_quit(self, e):
         conn_mgr.laser_disconnect()
