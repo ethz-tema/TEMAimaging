@@ -81,9 +81,9 @@ class Step:
         self.index = index
         self.scan_type = scan_type
         self.params = params
-        self.spot_size = 0
-        self.frequency = 0
-        self.shots_per_spot = 0
+        self.spot_size = 5 * 1e-6
+        self.frequency = 100
+        self.shots_per_spot = 25
         self.cleaning_shot = False
 
     def __getstate__(self):
