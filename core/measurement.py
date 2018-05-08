@@ -174,15 +174,18 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         if isinstance(node, Step):
             mapper = {0: str(node.index), 1: (True, False, node.scan_type.display_name), 2: (False, False, ''),
                       3: (False, False, ''),
-                      4: (True, True, str(node.spot_size)),
+                      4: (True, True, str(node.spot_size * 1e6)),
                       5: (True, True, str(node.frequency)), 6: (True, True, str(node.shots_per_spot)),
                       7: (True, node.cleaning_shot)}
             return mapper[col]
 
         elif isinstance(node, Param):
+            value = node.value / core.scanner_registry.get_param_scale_factor(node.key) \
+                if core.scanner_registry.get_param_scale_factor(node.key) is not None and (
+                    isinstance(node.value, int) or isinstance(node.value, float)) else node.value
             mapper = {0: "", 1: (False, False, ''),
                       2: (True, False, str(core.scanner_registry.get_param_display_str(node.key))),
-                      3: (True, True, str(node.value)),
+                      3: (True, True, str(value)),
                       4: (False, False, ''),
                       5: (False, False, ''),
                       6: (False, False, ''), 7: (False, False)}
@@ -192,7 +195,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         node = self.ItemToObject(item)
         if isinstance(node, Step):
             if col == 4:
-                node.spot_size = float(variant)
+                node.spot_size = float(variant) * 1e-6
             if col == 5:
                 node.frequency = float(variant)
             if col == 6:
@@ -201,7 +204,11 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                 node.cleaning_shot = variant
         elif isinstance(node, Param):
             if col == 3:
-                node.value = type(node.value)(variant)
+                value = type(node.value)(variant)
+                value = value * core.scanner_registry.get_param_scale_factor(node.key) \
+                    if core.scanner_registry.get_param_scale_factor(node.key) is not None and (
+                        isinstance(value, int) or isinstance(value, float)) else value
+                node.value = value
         return True
 
     def _recalculate_ids(self, notify=True):

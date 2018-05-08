@@ -6,12 +6,12 @@ from hardware.mcs_stage import MCSAxis
 
 
 class LineScan(metaclass=ScannerMeta):
-    parameter_map = {'spot_count': ('Spot Count', 1),
-                     'direction': ('Direction', 0.0),
-                     'x_start': ('X (Start)', 0.0),
-                     'y_start': ('Y (Start)', 0.0),
-                     'z_start': ('Z (Start)', 0.0),
-                     'z_end': ('Z (End)', 0.0)}
+    parameter_map = {'spot_count': ('Spot Count', 1, None),
+                     'direction': ('Direction', 0.0, None),
+                     'x_start': ('X (Start)', 0.0, 1e-6),
+                     'y_start': ('Y (Start)', 0.0, 1e-6),
+                     'z_start': ('Z (Start)', 0.0, 1e-6),
+                     'z_end': ('Z (End)', 0.0, 1e-6)}
 
     display_name = "Line Scan"
 
@@ -29,8 +29,8 @@ class LineScan(metaclass=ScannerMeta):
 
         self._cleaning = cleaning
         self._curr_step = 0
-        self._dx = math.sin(self.direction) * self.spot_size * 1e9
-        self._dy = math.cos(self.direction) * self.spot_size * 1e9
+        self._dx = math.sin(self.direction) * self.spot_size
+        self._dy = math.cos(self.direction) * self.spot_size
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
@@ -65,8 +65,8 @@ class LineScan(metaclass=ScannerMeta):
         if self._curr_step + 1 >= self.spot_count:  # skip move after last shot
             return False
 
-        conn_mgr.stage.move(MCSAxis.X, int(self._dx), relative=True, wait=False)
-        conn_mgr.stage.move(MCSAxis.Y, int(self._dy), relative=True, wait=False)
+        conn_mgr.stage.move(MCSAxis.X, self._dx, relative=True, wait=False)
+        conn_mgr.stage.move(MCSAxis.Y, self._dy, relative=True, wait=False)
         try:
             conn_mgr.stage.move(MCSAxis.Z, self.delta_z[self._curr_step], relative=True, wait=False)
         except ValueError:

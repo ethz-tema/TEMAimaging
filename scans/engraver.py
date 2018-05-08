@@ -49,10 +49,10 @@ class Engraver(metaclass=ScannerMeta):
         if self._curr_step >= len(self._dist_list):
             return False
 
-        dx = self._dist_list[self._curr_step][0] * self.spot_size * 1e9
-        dy = self._dist_list[self._curr_step][1] * self.spot_size * 1e9
-        self.stage.move(MCSAxis.X, int(dx), relative=True, wait=False)
-        self.stage.move(MCSAxis.Y, int(dy), relative=True, wait=False)
+        dx = self._dist_list[self._curr_step][0] * self.spot_size
+        dy = self._dist_list[self._curr_step][1] * self.spot_size
+        self.stage.move(MCSAxis.X, dx, relative=True, wait=False)
+        self.stage.move(MCSAxis.Y, dy, relative=True, wait=False)
         axes_moved = []
         if dx != 0:
             axes_moved.append(MCSAxis.X)

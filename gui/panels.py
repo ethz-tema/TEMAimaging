@@ -166,16 +166,16 @@ class MeasurementPanel(wx.Panel):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['x_start'].value = conn_mgr.stage.get_position(MCSAxis.X) / 10e9
-                node.params['y_start'].value = conn_mgr.stage.get_position(MCSAxis.Y) / 10e9
-                node.params['z_start'].value = conn_mgr.stage.get_position(MCSAxis.Z) / 10e9
+                node.params['x_start'].value = conn_mgr.stage.get_position(MCSAxis.X)
+                node.params['y_start'].value = conn_mgr.stage.get_position(MCSAxis.Y)
+                node.params['z_start'].value = conn_mgr.stage.get_position(MCSAxis.Z)
                 self.dvc.GetModel().edit_step(node)
 
     def on_click_set_end_position(self, e, item):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['z_end'].value = conn_mgr.stage.get_position(MCSAxis.Z) / 10e9
+                node.params['z_end'].value = conn_mgr.stage.get_position(MCSAxis.Z)
                 self.dvc.GetModel().edit_step(node)
 
     def on_context_menu(self, e):
@@ -471,13 +471,13 @@ class StagePanel(wx.Panel):
 
     def on_click_move(self, e, axis, direction):
         speed = self.speed_map[self.speed_slider.GetValue()]
-        conn_mgr.stage.move(axis, speed * direction, relative=True)
+        conn_mgr.stage.move(axis, speed * direction * 1e-9, relative=True)
 
     def on_click_focus_c(self, e, direction):
-        conn_mgr.stage.move(MCSAxis.Z, 10000 * direction, relative=True)
+        conn_mgr.stage.move(MCSAxis.Z, 100 * 1e-6 * direction, relative=True)
 
     def on_click_focus_f(self, e, direction):
-        conn_mgr.stage.move(MCSAxis.Z, 100000 * direction, relative=True)
+        conn_mgr.stage.move(MCSAxis.Z, 10 * 1e-6 * direction, relative=True)
 
     def on_stage_position_changed(self, position):
         self.txt_x_pos.SetValue(str(position[0]))

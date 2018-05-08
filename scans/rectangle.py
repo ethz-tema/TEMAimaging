@@ -6,12 +6,12 @@ from hardware.mcs_stage import MCSAxis
 
 
 class RectangleScan(metaclass=ScannerMeta):
-    parameter_map = {'x_size': ('X Size', 0.0),
-                     'y_size': ('Y Size', 0.0),
-                     'direction': ('Direction', 0.0),
-                     'x_start': ('X (Start)', 0.0),
-                     'y_start': ('Y (Start)', 0.0),
-                     'z_start': ('Z (Start)', 0.0)}
+    parameter_map = {'x_size': ('X Size', 0.0, 1e-6),
+                     'y_size': ('Y Size', 0.0, 1e-6),
+                     'direction': ('Direction', 0.0, None),
+                     'x_start': ('X (Start)', 0.0, 1e-6),
+                     'y_start': ('Y (Start)', 0.0, 1e-6),
+                     'z_start': ('Z (Start)', 0.0, 1e-6)}
 
     display_name = "Rectangle Scan"
 
@@ -59,18 +59,18 @@ class RectangleScan(metaclass=ScannerMeta):
         conn_mgr.trigger.go_and_wait(self._cleaning)
 
         if (self._curr_step + 1) % self.x_steps == 0:  # EOL
-            dx = self.spot_size * math.sin(self.direction) * 1e9
-            dy = self.spot_size * math.cos(self.direction) * 1e9
+            dx = self.spot_size * math.sin(self.direction)
+            dy = self.spot_size * math.cos(self.direction)
             self._backwards = not self._backwards
         else:
-            dx = self.spot_size * math.cos(self.direction) * 1e9
-            dy = - self.spot_size * math.sin(self.direction) * 1e9
+            dx = self.spot_size * math.cos(self.direction)
+            dy = - self.spot_size * math.sin(self.direction)
             if self._backwards:
                 dx = -dx
                 dy = -dy
 
-        conn_mgr.stage.move(MCSAxis.X, int(dx), relative=True, wait=False)
-        conn_mgr.stage.move(MCSAxis.Y, int(dy), relative=True, wait=False)
+        conn_mgr.stage.move(MCSAxis.X, dx, relative=True, wait=False)
+        conn_mgr.stage.move(MCSAxis.Y, dy, relative=True, wait=False)
         try:
             conn_mgr.stage.move(MCSAxis.Z, self.delta_z[self._curr_step], relative=True, wait=False)
         except ValueError:

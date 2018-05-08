@@ -31,4 +31,8 @@ def get_param_display_str(name):
     return _param_map.get(name)[0]
 
 
+def get_param_scale_factor(name):
+    return _param_map.get(name)[2]
+
+
 _import_scanners()
