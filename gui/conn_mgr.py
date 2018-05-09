@@ -33,6 +33,8 @@ class ConnectionManagerDialog(wx.Dialog):
         self.choice_stage_port = wx.ComboBox(self, wx.ID_ANY, choices=["usb:ix:0"])
         self.btn_stage_connect = wx.Button(self, wx.ID_ANY)
 
+        self.chk_auto_connect = wx.CheckBox(self, wx.ID_ANY, 'Connect devices on startup')
+
         self.btn_save = wx.Button(self, wx.ID_SAVE)
         self.btn_save.SetDefault()
         self.btn_cancel = wx.Button(self, wx.ID_CANCEL)
@@ -128,6 +130,9 @@ class ConnectionManagerDialog(wx.Dialog):
         stage_sizer.Add(stage_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
         sizer.Add(stage_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
+        sizer.Add(self.chk_auto_connect, 0, wx.LEFT | wx.BOTTOM, 5)
+        self.chk_auto_connect.SetValue(Settings.get('general.connect_on_startup'))
+
         # Buttons
         sizer_buttons = wx.StdDialogButtonSizer()
         sizer_buttons.AddButton(self.btn_save)
@@ -178,6 +183,8 @@ class ConnectionManagerDialog(wx.Dialog):
         Settings.set('shutter.output', self.num_shutter_output.GetValue())
 
         Settings.set('stage.conn.port', self.choice_stage_port.GetValue())
+
+        Settings.set('general.connect_on_startup', self.chk_auto_connect.GetValue())
         Settings.save()
 
         self.EndModal(wx.ID_SAVE)

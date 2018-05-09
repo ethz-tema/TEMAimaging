@@ -1,3 +1,5 @@
+general:
+  connect_on_startup: true
 laser:
   conn:
     port: /dev/ttyUSB0

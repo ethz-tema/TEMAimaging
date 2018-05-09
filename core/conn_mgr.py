@@ -1,3 +1,5 @@
+import logging
+
 import serial
 from wx.lib.pubsub import pub
 
@@ -26,6 +28,15 @@ class ConnectionManager:
         self.stage = None
         self.stage_connected = False
         self._stage_position_poller = None
+
+        if Settings.get('general.connect_on_startup'):
+            try:
+                self.laser_connect(Settings.get('laser.conn.port'), Settings.get('laser.conn.rate'))
+                self.trigger_connect(Settings.get('trigger.conn.port'), Settings.get('trigger.conn.rate'))
+                self.shutter_connect(Settings.get('shutter.output'))
+                self.stage_connect(Settings.get('stage.conn.port'))
+            except Exception as e:
+                logging.exception(e)
 
     def laser_connect(self, port, rate):
         if not self.laser_connected:
