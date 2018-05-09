@@ -18,20 +18,20 @@ class MeasurementDVContextMenu(wx.Menu):
 
         self.dvc = parent.dvc
 
-        menu_item = self.Append(wx.ID_ADD, "Add step")
-        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
-
         if dv_item:
-            menu_item = self.Append(wx.ID_DELETE, "Delete", )
-            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
-
-            self.AppendSeparator()
-
             menu_item = self.Append(wx.ID_ANY, "&Set start position\tCtrl-S")
             self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_start_position(e, item), menu_item)
 
             menu_item = self.Append(wx.ID_ANY, "&Set end position (Z only)\tCtrl-E")
             self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_end_position(e, item), menu_item)
+
+            self.AppendSeparator()
+
+            menu_item = self.Append(wx.ID_DELETE, "Delete", )
+            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
+
+        menu_item = self.Append(wx.ID_ADD, "Add step")
+        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
 
     def on_click_add(self, e, item):
         dlg = AddScanDialog(self.dvc)
