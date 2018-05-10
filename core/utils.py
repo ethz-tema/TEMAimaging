@@ -7,13 +7,6 @@ from wx.lib.pubsub import pub
 from core.settings import Settings
 
 
-class LaserStatusChangedEvent(wx.PyCommandEvent):
-    def __init__(self, evt_type, _id, status):
-        super().__init__(evt_type, _id)
-
-        self.status = status
-
-
 class LaserStatusPoller(wx.Timer):
     def __init__(self, laser, *args, **kw):
         super().__init__(*args, **kw)

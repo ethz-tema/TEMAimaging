@@ -5,7 +5,6 @@ from wx.lib.pubsub import pub
 import core.scanner_registry
 from core.conn_mgr import conn_mgr
 from core.measurement import measurement_model, Step, MeasurementController
-from core.utils import LaserStatusPoller, ShutterStatusPoller
 from gui.dialogs import AddScanDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
 from hardware.laser_compex import OpMode
@@ -209,21 +208,15 @@ class LaserPanel(wx.Panel):
     def __init__(self, parent):
         super(LaserPanel, self).__init__(parent, wx.ID_ANY)
 
-        self.laser_poller = None
-        self.shutter_poller = None
-
-        pub.subscribe(self.on_laser_connection_changed, 'laser.connection_changed')
-        pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
-
-        pub.subscribe(self.on_shutter_connection_changed, 'shutter.connection_changed')
-        pub.subscribe(self.on_shutter_status_changed, 'shutter.status_changed')
-
         self.laser_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Laser")
         self.btn_laser_off = wx.Button(self.laser_box.GetStaticBox(), label="Off")
         self.btn_laser_on = wx.Button(self.laser_box.GetStaticBox(), label="On")
 
         self.shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
         self.btn_shutter_open = wx.Button(self.shutter_box.GetStaticBox(), label="Open")
+
+        pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
+        pub.subscribe(self.on_shutter_status_changed, 'shutter.status_changed')
 
         self.init_ui()
 
@@ -267,13 +260,6 @@ class LaserPanel(wx.Panel):
     def on_btn_shutter_open(self, e):
         conn_mgr.shutter.open()
 
-    def on_laser_connection_changed(self, connected):
-        if connected:
-            self.laser_poller = LaserStatusPoller(conn_mgr.laser)
-            self.laser_poller.Start(700)
-        else:
-            self.laser_poller.Stop()
-
     def on_laser_status_changed(self, status):
         if status[0] == OpMode.ON:
             self.btn_laser_on.SetBackgroundColour((0, 255, 0))
@@ -283,13 +269,6 @@ class LaserPanel(wx.Panel):
         else:
             self.btn_laser_on.SetBackgroundColour(wx.NullColour)
             self.btn_laser_off.SetBackgroundColour(wx.NullColour)
-
-    def on_shutter_connection_changed(self, connected):
-        if connected:
-            self.shutter_poller = ShutterStatusPoller(conn_mgr.shutter)
-            self.shutter_poller.Start(1000)
-        else:
-            self.shutter_poller.Stop()
 
     def on_shutter_status_changed(self, status):
         if status:
