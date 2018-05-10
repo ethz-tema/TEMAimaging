@@ -14,6 +14,8 @@ class LaserStatusPoller(wx.Timer):
 
     def Notify(self):
         pub.sendMessage('laser.status_changed', status=self._laser.opmode)
+        pub.sendMessage('laser.hv_changed', status=self._laser.hv)
+        pub.sendMessage('laser.egy_changed', status=self._laser.egy)
 
 
 class ShutterStatusPoller(wx.Timer):
