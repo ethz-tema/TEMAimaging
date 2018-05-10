@@ -1,3 +1,4 @@
+import logging
 from enum import IntEnum
 
 from cffi import FFI, error
@@ -105,6 +106,8 @@ except error.FFIError:
     pass
 except error.CDefError:
     pass
+
+logger = logging.getLogger(__name__)
 
 
 class MCSStage:
@@ -234,11 +237,14 @@ class MCSStage:
         if axis is None:
             for a in MCSAxis:
                 self.set_speed(speed, a)
+            return
 
+        logger.info('set_speed (axis={}, speed={})'.format(axis, speed))
         if self.is_open:
-            self.check_return(lib.SA_SetClosedLoopMoveSpeed_S(self.handle, axis, speed))
+            self.check_return(lib.SA_SetClosedLoopMoveSpeed_S(self.handle, int(axis), int(speed)))
 
     def move(self, axis, position, hold_time=0, relative=False, wait=True):
+        logger.info('move (axis={}, pos={}, relative={}, wait={}'.format(axis, position, relative, wait))
         position = int(position * 1e9)
         if self.is_open:
             if relative:

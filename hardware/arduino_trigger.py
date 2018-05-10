@@ -1,3 +1,4 @@
+import logging
 import queue
 import threading
 import time
@@ -5,6 +6,8 @@ import time
 import serial.threaded
 import wx
 from wx.lib.pubsub import pub
+
+logger = logging.getLogger(__name__)
 
 
 class ArduTrigger(serial.threaded.LineReader):
@@ -91,9 +94,11 @@ class ArduTrigger(serial.threaded.LineReader):
         self.command('O{}'.format(1 if on else 0))
 
     def go(self):
+        logger.info('go')
         self.command('G')
 
     def go_and_wait(self, cleaning=False):
+        logger.info('go_and_wait (cleaning={})'.format(cleaning))
         if cleaning:
             self.single_shot()
             time.sleep(200 / 1000)  # TODO: make this configurable
@@ -103,6 +108,7 @@ class ArduTrigger(serial.threaded.LineReader):
             pass
 
     def single_shot(self):
+        logger.info('single_shot')
         self.command_with_response('I')
 
     def start_trigger(self):

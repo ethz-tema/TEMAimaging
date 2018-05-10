@@ -11,6 +11,8 @@ from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSError, MCSStage
 
+logger = logging.getLogger(__name__)
+
 
 class MeasurementController:
     def __init__(self, laser, trigger, stage):
@@ -29,7 +31,7 @@ class MeasurementController:
                     while scan.next_move() and not stop_scan.is_set():
                         scan.next_shot()
                 except MCSError as e:
-                    logging.exception(e)
+                    logger.exception(e)
 
         thread = MeasureThread()
         thread.start()
@@ -54,8 +56,9 @@ class MeasurementController:
                         scan.init_scan()
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
+                        logger.info('measurement done')
                 except MCSError as e:
-                    logging.exception(e)
+                    logger.exception(e)
 
         thread = MeasureThread()
         thread.start()

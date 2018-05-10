@@ -1,4 +1,8 @@
+import logging
+
 import wx.dataview
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 class GeolasPyApp(wx.App):
