@@ -1,6 +1,6 @@
 import enum
-import threading
 import queue
+import threading
 
 import serial.threaded
 
@@ -144,6 +144,10 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         except ValueError:
             return None
 
+    @trigger.setter
+    def trigger(self, mode):
+        self.command('TRIGGER={}'.format(mode.value))
+
     @property
     def reprate(self):
         return int(self.command_with_response('REPRATE?'))
@@ -154,15 +158,54 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def counts(self):
-        return self.command_with_response('COUNTS?\r')
+        return self.command_with_response('COUNTS?')
 
     @counts.setter
     def counts(self, counts):
         self.command('COUNTS={}'.format(counts))
 
-    @trigger.setter
-    def trigger(self, mode):
-        self.command('TRIGGER={}'.format(mode.value))
+    @property
+    def pressure(self):
+        return self.command_with_response('PRESSURE?')
+
+    @property
+    def hv(self):
+        return self.command_with_response('HV?')
+
+    @hv.setter
+    def hv(self, hv):
+        self.command('HV={:04.1f}'.format(hv))
+
+    @property
+    def egy(self):
+        return self.command_with_response('EGY?')
+
+    @property
+    def cod(self):
+        return self.command_with_response('COD?')
+
+    @cod.setter
+    def cod(self, cod):
+        self.command('COD={}'.format(cod))
+
+    @property
+    def filter_contamination(self):
+        return self.command_with_response('FILTER CONTAMINATION?')
+
+    def reset_filter_contamination(self):
+        self.command('FILTER CONTAMINATION=RESET')
+
+    @property
+    def interlock(self):
+        return self.command_with_response('INTERLOCK?')
+
+    @property
+    def power_stabilization(self):
+        return self.command_with_response('POWER STABILIZATION ACHIEVED?')
+
+    @property
+    def total_counter(self):
+        return self.command_with_response('TOTALCOUNTER?')
 
     @property
     def laser_type(self):
