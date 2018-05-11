@@ -41,7 +41,7 @@ class MeasurementDVContextMenu(wx.Menu):
         menu_item = self.Append(wx.ID_ADD, "Add step")
         self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
 
-    def on_click_add(self, e, item):
+    def on_click_add(self, _, item):
         dlg = AddScanDialog(self.dvc)
         if dlg.ShowModal() == wx.ID_ADD:
             scan_str = dlg.choice_scan_type.GetStringSelection()
@@ -55,12 +55,12 @@ class MeasurementDVContextMenu(wx.Menu):
                 step_item = self.dvc.GetModel().append_step(scan_type)
                 self.dvc.Expand(step_item)
 
-    def on_click_delete(self, e, item):
+    def on_click_delete(self, _, item):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             self.dvc.GetModel().delete_step(item)
 
-    def on_click_go_to_start(self, e, item):
+    def on_click_go_to_start(self, _, item):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             conn_mgr.stage.move(MCSAxis.X, node.params['x_start'].value, wait=False)
@@ -73,7 +73,8 @@ class MeasurementPanel(wx.Panel):
         super(MeasurementPanel, self).__init__(parent, wx.ID_ANY, *args, **kwargs)
 
         self.dvc = wx.dataview.DataViewCtrl(self,
-                                            style=wx.BORDER_THEME | wx.dataview.DV_ROW_LINES | wx.dataview.DV_VERT_RULES | wx.dataview.DV_MULTIPLE)
+                                            style=wx.BORDER_THEME | wx.dataview.DV_ROW_LINES |
+                                                  wx.dataview.DV_VERT_RULES | wx.dataview.DV_MULTIPLE)
 
         self.dvc.SetMinSize((800, 300))
 
@@ -144,7 +145,7 @@ class MeasurementPanel(wx.Panel):
 
         self.SetSizerAndFit(sizer)
 
-    def on_click_open_sequence(self, e):
+    def on_click_open_sequence(self, _):
         with wx.FileDialog(self, "Open Sequence", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fd:
             if fd.ShowModal() == wx.ID_CANCEL:
                 return
@@ -156,7 +157,7 @@ class MeasurementPanel(wx.Panel):
             except IOError:
                 raise
 
-    def on_click_save_sequence(self, e):
+    def on_click_save_sequence(self, _):
         with wx.FileDialog(self, "Save sequence", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
             if fd.ShowModal() == wx.ID_CANCEL:
                 return
@@ -168,7 +169,7 @@ class MeasurementPanel(wx.Panel):
             except IOError:
                 raise
 
-    def on_click_add_step(self, e):
+    def on_click_add_step(self, _):
         dlg = AddScanDialog(self)
         if dlg.ShowModal() == wx.ID_ADD:
             scan_str = dlg.choice_scan_type.GetStringSelection()
@@ -177,7 +178,7 @@ class MeasurementPanel(wx.Panel):
             step_item = measurement_model.append_step(scan_type)
             self.dvc.Expand(step_item)
 
-    def on_click_set_start_position(self, e, item):
+    def on_click_set_start_position(self, _, item):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
@@ -186,7 +187,7 @@ class MeasurementPanel(wx.Panel):
                 node.params['z_start'].value = conn_mgr.stage.get_position(MCSAxis.Z)
                 self.dvc.GetModel().edit_step(node)
 
-    def on_click_set_end_position(self, e, item):
+    def on_click_set_end_position(self, _, item):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
@@ -288,19 +289,23 @@ class LaserPanel(wx.Panel):
 
         self.SetSizerAndFit(main_sizer)
 
-    def on_btn_laser_off(self, e):
+    @staticmethod
+    def on_btn_laser_off(_):
         conn_mgr.laser.opmode = OpMode.OFF
 
-    def on_btn_laser_on(self, e):
+    @staticmethod
+    def on_btn_laser_on(_):
         conn_mgr.laser.opmode = OpMode.ON
 
-    def on_btn_shutter_close(self, e):
+    @staticmethod
+    def on_btn_shutter_close(_):
         conn_mgr.shutter.close()
 
-    def on_btn_shutter_open(self, e):
+    @staticmethod
+    def on_btn_shutter_open(_):
         conn_mgr.shutter.open()
 
-    def on_num_hv_changed(self, e):
+    def on_num_hv_changed(self, _):
         conn_mgr.laser.hv = self.num_laser_voltage.GetValue()
 
     def on_laser_connection_changed(self, connected):
@@ -391,7 +396,7 @@ class LaserManualShootPanel(wx.Panel):
             self.num_frequency.Disable()
             self.btn_start_stop.SetLabelText('Stop')
 
-    def on_click_start_stop(self, e):
+    def on_click_start_stop(self, _):
         if self.trigger_running:
             conn_mgr.trigger.stop_trigger()
             self.trigger_running = False
@@ -545,14 +550,16 @@ class StagePanel(wx.Panel):
 
         self.SetSizerAndFit(main_sizer)
 
-    def on_click_move(self, e, axis, direction):
+    def on_click_move(self, _, axis, direction):
         speed = self.speed_map[self.speed_slider.GetValue()]
         conn_mgr.stage.move(axis, speed * direction * 1e-9, relative=True)
 
-    def on_click_focus_c(self, e, direction):
+    @staticmethod
+    def on_click_focus_c(_, direction):
         conn_mgr.stage.move(MCSAxis.Z, 100 * 1e-6 * direction, relative=True)
 
-    def on_click_focus_f(self, e, direction):
+    @staticmethod
+    def on_click_focus_f(_, direction):
         conn_mgr.stage.move(MCSAxis.Z, 10 * 1e-6 * direction, relative=True)
 
     def on_stage_position_changed(self, position):
@@ -589,7 +596,8 @@ class ScanCtrlPanel(wx.Panel):
 
         self.stop_event = None
 
-        self.num_cleaning_shot_delay = wx.SpinCtrl(self, size=(110, -1), max=500, initial=200)
+        self.num_cleaning_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=500, initial=200)
+        self.num_step_delay = wx.SpinCtrl(self, size=(115, -1), max=5000, initial=0)
 
         self.num_cleaning_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_cleaning_shot_delay_changed)
 
@@ -608,6 +616,8 @@ class ScanCtrlPanel(wx.Panel):
 
         scan_grid.Add(wx.StaticText(self, label='CS Delay (ms):'), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         scan_grid.Add(self.num_cleaning_shot_delay, (0, 1))
+        scan_grid.Add(wx.StaticText(self, label='Step Delay (ms):'), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(self.num_step_delay, (1, 1))
         scan_btn_sizer.Add(btn_start_scan, 1, wx.RIGHT, 2.5)
         scan_btn_sizer.Add(btn_stop_scan, 1, wx.LEFT, 2.5)
 
@@ -618,16 +628,19 @@ class ScanCtrlPanel(wx.Panel):
         scan_box.Add(scan_btn_sizer, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT | wx.EXPAND, 5)
         self.SetSizerAndFit(scan_box)
 
-    def on_num_cleaning_shot_delay_changed(self, e):
+    def on_num_cleaning_shot_delay_changed(self, _):
         measurement_model.measurement.cs_delay = self.num_cleaning_shot_delay.GetValue()
 
-    def on_click_start_scan(self, e):
+    def on_num_step_delay_changed(self, _):
+        measurement_model.measurement.step_delay = self.num_step_delay.GetValue()
+
+    def on_click_start_scan(self, _):
         meas_ctlr = MeasurementController(None, None, None)
         meas_ctlr.init_sequence(measurement_model.measurement)
 
         self.stop_event = meas_ctlr.start_sequence()
 
-    def on_click_stop_scan(self, e):
+    def on_click_stop_scan(self, _):
         if self.stop_event:
             self.stop_event.set()
 

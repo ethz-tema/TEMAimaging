@@ -1,5 +1,6 @@
 import logging
 import threading
+import time
 
 import wx
 import wx.dataview
@@ -21,6 +22,7 @@ class MeasurementController:
         self.trigger = trigger  # type: ArduTrigger
         self.stage = stage  # type: MCSStage
         self.sequence = []
+        self.measurement = None
 
     def start_scan(self, scan):
         stop_scan = threading.Event()
@@ -40,6 +42,7 @@ class MeasurementController:
         return stop_scan
 
     def init_sequence(self, measurement):
+        self.measurement = measurement
         self.sequence.clear()
         for step in measurement.steps:
             self.sequence.append(
@@ -58,6 +61,7 @@ class MeasurementController:
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
                         conn_mgr.stage.set_speed(0)
+                        time.sleep(self.measurement.step_delay / 1000)
                         logger.info('measurement done')
                 except MCSError as e:
                     logger.exception(e)
@@ -118,6 +122,7 @@ class Step:
 class Measurement:
     def __init__(self):
         self.cs_delay = 0
+        self.step_delay = 0
         self.steps = []
 
 
