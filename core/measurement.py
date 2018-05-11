@@ -7,6 +7,7 @@ from ruamel.yaml import YAML
 from wx.lib.pubsub import pub
 
 import core.scanner_registry
+from core.conn_mgr import conn_mgr
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSError, MCSStage
@@ -56,6 +57,7 @@ class MeasurementController:
                         scan.init_scan()
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
+                        conn_mgr.stage.set_speed(0)
                         logger.info('measurement done')
                 except MCSError as e:
                     logger.exception(e)
