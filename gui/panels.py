@@ -216,11 +216,13 @@ class LaserPanel(wx.Panel):
 
         self.num_laser_voltage = wx.SpinCtrl(self, size=(100, -1), max=30)
         self.txt_laser_energy = wx.TextCtrl(self)
-        self.txt_laser_energy.Disable()
 
         self.shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
+        self.btn_shutter_close = wx.Button(self.shutter_box.GetStaticBox(), label="Close")
         self.btn_shutter_open = wx.Button(self.shutter_box.GetStaticBox(), label="Open")
 
+        pub.subscribe(self.on_laser_connection_changed, 'laser.connection_changed')
+        pub.subscribe(self.on_shutter_connection_changed, 'shutter.connection_changed')
         pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
         pub.subscribe(self.on_laser_hv_changed, 'laser.hv_changed')
         pub.subscribe(self.on_laser_egy_changed, 'laser.egy_changed')
@@ -241,12 +243,10 @@ class LaserPanel(wx.Panel):
         self.laser_grid.Add(wx.StaticText(self, label="E (mJ):"), (1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
         self.laser_grid.Add(self.txt_laser_energy, (1, 3))
 
-        btn_shutter_close = wx.Button(self.shutter_box.GetStaticBox(), label="Close")
-        btn_shutter_close.SetMinSize((40, 40))
-
+        self.btn_shutter_close.SetMinSize((40, 40))
         self.btn_shutter_open.SetMinSize((40, 40))
 
-        self.shutter_box.Add(btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
+        self.shutter_box.Add(self.btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
         self.shutter_box.Add(self.btn_shutter_open, 0, wx.RIGHT, border=5)
 
         main_sizer.Add(self.laser_box, 0, wx.BOTTOM, border=5)
@@ -257,8 +257,18 @@ class LaserPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_off, self.btn_laser_off)
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_on, self.btn_laser_on)
 
-        self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_close, btn_shutter_close)
+        self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_close, self.btn_shutter_close)
         self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_open, self.btn_shutter_open)
+
+        if not conn_mgr.laser_connected:
+            self.btn_laser_off.Disable()
+            self.btn_laser_on.Disable()
+            self.num_laser_voltage.Disable()
+            self.txt_laser_energy.Disable()
+
+        if not conn_mgr.shutter_connected:
+            self.btn_shutter_close.Disable()
+            self.btn_shutter_open.Disable()
 
         self.SetSizerAndFit(main_sizer)
 
@@ -276,6 +286,24 @@ class LaserPanel(wx.Panel):
 
     def on_num_hv_changed(self, e):
         conn_mgr.laser.hv = self.num_laser_voltage.GetValue()
+
+    def on_laser_connection_changed(self, connected):
+        if connected:
+            self.btn_laser_off.Disable()
+            self.btn_laser_on.Disable()
+            self.num_laser_voltage.Enable()
+        else:
+            self.btn_laser_off.Disable()
+            self.btn_laser_on.Disable()
+            self.num_laser_voltage.Disable()
+
+    def on_shutter_connection_changed(self, connected):
+        if connected:
+            self.btn_shutter_close.Enable()
+            self.btn_shutter_open.Enable()
+        else:
+            self.btn_shutter_close.Disable()
+            self.btn_shutter_open.Disable()
 
     def on_laser_status_changed(self, status):
         if status[0] == OpMode.ON:
@@ -326,7 +354,14 @@ class LaserManualShootPanel(wx.Panel):
         main_sizer.Add(grid_sizer, 0, wx.ALL, 5)
 
         self.btn_start_stop.Bind(wx.EVT_BUTTON, self.on_click_start_stop)
+
+        pub.subscribe(self.on_trigger_connection_changed, 'trigger.connection_changed')
         pub.subscribe(self.on_trigger_done, 'trigger.done')
+
+        if not conn_mgr.trigger_connected:
+            self.num_shots.Disable()
+            self.num_frequency.Disable()
+            self.btn_start_stop.Disable()
 
         self.SetSizerAndFit(main_sizer)
 
@@ -358,6 +393,16 @@ class LaserManualShootPanel(wx.Panel):
         self.trigger_running = False
         self.toogle_ui(True)
 
+    def on_trigger_connection_changed(self, connected):
+        if connected:
+            self.num_shots.Enable()
+            self.num_frequency.Enable()
+            self.btn_start_stop.Enable()
+        else:
+            self.num_shots.Disable()
+            self.num_frequency.Disable()
+            self.btn_start_stop.Disable()
+
 
 class StagePanel(wx.Panel):
     def __init__(self, parent):
@@ -371,6 +416,15 @@ class StagePanel(wx.Panel):
         self.txt_y_pos.Disable()
         self.txt_z_pos = wx.TextCtrl(self, size=(150, -1))
         self.txt_z_pos.Disable()
+
+        self.stage_move_xp = wx.Button(self)
+        self.stage_move_xn = wx.Button(self)
+        self.stage_move_yp = wx.Button(self)
+        self.stage_move_yn = wx.Button(self)
+        self.stage_focus_cp = wx.Button(self)
+        self.stage_focus_cn = wx.Button(self)
+        self.stage_focus_fp = wx.Button(self)
+        self.stage_focus_fn = wx.Button(self)
 
         self.speed_map = [1] * 18
         self.speed_map[1] = 1
@@ -394,37 +448,29 @@ class StagePanel(wx.Panel):
         self.init_ui()
 
     def init_ui(self):
-        stage_move_xp = wx.Button(self)
-        stage_move_xp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
-        stage_move_xp.SetMinSize((40, 40))
+        self.stage_move_xp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
+        self.stage_move_xp.SetMinSize((40, 40))
 
-        stage_move_xn = wx.Button(self)
-        stage_move_xn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
-        stage_move_xn.SetMinSize((40, 40))
+        self.stage_move_xn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
+        self.stage_move_xn.SetMinSize((40, 40))
 
-        stage_move_yp = wx.Button(self)
-        stage_move_yp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_BACK))
-        stage_move_yp.SetMinSize((40, 40))
+        self.stage_move_yp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_BACK))
+        self.stage_move_yp.SetMinSize((40, 40))
 
-        stage_move_yn = wx.Button(self)
-        stage_move_yn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD))
-        stage_move_yn.SetMinSize((40, 40))
+        self.stage_move_yn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD))
+        self.stage_move_yn.SetMinSize((40, 40))
 
-        stage_focus_cp = wx.Button(self)
-        stage_focus_cp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
-        stage_focus_cp.SetMinSize((40, 40))
+        self.stage_focus_cp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
+        self.stage_focus_cp.SetMinSize((40, 40))
 
-        stage_focus_cn = wx.Button(self)
-        stage_focus_cn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
-        stage_focus_cn.SetMinSize((40, 40))
+        self.stage_focus_cn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
+        self.stage_focus_cn.SetMinSize((40, 40))
 
-        stage_focus_fp = wx.Button(self)
-        stage_focus_fp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
-        stage_focus_fp.SetMinSize((30, 40))
+        self.stage_focus_fp.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_DOWN))
+        self.stage_focus_fp.SetMinSize((30, 40))
 
-        stage_focus_fn = wx.Button(self)
-        stage_focus_fn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
-        stage_focus_fn.SetMinSize((30, 40))
+        self.stage_focus_fn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
+        self.stage_focus_fn.SetMinSize((30, 40))
 
         self.speed_slider.SetMinSize((200, 51))
         self.speed_slider.SetToolTip("XY Speed")
@@ -432,14 +478,14 @@ class StagePanel(wx.Panel):
 
         button_sizer = wx.GridBagSizer(0, 0)
 
-        button_sizer.Add(stage_move_xp, (2, 1))
-        button_sizer.Add(stage_move_xn, (0, 1))
-        button_sizer.Add(stage_move_yp, (1, 0))
-        button_sizer.Add(stage_move_yn, (1, 2))
-        button_sizer.Add(stage_focus_cp, (2, 3), flag=wx.LEFT, border=10)
-        button_sizer.Add(stage_focus_cn, (0, 3), flag=wx.LEFT, border=10)
-        button_sizer.Add(stage_focus_fp, (2, 4), flag=wx.LEFT, border=2)
-        button_sizer.Add(stage_focus_fn, (0, 4), flag=wx.LEFT, border=2)
+        button_sizer.Add(self.stage_move_xp, (2, 1))
+        button_sizer.Add(self.stage_move_xn, (0, 1))
+        button_sizer.Add(self.stage_move_yp, (1, 0))
+        button_sizer.Add(self.stage_move_yn, (1, 2))
+        button_sizer.Add(self.stage_focus_cp, (2, 3), flag=wx.LEFT, border=10)
+        button_sizer.Add(self.stage_focus_cn, (0, 3), flag=wx.LEFT, border=10)
+        button_sizer.Add(self.stage_focus_fp, (2, 4), flag=wx.LEFT, border=2)
+        button_sizer.Add(self.stage_focus_fn, (0, 4), flag=wx.LEFT, border=2)
 
         button_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Focus", style=wx.ALIGN_CENTER), (1, 3), (1, 2),
                          wx.ALIGN_CENTER | wx.LEFT, border=10)
@@ -457,17 +503,29 @@ class StagePanel(wx.Panel):
         main_sizer.Add(self.speed_slider, 0, wx.ALL, 10)
         main_sizer.Add(pos_sizer, 0, wx.ALL, 10)
 
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=1: self.on_click_move(e, a, d), stage_move_xp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=-1: self.on_click_move(e, a, d), stage_move_xn)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Y, d=1: self.on_click_move(e, a, d), stage_move_yp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Y, d=-1: self.on_click_move(e, a, d), stage_move_yn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=1: self.on_click_move(e, a, d), self.stage_move_xp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=-1: self.on_click_move(e, a, d), self.stage_move_xn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Y, d=1: self.on_click_move(e, a, d), self.stage_move_yp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Y, d=-1: self.on_click_move(e, a, d), self.stage_move_yn)
 
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_c(e, d), stage_focus_cp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_c(e, d), stage_focus_cn)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_f(e, d), stage_focus_fp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_f(e, d), stage_focus_fn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_c(e, d), self.stage_focus_cp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_c(e, d), self.stage_focus_cn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_f(e, d), self.stage_focus_fp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_f(e, d), self.stage_focus_fn)
 
         pub.subscribe(self.on_stage_position_changed, 'stage.position_changed')
+        pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
+
+        if not conn_mgr.stage_connected:
+            self.stage_move_xp.Disable()
+            self.stage_move_xn.Disable()
+            self.stage_move_yp.Disable()
+            self.stage_move_yn.Disable()
+            self.stage_focus_cp.Disable()
+            self.stage_focus_cn.Disable()
+            self.stage_focus_fp.Disable()
+            self.stage_focus_fn.Disable()
+            self.speed_slider.Disable()
 
         self.SetSizerAndFit(main_sizer)
 
@@ -485,6 +543,28 @@ class StagePanel(wx.Panel):
         self.txt_x_pos.SetValue(str(position[0]))
         self.txt_y_pos.SetValue(str(position[1]))
         self.txt_z_pos.SetValue(str(position[2]))
+
+    def on_stage_connection_changed(self, connected):
+        if connected:
+            self.stage_move_xp.Enable()
+            self.stage_move_xn.Enable()
+            self.stage_move_yp.Enable()
+            self.stage_move_yn.Enable()
+            self.stage_focus_cp.Enable()
+            self.stage_focus_cn.Enable()
+            self.stage_focus_fp.Enable()
+            self.stage_focus_fn.Enable()
+            self.speed_slider.Enable()
+        else:
+            self.stage_move_xp.Disable()
+            self.stage_move_xn.Disable()
+            self.stage_move_yp.Disable()
+            self.stage_move_yn.Disable()
+            self.stage_focus_cp.Disable()
+            self.stage_focus_cn.Disable()
+            self.stage_focus_fp.Disable()
+            self.stage_focus_fn.Disable()
+            self.speed_slider.Disable()
 
 
 class ScanCtrlPanel(wx.Panel):
