@@ -16,6 +16,9 @@ class MainFrame(wx.Frame):
 
         self.status_bar = self.CreateStatusBar()
 
+        self.stage_menu_reference = wx.MenuItem(id=wx.ID_ANY, text='Reference axes', helpString='Reference stage axes')
+        self.stage_menu_reset_speed = wx.MenuItem(id=wx.ID_ANY, text='Reset speed', helpString='Reset axis speeds')
+
         self.init_ui()
 
     def init_ui(self):
@@ -25,8 +28,17 @@ class MainFrame(wx.Frame):
         file_menu.Append(wx.ID_SEPARATOR)
         file_menu_close = file_menu.Append(wx.ID_EXIT)
 
+        stage_menu = wx.Menu()
+        stage_menu.Append(self.stage_menu_reference)
+        stage_menu.Append(self.stage_menu_reset_speed)
+
+        if not conn_mgr.stage_connected:
+            self.stage_menu_reference.Enable(False)
+            self.stage_menu_reset_speed.Enable(False)
+
         menubar = wx.MenuBar()
         menubar.Append(file_menu, '&File')
+        menubar.Append(stage_menu, '&Stage')
         self.SetMenuBar(menubar)
 
         p = wx.Panel(self)
@@ -50,28 +62,47 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_connection_manager, file_menu_conn_mgr)
         self.Bind(wx.EVT_MENU, self.on_settings, file_menu_settings)
         self.Bind(wx.EVT_MENU, self.on_quit, file_menu_close)
+        self.Bind(wx.EVT_MENU, self.on_click_stage_menu_reference, self.stage_menu_reference)
+        self.Bind(wx.EVT_MENU, self.on_click_stage_menu_reset_speed, self.stage_menu_reset_speed)
 
         self.Bind(wx.EVT_CLOSE, self.on_quit)
 
         pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
+        pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
 
         p.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)
 
-    def on_connection_manager(self, e):
+    def on_stage_connection_changed(self, connected):
+        if connected:
+            self.stage_menu_reference.Enable(True)
+            self.stage_menu_reset_speed.Enable(True)
+        else:
+            self.stage_menu_reference.Enable(False)
+            self.stage_menu_reset_speed.Enable(False)
+
+    def on_connection_manager(self, _):
         dlg = ConnectionManagerDialog(self)
         dlg.ShowModal()
 
-    def on_settings(self, e):
+    def on_settings(self, _):
         dlg = PreferencesDialog(self)
         dlg.ShowModal()
 
     def on_laser_status_changed(self, status):
         self.status_bar.SetStatusText('Laser status: ' + str(status))
 
-    def on_quit(self, e):
+    def on_quit(self, _):
         conn_mgr.laser_disconnect()
         conn_mgr.trigger_disconnect()
         conn_mgr.shutter_disconnect()
         conn_mgr.stage_disconnect()
         self.Destroy()
+
+    @staticmethod
+    def on_click_stage_menu_reference(_):
+        conn_mgr.stage.find_references()
+
+    @staticmethod
+    def on_click_stage_menu_reset_speed(_):
+        conn_mgr.stage.set_speed(0)
