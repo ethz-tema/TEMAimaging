@@ -20,9 +20,18 @@ class MeasurementDVContextMenu(wx.Menu):
         if dv_item:
             menu_item = self.Append(wx.ID_ANY, "&Set start position\tCtrl-S")
             self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_start_position(e, item), menu_item)
+            if not conn_mgr.stage_connected:
+                menu_item.Enable(False)
 
             menu_item = self.Append(wx.ID_ANY, "&Set end position (Z only)\tCtrl-E")
             self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_end_position(e, item), menu_item)
+            if not conn_mgr.stage_connected:
+                menu_item.Enable(False)
+
+            menu_item = self.Append(wx.ID_ANY, "&Go to start position\tCtrl-G")
+            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_go_to_start(e, item), menu_item)
+            if not conn_mgr.stage_connected:
+                menu_item.Enable(False)
 
             self.AppendSeparator()
 
@@ -50,6 +59,13 @@ class MeasurementDVContextMenu(wx.Menu):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             self.dvc.GetModel().delete_step(item)
+
+    def on_click_go_to_start(self, e, item):
+        node = self.dvc.GetModel().ItemToObject(item)
+        if isinstance(node, Step):
+            conn_mgr.stage.move(MCSAxis.X, node.params['x_start'].value, wait=False)
+            conn_mgr.stage.move(MCSAxis.Y, node.params['y_start'].value, wait=False)
+            conn_mgr.stage.move(MCSAxis.Z, node.params['z_start'].value, wait=False)
 
 
 class MeasurementPanel(wx.Panel):
