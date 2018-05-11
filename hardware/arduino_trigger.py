@@ -97,11 +97,11 @@ class ArduTrigger(serial.threaded.LineReader):
         logger.info('go')
         self.command('G')
 
-    def go_and_wait(self, cleaning=False):
+    def go_and_wait(self, cleaning=False, delay=200):
         logger.info('go_and_wait (cleaning={})'.format(cleaning))
         if cleaning:
             self.single_shot()
-            time.sleep(200 / 1000)  # TODO: make this configurable
+            time.sleep(delay / 1000)
         self.command('G')
         self.done = False
         while not self.done:

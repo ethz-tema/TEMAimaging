@@ -15,7 +15,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
 
     display_name = "Cont. Line Scan"
 
-    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, spot_count=1, direction=0, x_start=None,
+    def __init__(self, spot_size, shot_count=1, frequency=1, _=None, spot_count=1, direction=0, x_start=None,
                  y_start=None, z_start=None, dz=None):
         self.spot_size = spot_size
         self.spot_count = spot_count
@@ -44,7 +44,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         self._vz = dz / time
 
     @classmethod
-    def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
+    def from_params(cls, spot_size, shot_count, frequency, cleaning, _, params):
         spot_count = params['spot_count'].value
 
         if spot_count > 1 and params['z_start'].value and params['z_end']:

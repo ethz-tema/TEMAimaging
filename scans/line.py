@@ -15,7 +15,8 @@ class LineScan(metaclass=ScannerMeta):
 
     display_name = "Line Scan"
 
-    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, spot_count=1, direction=0, x_start=None,
+    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, cleaning_delay=0, spot_count=1,
+                 direction=0, x_start=None,
                  y_start=None, z_start=None, delta_z=None):
         self.spot_size = spot_size
         self.spot_count = spot_count
@@ -28,12 +29,13 @@ class LineScan(metaclass=ScannerMeta):
         self.frequency = frequency
 
         self._cleaning = cleaning
+        self._cleaning_delay = cleaning_delay
         self._curr_step = 0
         self._dx = math.sin(self.direction) * self.spot_size
         self._dy = math.cos(self.direction) * self.spot_size
 
     @classmethod
-    def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
+    def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
         spot_count = params['spot_count'].value
         if spot_count > 1 and params['z_start'].value and params['z_end']:
             dz = (params['z_end'].value - params['z_start'].value) / (spot_count - 1)
@@ -41,7 +43,7 @@ class LineScan(metaclass=ScannerMeta):
         else:
             dz_list = []
 
-        return cls(spot_size, shot_count, frequency, cleaning, spot_count, params['direction'].value,
+        return cls(spot_size, shot_count, frequency, cleaning, cleaning_delay, spot_count, params['direction'].value,
                    params['x_start'].value, params['y_start'].value, params['z_start'].value, dz_list)
 
     def init_scan(self):
@@ -60,7 +62,7 @@ class LineScan(metaclass=ScannerMeta):
         if self._curr_step >= self.spot_count:
             return False
 
-        conn_mgr.trigger.go_and_wait(self._cleaning)
+        conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
         if self._curr_step + 1 >= self.spot_count:  # skip move after last shot
             return False

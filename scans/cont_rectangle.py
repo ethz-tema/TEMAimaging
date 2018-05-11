@@ -15,7 +15,7 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
 
     display_name = "Cont. Rectangle Scan"
 
-    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, x_size=1, y_size=1, direction=0,
+    def __init__(self, spot_size, shot_count=1, frequency=1, _=None, x_size=1, y_size=1, direction=0,
                  x_start=None, y_start=None, z_start=None, delta_z=None):
         self.x_steps = int(x_size / spot_size)
         self.y_steps = int(y_size / spot_size)
@@ -44,7 +44,7 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         # self._vz = dz / time
 
     @classmethod
-    def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
+    def from_params(cls, spot_size, shot_count, frequency, cleaning, _, params):
         return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value,
                    params['direction'].value, params['x_start'].value, params['y_start'].value,
                    params['z_start'].value)  # ,

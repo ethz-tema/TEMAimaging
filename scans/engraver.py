@@ -4,9 +4,11 @@ from hardware.mcs_stage import MCSAxis
 
 
 class Engraver(metaclass=ScannerMeta):
+    parameter_map = {}
+
     display_name = "Engraver"
 
-    def __init__(self, spot_size, shot_count, image, cleaning=False):
+    def __init__(self, spot_size, shot_count, image, cleaning=False, cleaning_delay=0):
         self.spot_size = spot_size
         self.shot_count = shot_count
         self.image = image
@@ -17,6 +19,7 @@ class Engraver(metaclass=ScannerMeta):
         self._dist_list = []
         self._curr_step = 0
         self._cleaning = cleaning
+        self._cleaning_delay = cleaning_delay
         self.init_steps()
 
         self.trigger.set_count(self.shot_count)
@@ -60,7 +63,7 @@ class Engraver(metaclass=ScannerMeta):
             axes_moved.append(MCSAxis.Y)
         self.stage.wait_until_status(axes_moved)
 
-        self.trigger.go_and_wait(self._cleaning)
+        self.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
         self._curr_step += 1
 
         return True

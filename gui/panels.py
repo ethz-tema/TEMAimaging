@@ -493,28 +493,47 @@ class ScanCtrlPanel(wx.Panel):
 
         self.stop_event = None
 
+        self.num_cleaning_shot_delay = wx.SpinCtrl(self, size=(110, -1), max=500, initial=200)
+
+        self.num_cleaning_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_cleaning_shot_delay_changed)
+
+        pub.subscribe(self.on_model_loaded, 'measurement.model_loaded')
+
         self.init_ui()
 
     def init_ui(self):
-        scan_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Scan")
+        scan_box = wx.StaticBoxSizer(wx.VERTICAL, self, label="Scan")
+
+        scan_grid = wx.GridBagSizer(5, 5)
+        scan_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         btn_start_scan = wx.Button(self, wx.ID_ANY, 'Start')
         btn_stop_scan = wx.Button(self, wx.ID_ANY, 'Stop')
 
-        scan_box.Add(btn_start_scan, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
-        scan_box.Add(btn_stop_scan, 0, wx.RIGHT, border=5)
+        scan_grid.Add(wx.StaticText(self, label='CS Delay (ms):'), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(self.num_cleaning_shot_delay, (0, 1))
+        scan_btn_sizer.Add(btn_start_scan, 1, wx.RIGHT, 2.5)
+        scan_btn_sizer.Add(btn_stop_scan, 1, wx.LEFT, 2.5)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_start_scan, btn_start_scan)
         self.Bind(wx.EVT_BUTTON, self.on_click_stop_scan, btn_stop_scan)
 
+        scan_box.Add(scan_grid, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, 5)
+        scan_box.Add(scan_btn_sizer, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT | wx.EXPAND, 5)
         self.SetSizerAndFit(scan_box)
+
+    def on_num_cleaning_shot_delay_changed(self, e):
+        measurement_model.measurement.cs_delay = self.num_cleaning_shot_delay.GetValue()
 
     def on_click_start_scan(self, e):
         meas_ctlr = MeasurementController(None, None, None)
-        meas_ctlr.init_sequence(measurement_model.steps)
+        meas_ctlr.init_sequence(measurement_model.measurement)
 
         self.stop_event = meas_ctlr.start_sequence()
 
     def on_click_stop_scan(self, e):
         if self.stop_event:
             self.stop_event.set()
+
+    def on_model_loaded(self):
+        self.num_cleaning_shot_delay.SetValue(measurement_model.measurement.cs_delay)

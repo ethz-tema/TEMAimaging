@@ -15,7 +15,8 @@ class RectangleScan(metaclass=ScannerMeta):
 
     display_name = "Rectangle Scan"
 
-    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, x_size=1, y_size=1, direction=0,
+    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
+                 direction=0,
                  x_start=None, y_start=None, z_start=None, delta_z=None):
         self.x_steps = int(x_size / spot_size)
         self.y_steps = int(y_size / spot_size)
@@ -31,12 +32,15 @@ class RectangleScan(metaclass=ScannerMeta):
         self._backwards = False
         self._steps = self.x_steps * self.y_steps
         self._cleaning = cleaning
+        self._cleaning_delay = cleaning_delay
 
     @classmethod
-    def from_params(cls, spot_size, shot_count, frequency, cleaning, params):
-        return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value,
-                   params['direction'].value, params['x_start'].value, params['y_start'].value, params['z_start'].value,
-                   params['delta_z'].value)
+    def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
+        return cls(spot_size, shot_count, frequency, cleaning, cleaning_delay, params['x_size'].value,
+                   params['y_size'].value,
+                   params['direction'].value, params['x_start'].value, params['y_start'].value,
+                   params['z_start'].value)  # ,
+        # params['delta_z'].value)
 
     def init_scan(self):
         if self.x_start:

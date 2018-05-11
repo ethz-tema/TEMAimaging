@@ -1,10 +1,10 @@
-import copy
 import logging
 import threading
 
 import wx
 import wx.dataview
 from ruamel.yaml import YAML
+from wx.lib.pubsub import pub
 
 import core.scanner_registry
 from hardware.arduino_trigger import ArduTrigger
@@ -38,12 +38,12 @@ class MeasurementController:
 
         return stop_scan
 
-    def init_sequence(self, steps):
+    def init_sequence(self, measurement):
         self.sequence.clear()
-        for step in steps:
+        for step in measurement.steps:
             self.sequence.append(
                 step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
-                                           step.params))
+                                           measurement.cs_delay, step.params))
 
     def start_sequence(self):
         stop_scan = threading.Event()
@@ -113,17 +113,19 @@ class Step:
                 setattr(self, k, v)
 
 
+class Measurement:
+    def __init__(self):
+        self.cs_delay = 0
+        self.steps = []
+
+
 class MeasurementViewModel(wx.dataview.PyDataViewModel):
     def __init__(self):
         super().__init__()
 
         # self.UseWeakRefs(False)
 
-        self._steps = []
-
-    @property
-    def steps(self):
-        return copy.deepcopy(self._steps)
+        self.measurement = Measurement()  # type: Measurement
 
     def GetColumnCount(self):
         return 8
@@ -138,9 +140,9 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
 
     def GetChildren(self, item, children):
         if not item:  # root node
-            for step in self._steps:
+            for step in self.measurement.steps:
                 children.append(self.ObjectToItem(step))
-            return len(self._steps)
+            return len(self.measurement.steps)
 
         node = self.ItemToObject(item)
         if isinstance(node, Step):
@@ -167,7 +169,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         if isinstance(node, Step):
             return wx.dataview.NullDataViewItem
         elif isinstance(node, Param):
-            for s in self._steps:
+            for s in self.measurement.steps:
                 if s.index == node.step_index:
                     return self.ObjectToItem(s)
 
@@ -215,8 +217,8 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         return True
 
     def _recalculate_ids(self, notify=True):
-        for i in range(len(self._steps)):
-            step = self._steps[i]
+        for i in range(len(self.measurement.steps)):
+            step = self.measurement.steps[i]
             if step.index != i:
                 step.index = i
                 if notify:
@@ -231,37 +233,41 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         yaml = YAML()
         yaml.register_class(Step)
         yaml.register_class(Param)
+        yaml.register_class(Measurement)
 
-        yaml.dump(self._steps, stream)
+        yaml.dump(self.measurement, stream)
 
     def load_model(self, stream):
         yaml = YAML()
         yaml.register_class(Step)
         yaml.register_class(Param)
+        yaml.register_class(Measurement)
 
-        self._steps = []
+        self.measurement.steps = []
         self.Cleared()
-        self._steps = yaml.load(stream)
+        self.measurement = yaml.load(stream)
 
         self._recalculate_ids(False)
-        for step in self._steps:
+        for step in self.measurement.steps:
             step_item = self.ObjectToItem(step)
             self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
             for param in step.params.values():
                 self.ItemAdded(step_item, self.ObjectToItem(param))
 
+        pub.sendMessage('measurement.model_loaded')
+
     def delete_step(self, item):
         node = self.ItemToObject(item)
         if isinstance(node, Step):
-            self._steps.remove(node)
+            self.measurement.steps.remove(node)
             self.ItemDeleted(wx.dataview.NullDataViewItem, item)
             self._recalculate_ids()
 
     def append_step(self, typ):
-        index = len(self._steps)
+        index = len(self.measurement.steps)
         params = {k: Param(index, k, v[1]) for k, v in typ.parameter_map.items()}
-        step = Step(len(self._steps), typ, params)
-        self._steps.append(step)
+        step = Step(len(self.measurement.steps), typ, params)
+        self.measurement.steps.append(step)
         step_item = self.ObjectToItem(step)
         self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
         for param in step.params.values():
@@ -269,10 +275,10 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         return step_item
 
     def insert_step(self, typ, position):
-        index = len(self._steps)
+        index = len(self.measurement.steps)
         params = {k: Param(index, k, v[1]) for k, v in typ.parameter_map.items()}
-        step = Step(len(self._steps), typ, params)
-        self._steps.insert(position, step)
+        step = Step(len(self.measurement.steps), typ, params)
+        self.measurement.steps.insert(position, step)
         step_item = self.ObjectToItem(step)
         self.ItemAdded(wx.dataview.NullDataViewItem, step_item)
         for param in step.params.values():
@@ -281,8 +287,8 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         return step_item
 
     def edit_step(self, step):
-        del self._steps[step.index]
-        self._steps.insert(step.index, step)
+        del self.measurement.steps[step.index]
+        self.measurement.steps.insert(step.index, step)
         self.ItemChanged(self.ObjectToItem(step))
 
 
