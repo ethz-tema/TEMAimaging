@@ -77,17 +77,13 @@ class PreferencesDialog(PreferencesBaseDialog):
                                   wx.HORIZONTAL)
         grid_sizer = wx.GridBagSizer(hgap=3, vgap=3)
 
-        ctrl = wx.CheckBox(panel, wx.ID_ANY, 'Find position references when connection is established')
-        ctrl.SetValue(Settings.get('stage.find_ref_on_connect'))
-        self.ctrl_map['stage.find_ref_on_connect'] = ctrl
-        grid_sizer.Add(ctrl, pos=(0, 0), span=(1, 2))
-
-        grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Position polling rate (sec)"), pos=(1, 0), span=(1, 1),
+        grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Position polling rate (sec)"), pos=(0, 0), span=(1, 1),
                        flag=wx.ALIGN_CENTER_VERTICAL)
         ctrl = wx.SpinCtrlDouble(panel, wx.ID_ANY, max=5, initial=0.1, inc=0.1)
         ctrl.SetValue(Settings.get('stage.position_poll_rate'))
         self.ctrl_map['stage.position_poll_rate'] = ctrl
-        grid_sizer.Add(ctrl, pos=(1, 1), span=(1, 1), flag=wx.ALIGN_RIGHT)
+        grid_sizer.Add(ctrl, pos=(0, 1), span=(1, 1), flag=wx.ALIGN_RIGHT)
+        grid_sizer.AddGrowableCol(0)
 
         sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
         border.Add(sizer, 0, wx.ALL | wx.EXPAND, 10)
@@ -143,7 +139,33 @@ class PreferencesDialog(PreferencesBaseDialog):
         grid_sizer.Add(ctrl, 0, 0, 0)
 
         sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
+        border.Add(sizer, 0, wx.ALL | wx.EXPAND, 10)
 
+        sizer = wx.StaticBoxSizer(wx.StaticBox(panel, wx.ID_ANY, "Referencing"),
+                                  wx.HORIZONTAL)
+        grid_sizer = wx.GridBagSizer(hgap=3, vgap=3)
+
+        ctrl = wx.CheckBox(panel, wx.ID_ANY, 'Find position references when connection is established')
+        ctrl.SetValue(Settings.get('stage.find_ref_on_connect'))
+        self.ctrl_map['stage.find_ref_on_connect'] = ctrl
+        grid_sizer.Add(ctrl, pos=(0, 0), span=(1, 2))
+
+        ctrl = wx.CheckBox(panel, wx.ID_ANY, 'Reference X axis')
+        ctrl.SetValue(Settings.get('stage.ref_x'))
+        self.ctrl_map['stage.ref_x'] = ctrl
+        grid_sizer.Add(ctrl, pos=(1, 0), span=(1, 2))
+
+        ctrl = wx.CheckBox(panel, wx.ID_ANY, 'Reference Y axis')
+        ctrl.SetValue(Settings.get('stage.ref_y'))
+        self.ctrl_map['stage.ref_y'] = ctrl
+        grid_sizer.Add(ctrl, pos=(2, 0), span=(1, 2))
+
+        ctrl = wx.CheckBox(panel, wx.ID_ANY, 'Reference Z axis')
+        ctrl.SetValue(Settings.get('stage.ref_z'))
+        self.ctrl_map['stage.ref_z'] = ctrl
+        grid_sizer.Add(ctrl, pos=(3, 0), span=(1, 2))
+
+        sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
         border.Add(sizer, 0, wx.ALL | wx.EXPAND, 10)
 
         panel.SetSizer(border)

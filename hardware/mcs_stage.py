@@ -3,6 +3,8 @@ from enum import IntEnum
 
 from cffi import FFI, error
 
+from core.settings import Settings
+
 
 class SAError(IntEnum):
     SA_OK = 0
@@ -154,14 +156,15 @@ class MCSStage:
             return s[0]
 
     def wait_until_status(self, axes=None, status=SAChannelStatus.SA_STOPPED_STATUS):
-        if axes is None:
-            axes = [MCSAxis.X, MCSAxis.Y, MCSAxis.Z]
-        statuses = {}
-        while True:
-            for a in axes:
-                statuses[a] = self.get_axis_status(a) == status
-            if all(statuses.values()):
-                return
+        if self.is_open:
+            if axes is None:
+                axes = [MCSAxis.X, MCSAxis.Y, MCSAxis.Z]
+            statuses = {}
+            while True:
+                for a in axes:
+                    statuses[a] = self.get_axis_status(a) == status
+                if all(statuses.values()):
+                    return
 
     def set_hcm_mode(self, mode):
         if self.is_open:
@@ -199,8 +202,12 @@ class MCSStage:
                                                hold_time, 1))
 
     def find_references(self, hold_time=0):
-        for a in MCSAxis:
-            self.find_reference(a, hold_time)
+        if Settings.get('stage.ref_x'):
+            self.find_reference(MCSAxis.X, hold_time)
+        if Settings.get('stage.ref_y'):
+            self.find_reference(MCSAxis.Y, hold_time)
+        if Settings.get('stage.ref_z'):
+            self.find_reference(MCSAxis.Z, hold_time)
 
         self.wait_until_status()
 
