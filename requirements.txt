@@ -1,0 +1,5 @@
+cffi
+pyserial
+Pillow
+ruamel.yaml
+wxPython
