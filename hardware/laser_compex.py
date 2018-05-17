@@ -170,7 +170,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def hv(self):
-        return self.command_with_response('HV?')
+        return float(self.command_with_response('HV?'))
 
     @hv.setter
     def hv(self, hv):
@@ -178,7 +178,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def egy(self):
-        return self.command_with_response('EGY?')
+        return float(self.command_with_response('EGY?'))
 
     @property
     def cod(self):

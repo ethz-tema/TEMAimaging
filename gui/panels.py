@@ -225,14 +225,11 @@ class LaserPanel(wx.Panel):
     def __init__(self, parent):
         super(LaserPanel, self).__init__(parent, wx.ID_ANY)
 
-        self.laser_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Laser")
-        self.laser_grid = wx.GridBagSizer(5, 5)
-        self.laser_box.Add(self.laser_grid, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, 5)
         self.btn_laser_off = wx.Button(self, label="Off")
         self.btn_laser_on = wx.Button(self, label="On")
 
-        self.num_laser_voltage = wx.SpinCtrl(self, size=(100, -1), max=30)
-        self.txt_laser_energy = wx.TextCtrl(self)
+        self.num_laser_voltage = wx.SpinCtrlDouble(self, size=(110, -1), min=22, max=30, inc=0.1)
+        self.txt_laser_energy = wx.TextCtrl(self, size=(110, -1))
 
         self.shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
         self.btn_shutter_close = wx.Button(self.shutter_box.GetStaticBox(), label="Close")
@@ -250,15 +247,17 @@ class LaserPanel(wx.Panel):
     def init_ui(self):
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        laser_grid = wx.GridBagSizer(5, 5)
+
         self.btn_laser_off.SetMinSize((40, 40))
         self.btn_laser_on.SetMinSize((40, 40))
 
-        self.laser_grid.Add(self.btn_laser_off, (0, 0), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.laser_grid.Add(self.btn_laser_on, (0, 1), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.laser_grid.Add(wx.StaticText(self, label="HV (kV):"), (0, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.laser_grid.Add(self.num_laser_voltage, (0, 3))
-        self.laser_grid.Add(wx.StaticText(self, label="E (mJ):"), (1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
-        self.laser_grid.Add(self.txt_laser_energy, (1, 3))
+        laser_grid.Add(self.btn_laser_off, (0, 0), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        laser_grid.Add(self.btn_laser_on, (0, 1), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
+        laser_grid.Add(wx.StaticText(self, label="HV (kV):"), (0, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        laser_grid.Add(self.num_laser_voltage, (0, 3))
+        laser_grid.Add(wx.StaticText(self, label="E (mJ):"), (1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        laser_grid.Add(self.txt_laser_energy, (1, 3))
 
         self.btn_shutter_close.SetMinSize((40, 40))
         self.btn_shutter_open.SetMinSize((40, 40))
@@ -266,10 +265,13 @@ class LaserPanel(wx.Panel):
         self.shutter_box.Add(self.btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
         self.shutter_box.Add(self.btn_shutter_open, 0, wx.RIGHT, border=5)
 
-        main_sizer.Add(self.laser_box, 0, wx.BOTTOM, border=5)
+        laser_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Laser")
+        laser_box.Add(laser_grid, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, 5)
+        main_sizer.Add(laser_box, 0, wx.BOTTOM, border=5)
+
         main_sizer.Add(self.shutter_box, 0, wx.ALL, border=0)
 
-        self.num_laser_voltage.Bind(wx.EVT_SPINCTRL, self.on_num_hv_changed)
+        self.num_laser_voltage.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_num_hv_changed)
 
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_off, self.btn_laser_off)
         self.Bind(wx.EVT_BUTTON, self.on_btn_laser_on, self.btn_laser_on)
@@ -277,11 +279,12 @@ class LaserPanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_close, self.btn_shutter_close)
         self.Bind(wx.EVT_BUTTON, self.on_btn_shutter_open, self.btn_shutter_open)
 
+        self.txt_laser_energy.Disable()
+
         if not conn_mgr.laser_connected:
             self.btn_laser_off.Disable()
             self.btn_laser_on.Disable()
             self.num_laser_voltage.Disable()
-            self.txt_laser_energy.Disable()
 
         if not conn_mgr.shutter_connected:
             self.btn_shutter_close.Disable()
@@ -337,10 +340,10 @@ class LaserPanel(wx.Panel):
             self.btn_laser_off.SetBackgroundColour(wx.NullColour)
 
     def on_laser_hv_changed(self, hv):
-        self.num_laser_voltage.SetValue(int(hv))
+        self.num_laser_voltage.SetValue(hv)
 
     def on_laser_egy_changed(self, egy):
-        self.txt_laser_energy.SetValue(egy)
+        self.txt_laser_energy.SetValue(str(egy))
 
     def on_shutter_status_changed(self, status):
         if status:
@@ -493,7 +496,6 @@ class StagePanel(wx.Panel):
         self.stage_focus_fn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
         self.stage_focus_fn.SetMinSize((30, 40))
 
-        self.speed_slider.SetMinSize((200, 51))
         self.speed_slider.SetToolTip("XY Speed")
         self.speed_slider.SetValue(10)
 
@@ -521,7 +523,7 @@ class StagePanel(wx.Panel):
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(button_sizer, 0, wx.ALL, 10)
-        main_sizer.Add(self.speed_slider, 0, wx.ALL, 10)
+        main_sizer.Add(self.speed_slider, 0, wx.ALL | wx.EXPAND, 10)
         main_sizer.Add(pos_sizer, 0, wx.ALL, 10)
 
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=1: self.on_click_move(e, a, d), self.stage_move_xp)
