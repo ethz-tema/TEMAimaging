@@ -60,14 +60,14 @@ class ConnectionManager:
             transport, self.laser = self._laser_thread.connect()
 
             self._laser_status_poller = LaserStatusPoller(self.laser)
-            self._laser_status_poller.Start(700)
+            self._laser_status_poller.start()
 
             self.laser_connected = True
             pub.sendMessage('laser.connection_changed', connected=True)
 
     def laser_disconnect(self):
         if self.laser_connected:
-            self._laser_status_poller.Stop()
+            self._laser_status_poller.stop()
             self._laser_thread.stop()
 
             self.laser_connected = False
@@ -108,14 +108,14 @@ class ConnectionManager:
             self.shutter = Shutter(self._shutter_device, output)
 
             self._shutter_status_poller = ShutterStatusPoller(self.shutter)
-            self._shutter_status_poller.Start(1000)
+            self._shutter_status_poller.start()
 
             self.shutter_connected = True
             pub.sendMessage('shutter.connection_changed', connected=True)
 
     def shutter_disconnect(self):
         if self.shutter_connected:
-            self._shutter_status_poller.Stop()
+            self._shutter_status_poller.stop()
             self._shutter_device.disconnect()
 
             self.shutter_connected = False
