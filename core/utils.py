@@ -43,7 +43,7 @@ class ShutterStatusPoller(StatusPoller):
         self._run = True
         while self._run:
             time.sleep(1)
-            wx.CallAfter(pub.sendMessage, 'shutter.status_changed', status=self._shutter.status)
+            wx.CallAfter(pub.sendMessage, 'shutter.status_changed', open=self._shutter.status)
 
 
 class StagePositionPoller(StatusPoller):

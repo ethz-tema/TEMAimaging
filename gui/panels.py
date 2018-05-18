@@ -332,12 +332,14 @@ class LaserPanel(wx.Panel):
     def on_laser_status_changed(self, status):
         if status[0] == OpMode.ON:
             self.btn_laser_on.SetBackgroundColour((0, 255, 0))
-            self.btn_laser_off.SetBackgroundColour(wx.NullColour)
+            self.btn_laser_on.Disable()
+            self.btn_laser_off.Enable()
         elif status[0] == OpMode.OFF_WAIT:
             self.btn_laser_on.SetBackgroundColour((255, 255, 0))
         else:
             self.btn_laser_on.SetBackgroundColour(wx.NullColour)
-            self.btn_laser_off.SetBackgroundColour(wx.NullColour)
+            self.btn_laser_on.Enable()
+            self.btn_laser_off.Disable()
 
     def on_laser_hv_changed(self, hv):
         self.num_laser_voltage.SetValue(hv)
@@ -345,11 +347,15 @@ class LaserPanel(wx.Panel):
     def on_laser_egy_changed(self, egy):
         self.txt_laser_energy.SetValue(str(egy))
 
-    def on_shutter_status_changed(self, status):
-        if status:
+    def on_shutter_status_changed(self, open):
+        if open:
             self.btn_shutter_open.SetBackgroundColour((0, 255, 0))
+            self.btn_shutter_close.Enable()
         else:
             self.btn_shutter_open.SetBackgroundColour(wx.NullColour)
+
+        self.btn_shutter_open.Enable(not open)
+        self.btn_shutter_close.Enable(open)
 
 
 class LaserManualShootPanel(wx.Panel):
