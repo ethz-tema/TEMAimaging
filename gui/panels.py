@@ -605,8 +605,8 @@ class ScanCtrlPanel(wx.Panel):
         self.stop_event = None
 
         self.num_cleaning_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=500, initial=200)
-        self.num_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=1000, initial=0)
-        self.num_step_delay = wx.SpinCtrl(self, size=(115, -1), max=5000, initial=0)
+        self.num_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=1000)
+        self.num_step_delay = wx.SpinCtrl(self, size=(115, -1), max=5000)
 
         self.num_cleaning_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_cleaning_shot_delay_changed)
         self.num_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_shot_delay_changed)
@@ -615,6 +615,10 @@ class ScanCtrlPanel(wx.Panel):
         pub.subscribe(self.on_model_loaded, 'measurement.model_loaded')
 
         self.init_ui()
+
+        measurement_model.measurement.cs_delay = self.num_cleaning_shot_delay.GetValue()
+        measurement_model.measurement.shot_delay = self.num_shot_delay.GetValue()
+        measurement_model.measurement.step_delay = self.num_step_delay.GetValue()
 
     def init_ui(self):
         scan_box = wx.StaticBoxSizer(wx.VERTICAL, self, label="Scan")
@@ -662,3 +666,5 @@ class ScanCtrlPanel(wx.Panel):
 
     def on_model_loaded(self):
         self.num_cleaning_shot_delay.SetValue(measurement_model.measurement.cs_delay)
+        self.num_shot_delay.SetValue(measurement_model.measurement.shot_delay)
+        self.num_step_delay.SetValue(measurement_model.measurement.step_delay)
