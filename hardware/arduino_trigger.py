@@ -55,7 +55,7 @@ class ArduTrigger(serial.threaded.LineReader):
         """
         Handle input from serial port, check for events.
         """
-        if line.startswith('D'):
+        if line.startswith('D') or line.startswith('T'):
             self.events.put(line)
         else:
             self.responses.put(line)
@@ -67,6 +67,9 @@ class ArduTrigger(serial.threaded.LineReader):
             self.done = True
             if self.send_done_msg:
                 wx.CallAfter(pub.sendMessage, 'trigger.done')
+        elif event == 'T':
+            wx.CallAfter(pub.sendMessage, 'trigger.step')
+            logger.info('Step trigger received')
 
     def command(self, command):
         """Send a command that doesn't respond"""

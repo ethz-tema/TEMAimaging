@@ -23,6 +23,9 @@ class MeasurementController:
         self.stage = stage  # type: MCSStage
         self.sequence = []
         self.measurement = None
+        self.step_trigger_event = threading.Event()
+
+        pub.subscribe(self.on_step_trigger_recieved, 'trigger.step')
 
     def start_scan(self, scan):
         stop_scan = threading.Event()
@@ -43,6 +46,7 @@ class MeasurementController:
 
     def init_sequence(self, measurement):
         self.measurement = measurement
+        self.step_trigger_event.clear()
         self.sequence.clear()
         for step in measurement.steps:
             self.sequence.append(
@@ -57,12 +61,17 @@ class MeasurementController:
             def run(cls):
                 try:
                     for scan in self.sequence:
+                        if stop_scan.is_set():
+                            break
                         scan.init_scan()
+                        while self.measurement.step_trigger and not self.step_trigger_event.is_set():
+                            pass
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
                             time.sleep(self.measurement.shot_delay / 1000)
                         conn_mgr.stage.set_speed(0)
                         time.sleep(self.measurement.step_delay / 1000)
+                        self.step_trigger_event.clear()
                         logger.info('measurement done')
                 except MCSError as e:
                     logger.exception(e)
@@ -71,6 +80,9 @@ class MeasurementController:
         thread.start()
 
         return stop_scan
+
+    def on_step_trigger_recieved(self):
+        self.step_trigger_event.set()
 
 
 class Param:
@@ -125,6 +137,7 @@ class Measurement:
         self.cs_delay = 0
         self.shot_delay = 0
         self.step_delay = 0
+        self.step_trigger = False
         self.steps = []
 
 
