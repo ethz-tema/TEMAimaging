@@ -599,9 +599,12 @@ class ScanCtrlPanel(wx.Panel):
         self.stop_event = None
 
         self.num_cleaning_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=500, initial=200)
+        self.num_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=1000, initial=0)
         self.num_step_delay = wx.SpinCtrl(self, size=(115, -1), max=5000, initial=0)
 
         self.num_cleaning_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_cleaning_shot_delay_changed)
+        self.num_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_shot_delay_changed)
+        self.num_step_delay.Bind(wx.EVT_SPINCTRL, self.on_num_step_delay_changed)
 
         pub.subscribe(self.on_model_loaded, 'measurement.model_loaded')
 
@@ -618,8 +621,10 @@ class ScanCtrlPanel(wx.Panel):
 
         scan_grid.Add(wx.StaticText(self, label='CS Delay (ms):'), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         scan_grid.Add(self.num_cleaning_shot_delay, (0, 1))
-        scan_grid.Add(wx.StaticText(self, label='Step Delay (ms):'), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
-        scan_grid.Add(self.num_step_delay, (1, 1))
+        scan_grid.Add(wx.StaticText(self, label='Shot Delay (ms):'), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(self.num_shot_delay, (1, 1))
+        scan_grid.Add(wx.StaticText(self, label='Step Delay (ms):'), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(self.num_step_delay, (2, 1))
         scan_btn_sizer.Add(btn_start_scan, 1, wx.RIGHT, 2.5)
         scan_btn_sizer.Add(btn_stop_scan, 1, wx.LEFT, 2.5)
 
@@ -632,6 +637,9 @@ class ScanCtrlPanel(wx.Panel):
 
     def on_num_cleaning_shot_delay_changed(self, _):
         measurement_model.measurement.cs_delay = self.num_cleaning_shot_delay.GetValue()
+
+    def on_num_shot_delay_changed(self, _):
+        measurement_model.measurement.shot_delay = self.num_shot_delay.GetValue()
 
     def on_num_step_delay_changed(self, _):
         measurement_model.measurement.step_delay = self.num_step_delay.GetValue()

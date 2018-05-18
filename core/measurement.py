@@ -60,6 +60,7 @@ class MeasurementController:
                         scan.init_scan()
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
+                            time.sleep(self.measurement.shot_delay / 1000)
                         conn_mgr.stage.set_speed(0)
                         time.sleep(self.measurement.step_delay / 1000)
                         logger.info('measurement done')
@@ -122,6 +123,7 @@ class Step:
 class Measurement:
     def __init__(self):
         self.cs_delay = 0
+        self.shot_delay = 0
         self.step_delay = 0
         self.steps = []
 
