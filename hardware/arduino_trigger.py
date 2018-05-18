@@ -108,7 +108,7 @@ class ArduTrigger(serial.threaded.LineReader):
         self.command('G')
         self.done = False
         while not self.done:
-            pass
+            time.sleep(0.001)
 
     def single_shot(self):
         logger.info('single_shot')

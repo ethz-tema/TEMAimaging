@@ -28,10 +28,10 @@ class LaserStatusPoller(StatusPoller):
     def run(self):
         self._run = True
         while self._run:
-            time.sleep(0.7)
             wx.CallAfter(pub.sendMessage, 'laser.status_changed', status=self._laser.opmode)
             wx.CallAfter(pub.sendMessage, 'laser.hv_changed', hv=self._laser.hv)
             wx.CallAfter(pub.sendMessage, 'laser.egy_changed', egy=self._laser.egy)
+            time.sleep(0.7)
 
 
 class ShutterStatusPoller(StatusPoller):
@@ -42,8 +42,8 @@ class ShutterStatusPoller(StatusPoller):
     def run(self):
         self._run = True
         while self._run:
-            time.sleep(1)
             wx.CallAfter(pub.sendMessage, 'shutter.status_changed', open=self._shutter.status)
+            time.sleep(1)
 
 
 class StagePositionPoller(StatusPoller):

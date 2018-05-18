@@ -65,7 +65,7 @@ class MeasurementController:
                             break
                         scan.init_scan()
                         while self.measurement.step_trigger and not self.step_trigger_event.is_set():
-                            pass
+                            time.sleep(0.01)
                         while scan.next_move() and not stop_scan.is_set():
                             scan.next_shot()
                             time.sleep(self.measurement.shot_delay / 1000)
