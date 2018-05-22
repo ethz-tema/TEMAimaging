@@ -51,6 +51,7 @@ class RectangleScan(metaclass=ScannerMeta):
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
         conn_mgr.trigger.set_count(self.shot_count)
         conn_mgr.trigger.set_freq(self.frequency)
+        conn_mgr.trigger.set_first_only(True)
 
         conn_mgr.stage.wait_until_status()
 
@@ -60,7 +61,7 @@ class RectangleScan(metaclass=ScannerMeta):
 
         self._curr_step += 1
 
-        conn_mgr.trigger.go_and_wait(self._cleaning)
+        conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
         if self._curr_step % self.x_steps == 0:  # EOL
             dx = self.spot_size * math.sin(self.direction)
