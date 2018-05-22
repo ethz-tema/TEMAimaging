@@ -227,7 +227,7 @@ class MCSStage:
         if self.is_open:
             pos = ffi.new('int *')
             self.check_return(lib.SA_GetPosition_S(self.handle, axis, pos))
-            return pos[0] / 1e9
+            return pos[0]
 
     def get_speed(self, axis=None):
         if axis is None:
@@ -237,10 +237,9 @@ class MCSStage:
         if self.is_open:
             speed = ffi.new('unsigned int *')
             lib.SA_GetClosedLoopMoveSpeed_S(self.handle, axis, speed)
-            return speed[0] / 1e9
+            return speed[0]
 
     def set_speed(self, speed, axis=None):
-        speed = int(speed * 1e9)
         if axis is None:
             for a in MCSAxis:
                 self.set_speed(speed, a)
@@ -252,7 +251,7 @@ class MCSStage:
 
     def move(self, axis, position, hold_time=0, relative=False, wait=True):
         logger.info('move (axis={}, pos={}, relative={}, wait={}'.format(axis, position, relative, wait))
-        position = int(position * 1e9)
+        position = int(position)
         if self.is_open:
             if relative:
                 self.check_return(lib.SA_GotoPositionRelative_S(self.handle, axis, position, hold_time))

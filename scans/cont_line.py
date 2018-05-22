@@ -8,10 +8,10 @@ from hardware.mcs_stage import MCSAxis
 class ContinuousLineScan(metaclass=ScannerMeta):
     parameter_map = {'spot_count': ('Spot Count', 1, None),
                      'direction': ('Direction', 0.0, None),
-                     'x_start': ('X (Start)', 0.0, 1e-6),
-                     'y_start': ('Y (Start)', 0.0, 1e-6),
-                     'z_start': ('Z (Start)', 0.0, 1e-6),
-                     'z_end': ('Z (End)', 0.0, 1e-6)}
+                     'x_start': ('X (Start)', 0.0, 1000),
+                     'y_start': ('Y (Start)', 0.0, 1000),
+                     'z_start': ('Z (Start)', 0.0, 1000),
+                     'z_end': ('Z (End)', 0.0, 1000)}
 
     display_name = "Cont. Line Scan"
 

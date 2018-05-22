@@ -1,10 +1,21 @@
+import logging
+
+from PIL import Image, ImageOps
+
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
 from hardware.mcs_stage import MCSAxis
 
+logger = logging.getLogger(__name__)
+
 
 class Engraver(metaclass=ScannerMeta):
-    parameter_map = {}
+    parameter_map = {'x_size': ('X Size', 0, 1000),
+                     'y_size': ('Y Size', 0, 1000),
+                     'x_start': ('X (Start)', 0.0, 1000),
+                     'y_start': ('Y (Start)', 0.0, 1000),
+                     'z_start': ('Z (Start)', 0.0, 1000),
+                     'image_path': ('Image path', "", None)}
 
     display_name = "Engraver"
 

@@ -182,9 +182,9 @@ class MeasurementPanel(wx.Panel):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['x_start'].value = conn_mgr.stage.get_position(MCSAxis.X)
-                node.params['y_start'].value = conn_mgr.stage.get_position(MCSAxis.Y)
-                node.params['z_start'].value = conn_mgr.stage.get_position(MCSAxis.Z)
+                node.params['x_start'].value = float(conn_mgr.stage.get_position(MCSAxis.X))
+                node.params['y_start'].value = float(conn_mgr.stage.get_position(MCSAxis.Y))
+                node.params['z_start'].value = float(conn_mgr.stage.get_position(MCSAxis.Z))
                 self.dvc.GetModel().edit_step(node)
 
     def on_click_set_end_position(self, _, item):

@@ -6,12 +6,12 @@ from hardware.mcs_stage import MCSAxis
 
 
 class ContinuousRectangleScan(metaclass=ScannerMeta):
-    parameter_map = {'x_size': ('X Size', 0.0, 1e-6),
-                     'y_size': ('Y Size', 0.0, 1e-6),
+    parameter_map = {'x_size': ('X Size', 0.0, 1000),
+                     'y_size': ('Y Size', 0.0, 1000),
                      'direction': ('Direction', 0.0, None),
-                     'x_start': ('X (Start)', 0.0, 1e-6),
-                     'y_start': ('Y (Start)', 0.0, 1e-6),
-                     'z_start': ('Z (Start)', 0.0, 1e-6)}
+                     'x_start': ('X (Start)', 0.0, 1000),
+                     'y_start': ('Y (Start)', 0.0, 1000),
+                     'z_start': ('Z (Start)', 0.0, 1000)}
 
     display_name = "Cont. Rectangle Scan"
 
