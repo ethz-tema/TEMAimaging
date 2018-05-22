@@ -3,3 +3,5 @@ pyserial
 Pillow
 ruamel.yaml
 wxPython
+urwid
+schedule
