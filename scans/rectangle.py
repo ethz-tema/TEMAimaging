@@ -62,7 +62,7 @@ class RectangleScan(metaclass=ScannerMeta):
 
         conn_mgr.trigger.go_and_wait(self._cleaning)
 
-        if (self._curr_step + 1) % self.x_steps == 0:  # EOL
+        if self._curr_step % self.x_steps == 0:  # EOL
             dx = self.spot_size * math.sin(self.direction)
             dy = self.spot_size * math.cos(self.direction)
             self._backwards = not self._backwards
