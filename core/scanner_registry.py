@@ -21,6 +21,9 @@ def _import_scanners():
 
 
 def register(scanner):
+    if hasattr(scanner, 'disable') and scanner.disable:
+        return
+
     if hasattr(scanner, 'parameter_map'):
         _param_map.update(scanner.parameter_map)
     scanners_by_name[scanner.__name__] = scanner
