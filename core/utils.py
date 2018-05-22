@@ -1,5 +1,4 @@
-import time
-from threading import Thread
+from threading import Thread, Event
 
 import wx
 from wx.lib.pubsub import pub
@@ -10,13 +9,13 @@ from core.settings import Settings
 class StatusPoller(Thread):
     def __init__(self):
         super().__init__()
-        self._run = False
+        self._run = Event()
 
     def run(self):
         raise NotImplementedError
 
     def stop(self):
-        self._run = False
+        self._run.set()
         self.join()
 
 
@@ -26,12 +25,11 @@ class LaserStatusPoller(StatusPoller):
         self._laser = laser
 
     def run(self):
-        self._run = True
-        while self._run:
+        self._run.clear()
+        while not self._run.wait(0.7):
             wx.CallAfter(pub.sendMessage, 'laser.status_changed', status=self._laser.opmode)
             wx.CallAfter(pub.sendMessage, 'laser.hv_changed', hv=self._laser.hv)
             wx.CallAfter(pub.sendMessage, 'laser.egy_changed', egy=self._laser.egy)
-            time.sleep(0.7)
 
 
 class ShutterStatusPoller(StatusPoller):
@@ -40,10 +38,9 @@ class ShutterStatusPoller(StatusPoller):
         self._shutter = shutter
 
     def run(self):
-        self._run = True
-        while self._run:
+        self._run.clear()
+        while not self._run.wait(1):
             wx.CallAfter(pub.sendMessage, 'shutter.status_changed', open=self._shutter.status)
-            time.sleep(1)
 
 
 class StagePositionPoller(StatusPoller):
@@ -52,7 +49,6 @@ class StagePositionPoller(StatusPoller):
         self._stage = stage
 
     def run(self):
-        self._run = True
-        while self._run:
-            time.sleep(Settings.get('stage.position_poll_rate'))
+        self._run.clear()
+        while not self._run.wait(Settings.get('stage.position_poll_rate')):
             wx.CallAfter(pub.sendMessage, 'stage.position_changed', position=self._stage.get_position())
