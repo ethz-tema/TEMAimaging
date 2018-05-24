@@ -560,15 +560,15 @@ class StagePanel(wx.Panel):
 
     def on_click_move(self, _, axis, direction):
         speed = self.speed_map[self.speed_slider.GetValue()]
-        conn_mgr.stage.move(axis, speed * direction * 1e-9, relative=True)
+        conn_mgr.stage.move(axis, speed * direction, relative=True)
 
     @staticmethod
     def on_click_focus_c(_, direction):
-        conn_mgr.stage.move(MCSAxis.Z, 100 * 1e-6 * direction, relative=True)
+        conn_mgr.stage.move(MCSAxis.Z, 100000 * direction, relative=True)
 
     @staticmethod
     def on_click_focus_f(_, direction):
-        conn_mgr.stage.move(MCSAxis.Z, 10 * 1e-6 * direction, relative=True)
+        conn_mgr.stage.move(MCSAxis.Z, 10000 * direction, relative=True)
 
     def on_stage_position_changed(self, position):
         self.txt_x_pos.SetValue(str(position[0]))
