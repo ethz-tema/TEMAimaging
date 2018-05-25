@@ -15,7 +15,7 @@ class LineScan(metaclass=ScannerMeta):
 
     display_name = "Line Scan"
 
-    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, cleaning_delay=0, spot_count=1,
+    def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, spot_count=1,
                  direction=0, x_start=None,
                  y_start=None, z_start=None, delta_z=None):
         self.spot_size = spot_size
@@ -25,7 +25,7 @@ class LineScan(metaclass=ScannerMeta):
         self.y_start = y_start
         self.z_start = z_start
         self.delta_z = delta_z
-        self.shot_count = shot_count
+        self.shots_per_spot = shots_per_spot
         self.frequency = frequency
 
         self._cleaning = cleaning
@@ -53,8 +53,9 @@ class LineScan(metaclass=ScannerMeta):
             conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
         if self.z_start:
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
-        conn_mgr.trigger.set_count(self.shot_count)
+        conn_mgr.trigger.set_count(self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
+        conn_mgr.trigger.set_first_only(True)
 
         conn_mgr.stage.wait_until_status()
 
