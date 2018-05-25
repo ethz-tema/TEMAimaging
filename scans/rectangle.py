@@ -11,36 +11,36 @@ class RectangleScan(metaclass=ScannerMeta):
                      'direction': ('Direction', 0.0, None),
                      'x_start': ('X (Start)', 0.0, 1000),
                      'y_start': ('Y (Start)', 0.0, 1000),
-                     'z_start': ('Z (Start)', 0.0, 1000)}
+                     'z_start': ('Z (Start)', 0.0, 1000),
+                     'zig_zag_mode': ('Zig Zag', False, None)}
 
     display_name = "Rectangle Scan"
 
-    def __init__(self, spot_size, shot_count=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
+    def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
                  direction=0,
-                 x_start=None, y_start=None, z_start=None, delta_z=None):
-        self.x_steps = x_size / spot_size
-        self.y_steps = y_size / spot_size
+                 x_start=None, y_start=None, z_start=None, zig_zag_mode=False):
+        self.x_steps = x_size // spot_size
+        self.y_steps = y_size // spot_size
         self.spot_size = spot_size
         self.direction = math.radians(direction)
         self.x_start = x_start
         self.y_start = y_start
         self.z_start = z_start
-        self.delta_z = delta_z
-        self.shot_count = shot_count
+        self.shots_per_spot = shots_per_spot
         self.frequency = frequency
         self._curr_step = 0
         self._backwards = False
         self._steps = self.x_steps * self.y_steps
         self._cleaning = cleaning
         self._cleaning_delay = cleaning_delay
+        self.zig_zag_mode = zig_zag_mode
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
         return cls(spot_size, shot_count, frequency, cleaning, cleaning_delay, params['x_size'].value,
                    params['y_size'].value,
                    params['direction'].value, params['x_start'].value, params['y_start'].value,
-                   params['z_start'].value)  # ,
-        # params['delta_z'].value)
+                   params['z_start'].value, params['zig_zag_mode'].value)
 
     def init_scan(self):
         if self.x_start:
@@ -49,7 +49,7 @@ class RectangleScan(metaclass=ScannerMeta):
             conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
         if self.z_start:
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
-        conn_mgr.trigger.set_count(self.shot_count)
+        conn_mgr.trigger.set_count(self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
 
@@ -64,22 +64,22 @@ class RectangleScan(metaclass=ScannerMeta):
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
         if self._curr_step % self.x_steps == 0:  # EOL
-            dx = self.spot_size * math.sin(self.direction)
-            dy = self.spot_size * math.cos(self.direction)
-            self._backwards = not self._backwards
+            if self.zig_zag_mode:
+                x_step = 0
+                y_step = 1
+                self._backwards = not self._backwards
+            else:
+                x_step = -self.x_steps + 1
+                y_step = 1
         else:
-            dx = self.spot_size * math.cos(self.direction)
-            dy = - self.spot_size * math.sin(self.direction)
-            if self._backwards:
-                dx = -dx
-                dy = -dy
+            x_step = 1 if not self._backwards else -1
+            y_step = 0
+
+        dx = self.spot_size * (math.cos(self.direction) * x_step + math.sin(self.direction) * y_step)
+        dy = self.spot_size * (math.cos(self.direction) * y_step - math.sin(self.direction) * x_step)
 
         conn_mgr.stage.move(MCSAxis.X, dx, relative=True, wait=False)
         conn_mgr.stage.move(MCSAxis.Y, dy, relative=True, wait=False)
-        try:
-            conn_mgr.stage.move(MCSAxis.Z, self.delta_z[self._curr_step], relative=True, wait=False)
-        except ValueError:
-            pass
 
         conn_mgr.stage.wait_until_status()
         return True
