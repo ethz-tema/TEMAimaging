@@ -367,8 +367,8 @@ class LaserManualShootPanel(wx.Panel):
 
         self.btn_start_stop = wx.Button(self, label='Start')
 
-        self.num_shots = wx.SpinCtrl(self, wx.ID_ANY, size=(130, -1), max=100000, initial=100)
-        self.num_frequency = wx.SpinCtrl(self, wx.ID_ANY, size=(130, -1), max=100, initial=50)
+        self.num_shots = wx.SpinCtrl(self, wx.ID_ANY, size=(130, -1), min=1, max=100000, initial=100)
+        self.num_frequency = wx.SpinCtrl(self, wx.ID_ANY, size=(130, -1), min=1, max=100, initial=10)
 
         self.trigger_running = False
 
@@ -387,6 +387,7 @@ class LaserManualShootPanel(wx.Panel):
         main_sizer.Add(grid_sizer, 0, wx.ALL, 5)
 
         self.btn_start_stop.Bind(wx.EVT_BUTTON, self.on_click_start_stop)
+        self.num_frequency.Bind(wx.EVT_SPINCTRL, self.on_num_frequency_changed)
 
         pub.subscribe(self.on_trigger_connection_changed, 'trigger.connection_changed')
         pub.subscribe(self.on_trigger_done, 'trigger.done')
@@ -401,11 +402,9 @@ class LaserManualShootPanel(wx.Panel):
     def toogle_ui(self, enable):
         if enable:
             self.num_shots.Enable()
-            self.num_frequency.Enable()
             self.btn_start_stop.SetLabelText('Start')
         else:
             self.num_shots.Disable()
-            self.num_frequency.Disable()
             self.btn_start_stop.SetLabelText('Stop')
 
     def on_click_start_stop(self, _):
@@ -420,6 +419,10 @@ class LaserManualShootPanel(wx.Panel):
             conn_mgr.trigger.go()
             self.trigger_running = True
             self.toogle_ui(False)
+
+    def on_num_frequency_changed(self, _):
+        if self.trigger_running:
+            conn_mgr.trigger.set_freq(self.num_frequency.GetValue())
 
     def on_trigger_done(self):
         conn_mgr.trigger.send_done_msg = False
