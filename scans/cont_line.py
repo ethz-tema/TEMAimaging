@@ -15,24 +15,20 @@ class ContinuousLineScan(metaclass=ScannerMeta):
 
     display_name = "Cont. Line Scan"
 
-    def __init__(self, spot_size, shot_count=1, frequency=1, _=None, spot_count=1, direction=0, x_start=None,
+    def __init__(self, spot_size, shots_per_spot=1, frequency=1, _=None, spot_count=1, direction=0, x_start=None,
                  y_start=None, z_start=None, dz=None):
         self.spot_size = spot_size
         self.spot_count = spot_count
-        self.shot_count = shot_count
+        self.shots_per_spot = shots_per_spot
         self.direction = math.radians(direction)
         self.x_start = x_start
         self.y_start = y_start
         self.z_start = z_start
         self.frequency = frequency
 
-        self._vx_orig = conn_mgr.stage.get_speed(MCSAxis.X)
-        self._vy_orig = conn_mgr.stage.get_speed(MCSAxis.Y)
-        self._vz_orig = conn_mgr.stage.get_speed(MCSAxis.Z)
-
         self._curr_step = 0
-        self._vx = math.sin(self.direction) * self.spot_size * self.frequency / shot_count
-        self._vy = math.cos(self.direction) * self.spot_size * self.frequency / shot_count
+        self._vx = math.sin(self.direction) * self.spot_size * self.frequency / shots_per_spot
+        self._vy = math.cos(self.direction) * self.spot_size * self.frequency / shots_per_spot
 
         v = math.sqrt(math.pow(self._vx, 2) + math.pow(self._vy, 2))
 
@@ -44,7 +40,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         self._vz = dz / time
 
     @classmethod
-    def from_params(cls, spot_size, shot_count, frequency, cleaning, _, params):
+    def from_params(cls, spot_size, shots_per_spot, frequency, cleaning, _, params):
         spot_count = params['spot_count'].value
 
         if spot_count > 1 and params['z_start'].value and params['z_end']:
@@ -52,7 +48,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         else:
             dz = 0
 
-        return cls(spot_size, shot_count, frequency, cleaning, spot_count, params['direction'].value,
+        return cls(spot_size, shots_per_spot, frequency, cleaning, spot_count, params['direction'].value,
                    params['x_start'].value, params['y_start'].value, params['z_start'].value, dz)
 
     def init_scan(self):
@@ -62,17 +58,17 @@ class ContinuousLineScan(metaclass=ScannerMeta):
             conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
         if self.z_start:
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
-        conn_mgr.trigger.set_count(self.spot_count * self.shot_count)
+        conn_mgr.trigger.set_count(self.spot_count * self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
 
         conn_mgr.stage.wait_until_status()
 
         if self._vx != 0:
-            conn_mgr.stage.set_speed(self._vx, MCSAxis.X)
+            conn_mgr.stage.set_speed(abs(self._vx), MCSAxis.X)
         if self._vy != 0:
-            conn_mgr.stage.set_speed(self._vy, MCSAxis.Y)
+            conn_mgr.stage.set_speed(abs(self._vy), MCSAxis.Y)
         if self._vz != 0:
-            conn_mgr.stage.set_speed(self._vz, MCSAxis.Z)
+            conn_mgr.stage.set_speed(abs(self._vz), MCSAxis.Z)
 
     def next_move(self):
         if self._curr_step >= self.spot_count:
@@ -93,9 +89,6 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         self._curr_step += 1
         conn_mgr.stage.wait_until_status()
 
-        # conn_mgr.stage.set_speed(self._vx_orig, MCSAxis.X)
-        # conn_mgr.stage.set_speed(self._vy_orig, MCSAxis.Y)
-        # conn_mgr.stage.set_speed(self._vz_orig, MCSAxis.Z)
         conn_mgr.stage.set_speed(0)
         return False
 
