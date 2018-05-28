@@ -55,7 +55,7 @@ class ArduTrigger(serial.threaded.LineReader):
         """
         Handle input from serial port, check for events.
         """
-        if line.startswith('D') or line.startswith('T'):
+        if line.startswith('D') or line.startswith('S'):
             self.events.put(line)
         else:
             self.responses.put(line)
@@ -67,7 +67,7 @@ class ArduTrigger(serial.threaded.LineReader):
             self.done = True
             if self.send_done_msg:
                 wx.CallAfter(pub.sendMessage, 'trigger.done')
-        elif event == 'T':
+        elif event == 'S':
             wx.CallAfter(pub.sendMessage, 'trigger.step')
             logger.info('Step trigger received')
 
@@ -113,6 +113,9 @@ class ArduTrigger(serial.threaded.LineReader):
     def single_shot(self):
         logger.info('single_shot')
         self.command_with_response('I')
+
+    def single_tof(self):
+        self.command_with_response('T')
 
     def start_trigger(self):
         self.cease_continuous_run.clear()
