@@ -1,4 +1,5 @@
 import enum
+import logging
 import queue
 import threading
 
@@ -87,6 +88,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         self.responses.put('<exit>')  # TODO: ??
 
     def connection_lost(self, exc):
+        logging.exception(exc)
         if self.connection_lost_cb:
             self.connection_lost_cb(exc)
 
@@ -111,7 +113,10 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         with self.lock:  # ensure that just one thread is sending commands at once
             self._awaiting_response_for = command
             self.write_line(command)
-            response = self.responses.get()
+            try:
+                response = self.responses.get()
+            except queue.Empty as e:
+                self.connection_lost(e)
             self._awaiting_response_for = None
             return response
 
@@ -158,7 +163,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def counts(self):
-        return self.command_with_response('COUNTS?')
+        return int(self.command_with_response('COUNTS?'))
 
     @counts.setter
     def counts(self, counts):
@@ -166,7 +171,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def pressure(self):
-        return self.command_with_response('PRESSURE?')
+        return int(self.command_with_response('PRESSURE?'))
 
     @property
     def hv(self):
@@ -182,7 +187,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def cod(self):
-        return self.command_with_response('COD?')
+        return self.command_with_response('COD?')  # TODO: handle format
 
     @cod.setter
     def cod(self, cod):
@@ -190,22 +195,22 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def filter_contamination(self):
-        return self.command_with_response('FILTER CONTAMINATION?')
+        return int(self.command_with_response('FILTER CONTAMINATION?'))
 
     def reset_filter_contamination(self):
         self.command('FILTER CONTAMINATION=RESET')
 
     @property
     def interlock(self):
-        return self.command_with_response('INTERLOCK?')
+        return self.command_with_response('INTERLOCK?')  # TODO: handle format
 
     @property
     def power_stabilization(self):
-        return self.command_with_response('POWER STABILIZATION ACHIEVED?')
+        return self.command_with_response('POWER STABILIZATION ACHIEVED?')  # TODO: handle format
 
     @property
     def total_counter(self):
-        return self.command_with_response('TOTALCOUNTER?')
+        return int(self.command_with_response('TOTALCOUNTER?'))
 
     @property
     def laser_type(self):

@@ -1,6 +1,7 @@
 import wx
 
 import core.scanner_registry
+from core.conn_mgr import conn_mgr
 
 
 class AddScanDialog(wx.Dialog):
@@ -40,3 +41,38 @@ class AddScanDialog(wx.Dialog):
 
     def on_click_add(self, e):
         self.EndModal(wx.ID_ADD)
+
+
+class LaserStatusDialog(wx.Dialog):
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+
+        self.stxt_pressure = wx.StaticText(self)
+        self.stxt_pressure.SetLabel("Pressure: {} mbar".format(conn_mgr.laser.pressure))
+        self.stxt_filter_contamination = wx.StaticText(self)
+        self.stxt_filter_contamination.SetLabel('Filter contamination: {}'.format(conn_mgr.laser.filter_contamination))
+
+        self.stxt_interlock = wx.StaticText(self)
+        self.stxt_interlock.SetLabel('Interlock: {}'.format(conn_mgr.laser.interlock))
+        self.stxt_total_counter = wx.StaticText(self)
+        self.stxt_total_counter.SetLabel('Total counter: {}'.format(conn_mgr.laser.total_counter))
+
+        self.stxt_laser_type = wx.StaticText(self)
+        self.stxt_laser_type.SetLabel('Type: {}'.format(conn_mgr.laser.laser_type))
+        self.stxt_laser_version = wx.StaticText(self)
+        self.stxt_laser_version.SetLabel('Version: {}'.format(conn_mgr.laser.version))
+
+        self.init_ui()
+
+    def init_ui(self):
+        self.SetTitle("Laser Status")
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.stxt_pressure)
+        sizer.Add(self.stxt_filter_contamination)
+        sizer.Add(self.stxt_interlock)
+        sizer.Add(self.stxt_total_counter)
+        sizer.Add(self.stxt_laser_type)
+        sizer.Add(self.stxt_laser_version)
+
+        self.SetSizerAndFit(sizer)

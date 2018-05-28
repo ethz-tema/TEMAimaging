@@ -3,6 +3,7 @@ from wx.lib.pubsub import pub
 
 from core.conn_mgr import conn_mgr
 from gui.conn_mgr import ConnectionManagerDialog
+from gui.dialogs import LaserStatusDialog
 from gui.panels import LaserPanel, StagePanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
 from gui.preferences import PreferencesDialog
 
@@ -16,6 +17,8 @@ class MainFrame(wx.Frame):
 
         self.status_bar = self.CreateStatusBar()
 
+        self.laser_menu_status = wx.MenuItem(id=wx.ID_ANY, text="Status", helpString="Laser status")
+
         self.stage_menu_reference = wx.MenuItem(id=wx.ID_ANY, text='Reference axes', helpString='Reference stage axes')
         self.stage_menu_reset_speed = wx.MenuItem(id=wx.ID_ANY, text='Reset speed', helpString='Reset axis speeds')
 
@@ -28,9 +31,15 @@ class MainFrame(wx.Frame):
         file_menu.Append(wx.ID_SEPARATOR)
         file_menu_close = file_menu.Append(wx.ID_EXIT)
 
+        laser_menu = wx.Menu()
+        laser_menu.Append(self.laser_menu_status)
+
         stage_menu = wx.Menu()
         stage_menu.Append(self.stage_menu_reference)
         stage_menu.Append(self.stage_menu_reset_speed)
+
+        if not conn_mgr.laser_connected:
+            self.laser_menu_status.Enable(False)
 
         if not conn_mgr.stage_connected:
             self.stage_menu_reference.Enable(False)
@@ -38,6 +47,7 @@ class MainFrame(wx.Frame):
 
         menubar = wx.MenuBar()
         menubar.Append(file_menu, '&File')
+        menubar.Append(laser_menu, '&Laser')
         menubar.Append(stage_menu, '&Stage')
         self.SetMenuBar(menubar)
 
@@ -62,6 +72,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_connection_manager, file_menu_conn_mgr)
         self.Bind(wx.EVT_MENU, self.on_settings, file_menu_settings)
         self.Bind(wx.EVT_MENU, self.on_quit, file_menu_close)
+        self.Bind(wx.EVT_MENU, self.on_click_laser_menu_status, self.laser_menu_status)
         self.Bind(wx.EVT_MENU, self.on_click_stage_menu_reference, self.stage_menu_reference)
         self.Bind(wx.EVT_MENU, self.on_click_stage_menu_reset_speed, self.stage_menu_reset_speed)
 
@@ -98,6 +109,10 @@ class MainFrame(wx.Frame):
         conn_mgr.shutter_disconnect()
         conn_mgr.stage_disconnect()
         self.Destroy()
+
+    def on_click_laser_menu_status(self, _):
+        dlg = LaserStatusDialog(self)
+        dlg.ShowModal()
 
     @staticmethod
     def on_click_stage_menu_reference(_):
