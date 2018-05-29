@@ -608,7 +608,7 @@ class ScanCtrlPanel(wx.Panel):
     def __init__(self, parent, *args, **kw):
         super().__init__(parent, *args, **kw)
 
-        self.stop_event = None
+        self.meas_ctlr = MeasurementController()
 
         self.num_cleaning_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=500, initial=200)
         self.num_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=1000)
@@ -669,14 +669,11 @@ class ScanCtrlPanel(wx.Panel):
         measurement_model.measurement.step_trigger = self.chk_step_trigger.IsChecked()
 
     def on_click_start_scan(self, _):
-        meas_ctlr = MeasurementController(None, None, None)
-        meas_ctlr.init_sequence(measurement_model.measurement)
-
-        self.stop_event = meas_ctlr.start_sequence()
+        self.meas_ctlr.init_sequence(measurement_model.measurement)
+        self.meas_ctlr.start_sequence()
 
     def on_click_stop_scan(self, _):
-        if self.stop_event:
-            self.stop_event.set()
+        self.meas_ctlr.stop()
 
     def on_model_loaded(self):
         self.num_cleaning_shot_delay.SetValue(measurement_model.measurement.cs_delay)

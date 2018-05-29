@@ -166,6 +166,14 @@ class MCSStage:
                 if all(statuses.values()):
                     return
 
+    def stop(self, axis=None):
+        if self.is_open:
+            if axis is None:
+                for axis in MCSAxis:
+                    self.stop(axis)
+
+            self.check_return(lib.SA_Stop_S(self.handle, axis))
+
     def set_hcm_mode(self, mode):
         if self.is_open:
             self.check_return(lib.SA_SetHCMEnabled(self.handle, mode))

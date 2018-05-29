@@ -9,21 +9,18 @@ from wx.lib.pubsub import pub
 
 import core.scanner_registry
 from core.conn_mgr import conn_mgr
-from hardware.arduino_trigger import ArduTrigger
-from hardware.laser_compex import CompexLaserProtocol
-from hardware.mcs_stage import MCSError, MCSStage
+from hardware.mcs_stage import MCSError
 
 logger = logging.getLogger(__name__)
 
 
 class MeasurementController:
-    def __init__(self, laser, trigger, stage):
-        self.laser = laser  # type: CompexLaserProtocol
-        self.trigger = trigger  # type: ArduTrigger
-        self.stage = stage  # type: MCSStage
-        self.sequence = []
-        self.measurement = None
-        self.step_trigger_event = threading.Event()
+    def __init__(self):
+        self._sequence = []
+        self._measurement = None
+        self._step_trigger_event = threading.Event()
+        self._stop_scan_event = threading.Event()
+        self._idle = True
 
         pub.subscribe(self.on_step_trigger_recieved, 'trigger.step')
 
@@ -45,44 +42,55 @@ class MeasurementController:
         return stop_scan
 
     def init_sequence(self, measurement):
-        self.measurement = measurement
-        self.step_trigger_event.clear()
-        self.sequence.clear()
+        if not self._idle:
+            return
+
+        self._measurement = measurement
+        self._step_trigger_event.clear()
+        self._stop_scan_event.clear()
+        self._sequence.clear()
         for step in measurement.steps:
-            self.sequence.append(
+            self._sequence.append(
                 step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
                                            measurement.cs_delay, step.params))
 
     def start_sequence(self):
-        stop_scan = threading.Event()
+        if not self._idle:
+            return
 
         class MeasureThread(threading.Thread):
             @classmethod
             def run(cls):
+                self.idle = False
                 try:
-                    for scan in self.sequence:
-                        if stop_scan.is_set():
+                    for scan in self._sequence:
+                        if self._stop_scan_event.is_set():
                             break
                         scan.init_scan()
-                        while self.measurement.step_trigger and not self.step_trigger_event.is_set():
+                        while self._measurement.step_trigger and not self._step_trigger_event.is_set():
                             time.sleep(0.01)
-                        while scan.next_move() and not stop_scan.is_set():
+                        while scan.next_move() and not self._stop_scan_event.is_set():
                             scan.next_shot()
-                            time.sleep(self.measurement.shot_delay / 1000)
+                            time.sleep(self._measurement.shot_delay / 1000)
                         conn_mgr.stage.set_speed(0)
-                        time.sleep(self.measurement.step_delay / 1000)
-                        self.step_trigger_event.clear()
+                        time.sleep(self._measurement.step_delay / 1000)
+                        self._step_trigger_event.clear()
                         logger.info('measurement done')
                 except MCSError as e:
                     logger.exception(e)
+                finally:
+                    self.idle = True
 
         thread = MeasureThread()
         thread.start()
 
-        return stop_scan
+    def stop(self):
+        self._stop_scan_event.set()
+        conn_mgr.stage.stop()
+        conn_mgr.trigger.stop_trigger()
 
     def on_step_trigger_recieved(self):
-        self.step_trigger_event.set()
+        self._step_trigger_event.set()
 
 
 class Param:
