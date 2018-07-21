@@ -56,16 +56,16 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
 
         conn_mgr.stage.wait_until_status()
 
-        if self._vx != 0:
-            conn_mgr.stage.set_speed(self._vx, MCSAxis.X)
-        if self._vy != 0:
-            conn_mgr.stage.set_speed(self._vy, MCSAxis.Y)
-
     def next_move(self):
         if self._curr_line >= self.y_steps:
             return False
 
         self._curr_line += 1
+
+        if self._vx != 0:
+            conn_mgr.stage.set_speed(self._vx, MCSAxis.X)
+        if self._vy != 0:
+            conn_mgr.stage.set_speed(self._vy, MCSAxis.Y)
 
         if self._dx != 0:
             conn_mgr.stage.move(MCSAxis.X, self._dx, relative=True, wait=False)
@@ -76,6 +76,7 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
 
         conn_mgr.stage.wait_until_status()
 
+        conn_mgr.stage.set_speed(0)
         conn_mgr.stage.move(MCSAxis.Y, self.spot_size, relative=True, wait=False)
 
         if self.zig_zag_mode:
