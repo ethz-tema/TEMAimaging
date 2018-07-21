@@ -1,4 +1,5 @@
 import math
+import time
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
@@ -12,13 +13,14 @@ class RectangleScan(metaclass=ScannerMeta):
                      'x_start': ('X (Start)', 0.0, 1000),
                      'y_start': ('Y (Start)', 0.0, 1000),
                      'z_start': ('Z (Start)', 0.0, 1000),
-                     'zig_zag_mode': ('Zig Zag', False, None)}
+                     'zig_zag_mode': ('Zig Zag', False, None),
+                     'blank_lines': ('# of blank lines', 0, None)}
 
     display_name = "Rectangle Scan"
 
     def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
                  direction=0,
-                 x_start=None, y_start=None, z_start=None, zig_zag_mode=False):
+                 x_start=None, y_start=None, z_start=None, zig_zag_mode=False, blank_lines=0):
         self.x_steps = x_size // spot_size
         self.y_steps = y_size // spot_size
         self.spot_size = spot_size
@@ -34,13 +36,14 @@ class RectangleScan(metaclass=ScannerMeta):
         self._cleaning = cleaning
         self._cleaning_delay = cleaning_delay
         self.zig_zag_mode = zig_zag_mode
+        self.blank_spots = blank_lines * self.x_steps
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
         return cls(spot_size, shot_count, frequency, cleaning, cleaning_delay, params['x_size'].value,
                    params['y_size'].value,
                    params['direction'].value, params['x_start'].value, params['y_start'].value,
-                   params['z_start'].value, params['zig_zag_mode'].value)
+                   params['z_start'].value, params['zig_zag_mode'].value, params['blank_lines'].value)
 
     def init_scan(self):
         if self.x_start:
@@ -58,6 +61,12 @@ class RectangleScan(metaclass=ScannerMeta):
     def next_move(self):
         if self._curr_step >= self._steps:
             return False
+
+        if self.blank_spots:
+            conn_mgr.trigger.single_tof()
+            self.blank_spots -= 1
+            time.sleep(0.3)
+            return True
 
         self._curr_step += 1
 
