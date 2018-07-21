@@ -1,5 +1,5 @@
 import wx
-import wx.lib.pubsub.pub as pub
+from pubsub import pub
 
 from core.conn_mgr import conn_mgr
 from core.settings import Settings

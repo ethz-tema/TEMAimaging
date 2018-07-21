@@ -1,6 +1,6 @@
 import wx
 import wx.dataview
-from wx.lib.pubsub import pub
+from pubsub import pub
 
 import core.scanner_registry
 from core.conn_mgr import conn_mgr

@@ -1,7 +1,7 @@
 from threading import Thread, Event
 
 import wx
-from wx.lib.pubsub import pub
+from pubsub import pub
 
 from core.settings import Settings
 

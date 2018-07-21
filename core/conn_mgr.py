@@ -1,7 +1,7 @@
 import logging
 
 import serial
-from wx.lib.pubsub import pub
+from pubsub import pub
 
 from core import utils
 from core.settings import Settings

@@ -5,7 +5,7 @@ import time
 
 import serial.threaded
 import wx
-from wx.lib.pubsub import pub
+from pubsub import pub
 
 logger = logging.getLogger(__name__)
 

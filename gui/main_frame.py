@@ -1,5 +1,5 @@
 import wx
-from wx.lib.pubsub import pub
+from pubsub import pub
 
 from core.conn_mgr import conn_mgr
 from gui.conn_mgr import ConnectionManagerDialog

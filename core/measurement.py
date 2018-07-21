@@ -4,8 +4,8 @@ import time
 
 import wx
 import wx.dataview
+from pubsub import pub
 from ruamel.yaml import YAML
-from wx.lib.pubsub import pub
 
 import core.scanner_registry
 from core.conn_mgr import conn_mgr
