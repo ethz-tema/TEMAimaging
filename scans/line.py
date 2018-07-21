@@ -1,4 +1,5 @@
 import math
+import time
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
@@ -11,13 +12,13 @@ class LineScan(metaclass=ScannerMeta):
                      'x_start': ('X (Start)', 0.0, 1000),
                      'y_start': ('Y (Start)', 0.0, 1000),
                      'z_start': ('Z (Start)', 0.0, 1000),
-                     'z_end': ('Z (End)', 0.0, 1000)}
+                     'z_end': ('Z (End)', 0.0, 1000),
+                     'blank_spots': ('# of blank spots', 0, None)}
 
     display_name = "Line Scan"
 
     def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, spot_count=1,
-                 direction=0, x_start=None,
-                 y_start=None, z_start=None, delta_z=None):
+                 direction=0, x_start=None, y_start=None, z_start=None, delta_z=None, blank_spots=0):
         self.spot_size = spot_size
         self.spot_count = spot_count
         self.direction = math.radians(direction)
@@ -27,6 +28,7 @@ class LineScan(metaclass=ScannerMeta):
         self.delta_z = delta_z
         self.shots_per_spot = shots_per_spot
         self.frequency = frequency
+        self.blank_spots = blank_spots
 
         self._cleaning = cleaning
         self._cleaning_delay = cleaning_delay
@@ -44,7 +46,8 @@ class LineScan(metaclass=ScannerMeta):
             dz_list = []
 
         return cls(spot_size, shot_count, frequency, cleaning, cleaning_delay, spot_count, params['direction'].value,
-                   params['x_start'].value, params['y_start'].value, params['z_start'].value, dz_list)
+                   params['x_start'].value, params['y_start'].value, params['z_start'].value, dz_list,
+                   params['blank_spots'].value)
 
     def init_scan(self):
         if self.x_start:
@@ -63,6 +66,12 @@ class LineScan(metaclass=ScannerMeta):
         if self._curr_step >= self.spot_count:
             return False
 
+        if self.blank_spots:
+            conn_mgr.trigger.single_tof()
+            self.blank_spots -= 1
+            time.sleep(0.3)
+            return True
+
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
         if self._curr_step + 1 >= self.spot_count:  # skip move after last shot
@@ -72,7 +81,7 @@ class LineScan(metaclass=ScannerMeta):
         conn_mgr.stage.move(MCSAxis.Y, self._dy, relative=True, wait=False)
         try:
             conn_mgr.stage.move(MCSAxis.Z, self.delta_z[self._curr_step], relative=True, wait=False)
-        except ValueError:
+        except IndexError:
             pass
 
         self._curr_step += 1
