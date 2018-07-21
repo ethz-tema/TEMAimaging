@@ -1,4 +1,5 @@
 import logging
+import time
 
 from PIL import Image, ImageOps
 
@@ -15,13 +16,13 @@ class Engraver(metaclass=ScannerMeta):
                      'x_start': ('X (Start)', 0.0, 1000),
                      'y_start': ('Y (Start)', 0.0, 1000),
                      'z_start': ('Z (Start)', 0.0, 1000),
-                     'image_path': ('Image path', "", None)}
+                     'image_path': ('Image path', "", None),
+                     'blank_spots': ('# of blank spots', 0, None)}
 
     display_name = "Engraver"
 
     def __init__(self, spot_size, shots_per_spot, frequency, image, cleaning=False, cleaning_delay=0, x_start=None,
-                 y_start=None,
-                 z_start=None):
+                 y_start=None, z_start=None, blank_spots=0):
         self.spot_size = spot_size
         self.shots_per_spot = shots_per_spot
         self.image = image
@@ -36,6 +37,7 @@ class Engraver(metaclass=ScannerMeta):
         self.y_start = y_start
         self.z_start = z_start
         self.frequency = frequency
+        self.blank_spots = blank_spots
         self.init_scan()
 
     @classmethod
@@ -91,6 +93,12 @@ class Engraver(metaclass=ScannerMeta):
     def next_move(self):
         if self._curr_step >= len(self._dist_list):
             return False
+
+        if self.blank_spots:
+            conn_mgr.trigger.single_tof()
+            self.blank_spots -= 1
+            time.sleep(0.3)
+            return True
 
         dx = self._dist_list[self._curr_step][0] * self.spot_size
         dy = self._dist_list[self._curr_step][1] * self.spot_size
