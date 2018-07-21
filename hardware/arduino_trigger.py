@@ -1,8 +1,13 @@
+import logging
 import queue
 import threading
 import time
 
 import serial.threaded
+import wx
+from wx.lib.pubsub import pub
+
+logger = logging.getLogger(__name__)
 
 
 class ArduTrigger(serial.threaded.LineReader):
@@ -25,6 +30,7 @@ class ArduTrigger(serial.threaded.LineReader):
         self._event_thread.name = 'at-event'
         self._event_thread.start()
         self.done = False
+        self.send_done_msg = False
 
     def stop(self):
         """
@@ -49,7 +55,7 @@ class ArduTrigger(serial.threaded.LineReader):
         """
         Handle input from serial port, check for events.
         """
-        if line.startswith('D'):
+        if line.startswith('D') or line.startswith('S'):
             self.events.put(line)
         else:
             self.responses.put(line)
@@ -59,6 +65,11 @@ class ArduTrigger(serial.threaded.LineReader):
         if event == 'D':
             time.sleep(self.rep_sleep_time / 1000)
             self.done = True
+            if self.send_done_msg:
+                wx.CallAfter(pub.sendMessage, 'trigger.done')
+        elif event == 'S':
+            wx.CallAfter(pub.sendMessage, 'trigger.step')
+            logger.info('Step trigger received')
 
     def command(self, command):
         """Send a command that doesn't respond"""
@@ -82,20 +93,29 @@ class ArduTrigger(serial.threaded.LineReader):
     def set_count(self, counts):
         self.command('C{}'.format(counts))
 
+    def set_first_only(self, on):
+        self.command('O{}'.format(1 if on else 0))
+
     def go(self):
+        logger.info('go')
         self.command('G')
 
-    def go_and_wait(self, cleaning=False):
+    def go_and_wait(self, cleaning=False, delay=200):
+        logger.info('go_and_wait (cleaning={})'.format(cleaning))
         if cleaning:
             self.single_shot()
-            time.sleep(200 / 1000)  # TODO: make this configurable
+            time.sleep(delay / 1000)
         self.command('G')
         self.done = False
         while not self.done:
-            pass
+            time.sleep(0.001)
 
     def single_shot(self):
+        logger.info('single_shot')
         self.command_with_response('I')
+
+    def single_tof(self):
+        self.command_with_response('T')
 
     def start_trigger(self):
         self.cease_continuous_run.clear()

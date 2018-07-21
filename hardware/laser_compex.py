@@ -1,6 +1,7 @@
 import enum
-import threading
+import logging
 import queue
+import threading
 
 import serial.threaded
 
@@ -77,12 +78,19 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         self.lock = threading.Lock()
         self._awaiting_response_for = None
 
+        self.connection_lost_cb = None
+
     def stop(self):
         """
         Stop the event processing thread, abort pending commands, if any.
         """
         self.alive = False
         self.responses.put('<exit>')  # TODO: ??
+
+    def connection_lost(self, exc):
+        logging.exception(exc)
+        if self.connection_lost_cb:
+            self.connection_lost_cb(exc)
 
     def handle_line(self, line):
         """
@@ -93,7 +101,10 @@ class CompexLaserProtocol(serial.threaded.LineReader):
     def command(self, command):
         """Send a command that doesn't respond"""
         with self.lock:  # ensure that just one thread is sending commands at once
-            self.write_line(command)
+            try:
+                self.write_line(command)
+            except serial.SerialException as exc:
+                self.connection_lost(exc)
 
     def command_with_response(self, command, response='', timeout=5):
         """
@@ -102,7 +113,10 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         with self.lock:  # ensure that just one thread is sending commands at once
             self._awaiting_response_for = command
             self.write_line(command)
-            response = self.responses.get()
+            try:
+                response = self.responses.get()
+            except queue.Empty as e:
+                self.connection_lost(e)
             self._awaiting_response_for = None
             return response
 
@@ -135,6 +149,10 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         except ValueError:
             return None
 
+    @trigger.setter
+    def trigger(self, mode):
+        self.command('TRIGGER={}'.format(mode.value))
+
     @property
     def reprate(self):
         return int(self.command_with_response('REPRATE?'))
@@ -145,15 +163,54 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def counts(self):
-        return self.command_with_response('COUNTS?\r')
+        return int(self.command_with_response('COUNTS?'))
 
     @counts.setter
     def counts(self, counts):
         self.command('COUNTS={}'.format(counts))
 
-    @trigger.setter
-    def trigger(self, mode):
-        self.command('TRIGGER={}'.format(mode.value))
+    @property
+    def pressure(self):
+        return int(self.command_with_response('PRESSURE?'))
+
+    @property
+    def hv(self):
+        return float(self.command_with_response('HV?'))
+
+    @hv.setter
+    def hv(self, hv):
+        self.command('HV={:04.1f}'.format(hv))
+
+    @property
+    def egy(self):
+        return float(self.command_with_response('EGY?'))
+
+    @property
+    def cod(self):
+        return self.command_with_response('COD?')  # TODO: handle format
+
+    @cod.setter
+    def cod(self, cod):
+        self.command('COD={}'.format(cod))
+
+    @property
+    def filter_contamination(self):
+        return int(self.command_with_response('FILTER CONTAMINATION?'))
+
+    def reset_filter_contamination(self):
+        self.command('FILTER CONTAMINATION=RESET')
+
+    @property
+    def interlock(self):
+        return self.command_with_response('INTERLOCK?')  # TODO: handle format
+
+    @property
+    def power_stabilization(self):
+        return self.command_with_response('POWER STABILIZATION ACHIEVED?')  # TODO: handle format
+
+    @property
+    def total_counter(self):
+        return int(self.command_with_response('TOTALCOUNTER?'))
 
     @property
     def laser_type(self):

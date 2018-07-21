@@ -43,6 +43,8 @@ SA_STATUS SA_GetPositionLimit_S(SA_INDEX systemIndex, SA_INDEX channelIndex, sig
 
 SA_STATUS SA_SetPositionLimit_S(SA_INDEX systemIndex, SA_INDEX channelIndex, signed int minPosition, signed int maxPosition);
 
+SA_STATUS SA_GetClosedLoopMoveSpeed_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int *speed);
+
 SA_STATUS SA_SetClosedLoopMoveSpeed_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int speed);
 
 SA_STATUS SA_SetClosedLoopMoveAcceleration_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int acceleration);
@@ -55,3 +57,5 @@ SA_STATUS SA_GotoPositionRelative_S(SA_INDEX systemIndex, SA_INDEX channelIndex,
 SA_STATUS SA_GetPosition_S(SA_INDEX systemIndex, SA_INDEX channelIndex, signed int *position);
 
 SA_STATUS SA_GetStatus_S(SA_INDEX systemIndex, SA_INDEX channelIndex, unsigned int *status);
+
+SA_STATUS SA_Stop_S(SA_INDEX systemIndex, SA_INDEX channelIndex);

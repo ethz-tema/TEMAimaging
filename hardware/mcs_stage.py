@@ -1,5 +1,9 @@
-from cffi import FFI, error
+import logging
 from enum import IntEnum
+
+from cffi import FFI, error
+
+from core.settings import Settings
 
 
 class SAError(IntEnum):
@@ -105,6 +109,8 @@ except error.FFIError:
 except error.CDefError:
     pass
 
+logger = logging.getLogger(__name__)
+
 
 class MCSStage:
     @staticmethod
@@ -150,14 +156,23 @@ class MCSStage:
             return s[0]
 
     def wait_until_status(self, axes=None, status=SAChannelStatus.SA_STOPPED_STATUS):
-        if axes is None:
-            axes = [MCSAxis.X, MCSAxis.Y, MCSAxis.Z]
-        statuses = {}
-        while True:
-            for a in axes:
-                statuses[a] = self.get_axis_status(a) == status
-            if all(statuses.values()):
-                return
+        if self.is_open:
+            if axes is None:
+                axes = [MCSAxis.X, MCSAxis.Y, MCSAxis.Z]
+            statuses = {}
+            while True:
+                for a in axes:
+                    statuses[a] = self.get_axis_status(a) == status
+                if all(statuses.values()):
+                    return
+
+    def stop(self, axis=None):
+        if self.is_open:
+            if axis is None:
+                for axis in MCSAxis:
+                    self.stop(axis)
+
+            self.check_return(lib.SA_Stop_S(self.handle, axis))
 
     def set_hcm_mode(self, mode):
         if self.is_open:
@@ -184,7 +199,8 @@ class MCSStage:
 
     def set_position_limit(self, axis, min_limit, max_limit):
         if self.is_open:
-            self.check_return(lib.SA_SetPositionLimit_S(self.handle, axis, min_limit, max_limit))
+            if self.get_position_known(axis):
+                self.check_return(lib.SA_SetPositionLimit_S(self.handle, axis, min_limit, max_limit))
 
     def find_reference(self, axis, hold_time=0):
         if self.is_open:
@@ -194,8 +210,12 @@ class MCSStage:
                                                hold_time, 1))
 
     def find_references(self, hold_time=0):
-        for a in MCSAxis:
-            self.find_reference(a, hold_time)
+        if Settings.get('stage.ref_x'):
+            self.find_reference(MCSAxis.X, hold_time)
+        if Settings.get('stage.ref_y'):
+            self.find_reference(MCSAxis.Y, hold_time)
+        if Settings.get('stage.ref_z'):
+            self.find_reference(MCSAxis.Z, hold_time)
 
         self.wait_until_status()
 
@@ -217,7 +237,29 @@ class MCSStage:
             self.check_return(lib.SA_GetPosition_S(self.handle, axis, pos))
             return pos[0]
 
+    def get_speed(self, axis=None):
+        if axis is None:
+            for a in MCSAxis:
+                self.get_speed(a)
+
+        if self.is_open:
+            speed = ffi.new('unsigned int *')
+            lib.SA_GetClosedLoopMoveSpeed_S(self.handle, axis, speed)
+            return speed[0]
+
+    def set_speed(self, speed, axis=None):
+        if axis is None:
+            for a in MCSAxis:
+                self.set_speed(speed, a)
+            return
+
+        logger.info('set_speed (axis={}, speed={})'.format(axis, speed))
+        if self.is_open:
+            self.check_return(lib.SA_SetClosedLoopMoveSpeed_S(self.handle, int(axis), int(speed)))
+
     def move(self, axis, position, hold_time=0, relative=False, wait=True):
+        logger.info('move (axis={}, pos={}, relative={}, wait={}'.format(axis, position, relative, wait))
+        position = int(position)
         if self.is_open:
             if relative:
                 self.check_return(lib.SA_GotoPositionRelative_S(self.handle, axis, position, hold_time))

@@ -1,0 +1,30 @@
+general:
+  connect_on_startup: true
+laser:
+  conn:
+    port: /dev/ttyUSB0
+    rate: 9600
+trigger:
+  conn:
+    port: /dev/ttyACM0
+    rate: 19200
+shutter:
+  output: 24
+stage:
+  conn:
+    port: usb:ix:0
+  pos_limit:
+    X:
+      min: -25000000
+      max: 25000000
+    Y:
+      min: -34000000
+      max: 35400000
+    Z:
+      min: -750000
+      max: 2700000
+  find_ref_on_connect: true
+  ref_x: true
+  ref_y: true
+  ref_z: true
+  position_poll_rate: 0.1
