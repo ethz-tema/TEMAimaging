@@ -231,7 +231,7 @@ class LaserPanel(wx.Panel):
         self.btn_laser_off = wx.Button(self, label="Off")
         self.btn_laser_on = wx.Button(self, label="On")
 
-        self.num_laser_voltage = wx.SpinCtrlDouble(self, size=(110, -1), min=22, max=30, inc=0.1)
+        self.num_laser_voltage = wx.SpinCtrlDouble(self, min=22, max=30, inc=0.1)
         self.txt_laser_energy = wx.TextCtrl(self, size=(110, -1))
 
         self.shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
@@ -367,8 +367,8 @@ class LaserManualShootPanel(wx.Panel):
 
         self.btn_start_stop = wx.Button(self, label='Start')
 
-        self.num_shots = wx.SpinCtrl(self, wx.ID_ANY, size=(130, -1), min=1, max=100000, initial=100)
-        self.num_frequency = wx.SpinCtrl(self, wx.ID_ANY, size=(130, -1), min=1, max=100, initial=10)
+        self.num_shots = wx.SpinCtrl(self, wx.ID_ANY, min=1, max=100000, initial=100)
+        self.num_frequency = wx.SpinCtrl(self, wx.ID_ANY, min=1, max=100, initial=10)
 
         self.trigger_running = False
 
@@ -610,9 +610,9 @@ class ScanCtrlPanel(wx.Panel):
 
         self.meas_ctlr = MeasurementController()
 
-        self.num_cleaning_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=500, initial=200)
-        self.num_shot_delay = wx.SpinCtrl(self, size=(115, -1), max=1000)
-        self.num_step_delay = wx.SpinCtrl(self, size=(115, -1), max=5000)
+        self.num_cleaning_shot_delay = wx.SpinCtrl(self, max=500, initial=200)
+        self.num_shot_delay = wx.SpinCtrl(self, max=1000)
+        self.num_step_delay = wx.SpinCtrl(self, max=5000)
 
         self.chk_step_trigger = wx.CheckBox(self, label="Use step trigger")
 
