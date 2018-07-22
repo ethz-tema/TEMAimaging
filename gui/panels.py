@@ -16,7 +16,7 @@ class MeasurementDVContextMenu(wx.Menu):
     def __init__(self, parent, dv_item, *args, **kw):
         super().__init__(*args, **kw)
 
-        self.dvc = parent.dvc
+        self.dvc = parent.dvc  # type: wx.dataview.DataViewCtrl
 
         if dv_item:
             menu_item = self.Append(wx.ID_ANY, "&Set start position\tCtrl-S")
@@ -36,7 +36,19 @@ class MeasurementDVContextMenu(wx.Menu):
 
             self.AppendSeparator()
 
-            menu_item = self.Append(wx.ID_DELETE, "Delete", )
+            if self.dvc.GetModel().ItemToObject(dv_item).index >= 1:
+                menu_item = self.Append(wx.ID_ANY, "Align in X+")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 0), menu_item)
+                menu_item = self.Append(wx.ID_ANY, "Align in X-")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 1), menu_item)
+                menu_item = self.Append(wx.ID_ANY, "Align in Y+")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 2), menu_item)
+                menu_item = self.Append(wx.ID_ANY, "Align in Y-")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 3), menu_item)
+
+                self.AppendSeparator()
+
+            menu_item = self.Append(wx.ID_DELETE, "Delete")
             self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
 
         menu_item = self.Append(wx.ID_ADD, "Add step")
@@ -60,6 +72,36 @@ class MeasurementDVContextMenu(wx.Menu):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             self.dvc.GetModel().delete_step(item)
+
+    def on_click_align(self, _, item, direction):
+        index = self.dvc.GetModel().ItemToObject(item).index
+        if index >= 1:
+            prev_step = self.dvc.GetModel().measurement.steps[index - 1]
+
+            prev_scan = prev_step.scan_type.from_params(prev_step.spot_size, prev_step.shots_per_spot,
+                                                        prev_step.frequency,
+                                                        prev_step.cleaning_shot,
+                                                        0, prev_step.params)
+
+            x, y = prev_scan.boundary_size
+            node = self.dvc.GetModel().ItemToObject(item)
+            if isinstance(node, Step):
+                if direction == 0:
+                    node.params['x_start'].value = prev_scan.x_start + x
+                    node.params['y_start'].value = prev_scan.y_start
+                    self.dvc.GetModel().edit_step(node)
+                elif direction == 1:
+                    node.params['x_start'].value = prev_scan.x_start - x
+                    node.params['y_start'].value = prev_scan.y_start
+                    self.dvc.GetModel().edit_step(node)
+                elif direction == 2:
+                    node.params['x_start'].value = prev_scan.x_start
+                    node.params['y_start'].value = prev_scan.y_start + y
+                    self.dvc.GetModel().edit_step(node)
+                elif direction == 3:
+                    node.params['x_start'].value = prev_scan.x_start
+                    node.params['y_start'].value = prev_scan.y_start - y
+                    self.dvc.GetModel().edit_step(node)
 
 
 class MeasurementPanel(wx.Panel):

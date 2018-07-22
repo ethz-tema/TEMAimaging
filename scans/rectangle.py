@@ -21,6 +21,8 @@ class RectangleScan(metaclass=ScannerMeta):
     def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
                  direction=0,
                  x_start=None, y_start=None, z_start=None, zig_zag_mode=False, blank_lines=0):
+        self.x_size = x_size
+        self.y_size = y_size
         self.x_steps = x_size // spot_size
         self.y_steps = y_size // spot_size
         self.spot_size = spot_size
@@ -44,6 +46,13 @@ class RectangleScan(metaclass=ScannerMeta):
                    params['y_size'].value,
                    params['direction'].value, params['x_start'].value, params['y_start'].value,
                    params['z_start'].value, params['zig_zag_mode'].value, params['blank_lines'].value)
+
+    @property
+    def boundary_size(self):
+        if self.direction in [0, 90, 180, 270]:
+            return self.x_size, self.y_size
+        # TODO: rotated rectangle
+        return 0, 0
 
     def init_scan(self):
         if self.x_start:

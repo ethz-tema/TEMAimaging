@@ -43,8 +43,8 @@ class FloatValidator(wx.Validator):
             event.Skip()
             return
 
-        # Allow decimal points
-        if key == ord('.'):
+        # Allow decimal points and minus sign
+        if key == ord('.') or key == ord('-'):
             event.Skip()
             return
 

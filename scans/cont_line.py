@@ -51,6 +51,10 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         return cls(spot_size, shots_per_spot, frequency, cleaning, spot_count, params['direction'].value,
                    params['x_start'].value, params['y_start'].value, params['z_start'].value, dz)
 
+    @property
+    def boundary_size(self):
+        return self._dx, self._dy
+
     def init_scan(self):
         if self.x_start:
             conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
