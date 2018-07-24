@@ -7,6 +7,7 @@ from core.conn_mgr import conn_mgr
 from core.measurement import measurement_model, Step, MeasurementController
 from gui.dialogs import AddScanDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
+from gui.utils import FloatValidator
 from hardware.laser_compex import OpMode
 from hardware.mcs_stage import MCSAxis
 
@@ -15,7 +16,7 @@ class MeasurementDVContextMenu(wx.Menu):
     def __init__(self, parent, dv_item, *args, **kw):
         super().__init__(*args, **kw)
 
-        self.dvc = parent.dvc
+        self.dvc = parent.dvc  # type: wx.dataview.DataViewCtrl
 
         if dv_item:
             menu_item = self.Append(wx.ID_ANY, "&Set start position\tCtrl-S")
@@ -35,7 +36,19 @@ class MeasurementDVContextMenu(wx.Menu):
 
             self.AppendSeparator()
 
-            menu_item = self.Append(wx.ID_DELETE, "Delete", )
+            if self.dvc.GetModel().ItemToObject(dv_item).index >= 1:
+                menu_item = self.Append(wx.ID_ANY, "Align in X+")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 0), menu_item)
+                menu_item = self.Append(wx.ID_ANY, "Align in X-")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 1), menu_item)
+                menu_item = self.Append(wx.ID_ANY, "Align in Y+")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 2), menu_item)
+                menu_item = self.Append(wx.ID_ANY, "Align in Y-")
+                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 3), menu_item)
+
+                self.AppendSeparator()
+
+            menu_item = self.Append(wx.ID_DELETE, "Delete")
             self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
 
         menu_item = self.Append(wx.ID_ADD, "Add step")
@@ -59,6 +72,36 @@ class MeasurementDVContextMenu(wx.Menu):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             self.dvc.GetModel().delete_step(item)
+
+    def on_click_align(self, _, item, direction):
+        index = self.dvc.GetModel().ItemToObject(item).index
+        if index >= 1:
+            prev_step = self.dvc.GetModel().measurement.steps[index - 1]
+
+            prev_scan = prev_step.scan_type.from_params(prev_step.spot_size, prev_step.shots_per_spot,
+                                                        prev_step.frequency,
+                                                        prev_step.cleaning_shot,
+                                                        0, prev_step.params)
+
+            x, y = prev_scan.boundary_size
+            node = self.dvc.GetModel().ItemToObject(item)
+            if isinstance(node, Step):
+                if direction == 0:
+                    node.params['x_start'].value = prev_scan.x_start + x
+                    node.params['y_start'].value = prev_scan.y_start
+                    self.dvc.GetModel().edit_step(node)
+                elif direction == 1:
+                    node.params['x_start'].value = prev_scan.x_start - x
+                    node.params['y_start'].value = prev_scan.y_start
+                    self.dvc.GetModel().edit_step(node)
+                elif direction == 2:
+                    node.params['x_start'].value = prev_scan.x_start
+                    node.params['y_start'].value = prev_scan.y_start + y
+                    self.dvc.GetModel().edit_step(node)
+                elif direction == 3:
+                    node.params['x_start'].value = prev_scan.x_start
+                    node.params['y_start'].value = prev_scan.y_start - y
+                    self.dvc.GetModel().edit_step(node)
 
 
 class MeasurementPanel(wx.Panel):
@@ -444,14 +487,15 @@ class StagePanel(wx.Panel):
     def __init__(self, parent):
         super(StagePanel, self).__init__(parent, wx.ID_ANY, style=wx.SUNKEN_BORDER)
 
-        self.speed_slider = wx.Slider(self, minValue=1, maxValue=17, style=wx.SL_HORIZONTAL | wx.SL_LABELS)
+        self.num_step_size = wx.SpinCtrlDouble(self, min=0.1, max=1000, inc=0.1)
 
-        self.txt_x_pos = wx.TextCtrl(self, size=(150, -1))
-        self.txt_x_pos.Disable()
-        self.txt_y_pos = wx.TextCtrl(self, size=(150, -1))
-        self.txt_y_pos.Disable()
-        self.txt_z_pos = wx.TextCtrl(self, size=(150, -1))
-        self.txt_z_pos.Disable()
+        self.txt_curr_x_pos = wx.StaticText(self)
+        self.txt_curr_y_pos = wx.StaticText(self)
+        self.txt_curr_z_pos = wx.StaticText(self)
+
+        self.txt_x_pos = wx.TextCtrl(self, validator=FloatValidator())
+        self.txt_y_pos = wx.TextCtrl(self, validator=FloatValidator())
+        self.txt_z_pos = wx.TextCtrl(self, validator=FloatValidator())
 
         self.stage_move_xp = wx.Button(self)
         self.stage_move_xn = wx.Button(self)
@@ -462,24 +506,7 @@ class StagePanel(wx.Panel):
         self.stage_focus_fp = wx.Button(self)
         self.stage_focus_fn = wx.Button(self)
 
-        self.speed_map = [1] * 18
-        self.speed_map[1] = 1
-        self.speed_map[2] = 200
-        self.speed_map[3] = 500
-        self.speed_map[4] = 700
-        self.speed_map[5] = 1000
-        self.speed_map[6] = 2000
-        self.speed_map[7] = 5000
-        self.speed_map[8] = 10000
-        self.speed_map[9] = 20000
-        self.speed_map[10] = 40000
-        self.speed_map[11] = 100000
-        self.speed_map[12] = 200000
-        self.speed_map[13] = 400000
-        self.speed_map[14] = 800000
-        self.speed_map[15] = 1000000
-        self.speed_map[16] = 2000000
-        self.speed_map[17] = 4000000
+        self.btn_stage_goto = wx.Button(self, wx.ID_ANY, "Go To")
 
         self.init_ui()
 
@@ -508,8 +535,8 @@ class StagePanel(wx.Panel):
         self.stage_focus_fn.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_GO_UP))
         self.stage_focus_fn.SetMinSize((30, 40))
 
-        self.speed_slider.SetToolTip("XY Speed")
-        self.speed_slider.SetValue(10)
+        self.num_step_size.SetToolTip("Step size (µm)")
+        self.num_step_size.SetValue(10.0)
 
         button_sizer = wx.GridBagSizer(0, 0)
 
@@ -525,18 +552,28 @@ class StagePanel(wx.Panel):
         button_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Focus", style=wx.ALIGN_CENTER), (1, 3), (1, 2),
                          wx.ALIGN_CENTER | wx.LEFT, border=10)
 
-        pos_sizer = wx.FlexGridSizer(3, 2, 5, 5)
-        pos_sizer.Add(wx.StaticText(self, wx.ID_ANY, "X (nm): "), flag=wx.ALIGN_CENTER_VERTICAL)
+        pos_sizer = wx.FlexGridSizer(3, 3, 5, 5)
+        s_txt = wx.StaticText(self, wx.ID_ANY, "X (µm)")
+        s_txt.SetFont(wx.SystemSettings.GetFont(wx.SYS_ANSI_VAR_FONT).Bold())
+        pos_sizer.Add(s_txt)
+        s_txt = wx.StaticText(self, wx.ID_ANY, "Y (µm)")
+        s_txt.SetFont(wx.SystemSettings.GetFont(wx.SYS_ANSI_VAR_FONT).Bold())
+        pos_sizer.Add(s_txt)
+        s_txt = wx.StaticText(self, wx.ID_ANY, "Z (µm)")
+        s_txt.SetFont(wx.SystemSettings.GetFont(wx.SYS_ANSI_VAR_FONT).Bold())
+        pos_sizer.Add(s_txt)
+        pos_sizer.Add(self.txt_curr_x_pos, flag=wx.ALIGN_CENTER_VERTICAL)
+        pos_sizer.Add(self.txt_curr_y_pos, flag=wx.ALIGN_CENTER_VERTICAL)
+        pos_sizer.Add(self.txt_curr_z_pos, flag=wx.ALIGN_CENTER_VERTICAL)
         pos_sizer.Add(self.txt_x_pos)
-        pos_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Y (nm): "), flag=wx.ALIGN_CENTER)
         pos_sizer.Add(self.txt_y_pos)
-        pos_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Z (nm): "), flag=wx.ALIGN_CENTER_VERTICAL)
         pos_sizer.Add(self.txt_z_pos)
 
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(button_sizer, 0, wx.ALL, 10)
-        main_sizer.Add(self.speed_slider, 0, wx.ALL | wx.EXPAND, 10)
+        main_sizer.Add(self.num_step_size, 0, wx.ALL | wx.EXPAND, 10)
         main_sizer.Add(pos_sizer, 0, wx.ALL, 10)
+        main_sizer.Add(self.btn_stage_goto, 0, wx.ALL | wx.EXPAND, 10)
 
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=1: self.on_click_move(e, a, d), self.stage_move_xp)
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=-1: self.on_click_move(e, a, d), self.stage_move_xn)
@@ -547,6 +584,8 @@ class StagePanel(wx.Panel):
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_c(e, d), self.stage_focus_cn)
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_f(e, d), self.stage_focus_fp)
         self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_f(e, d), self.stage_focus_fn)
+
+        self.Bind(wx.EVT_BUTTON, self.on_click_goto, self.btn_stage_goto)
 
         pub.subscribe(self.on_stage_position_changed, 'stage.position_changed')
         pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
@@ -560,13 +599,31 @@ class StagePanel(wx.Panel):
             self.stage_focus_cn.Disable()
             self.stage_focus_fp.Disable()
             self.stage_focus_fn.Disable()
-            self.speed_slider.Disable()
+            self.num_step_size.Disable()
+            self.txt_x_pos.Disable()
+            self.txt_y_pos.Disable()
+            self.txt_z_pos.Disable()
+            self.btn_stage_goto.Disable()
 
         self.SetSizerAndFit(main_sizer)
 
     def on_click_move(self, _, axis, direction):
-        speed = self.speed_map[self.speed_slider.GetValue()]
-        conn_mgr.stage.move(axis, speed * direction, relative=True)
+        step_size = self.num_step_size.GetValue() * 1000
+        conn_mgr.stage.move(axis, step_size * direction, relative=True)
+
+    def on_click_goto(self, _):
+        try:
+            conn_mgr.stage.move(MCSAxis.X, float(self.txt_x_pos.GetValue()) * 1000, wait=False)
+        except ValueError:
+            pass
+        try:
+            conn_mgr.stage.move(MCSAxis.Y, float(self.txt_y_pos.GetValue()) * 1000, wait=False)
+        except ValueError:
+            pass
+        try:
+            conn_mgr.stage.move(MCSAxis.Z, float(self.txt_z_pos.GetValue()) * 1000, wait=False)
+        except ValueError:
+            pass
 
     @staticmethod
     def on_click_focus_c(_, direction):
@@ -577,9 +634,9 @@ class StagePanel(wx.Panel):
         conn_mgr.stage.move(MCSAxis.Z, 10000 * direction, relative=True)
 
     def on_stage_position_changed(self, position):
-        self.txt_x_pos.SetValue(str(position[0]))
-        self.txt_y_pos.SetValue(str(position[1]))
-        self.txt_z_pos.SetValue(str(position[2]))
+        self.txt_curr_x_pos.SetLabel(str(position[MCSAxis.X] / 1000))
+        self.txt_curr_y_pos.SetLabel(str(position[MCSAxis.Y] / 1000))
+        self.txt_curr_z_pos.SetLabel(str(position[MCSAxis.Z] / 1000))
 
     def on_stage_connection_changed(self, connected):
         if connected:
@@ -591,7 +648,11 @@ class StagePanel(wx.Panel):
             self.stage_focus_cn.Enable()
             self.stage_focus_fp.Enable()
             self.stage_focus_fn.Enable()
-            self.speed_slider.Enable()
+            self.num_step_size.Enable()
+            self.txt_x_pos.Enable()
+            self.txt_y_pos.Enable()
+            self.txt_z_pos.Enable()
+            self.btn_stage_goto.Enable()
         else:
             self.stage_move_xp.Disable()
             self.stage_move_xn.Disable()
@@ -601,7 +662,11 @@ class StagePanel(wx.Panel):
             self.stage_focus_cn.Disable()
             self.stage_focus_fp.Disable()
             self.stage_focus_fn.Disable()
-            self.speed_slider.Disable()
+            self.num_step_size.Disable()
+            self.txt_x_pos.Disable()
+            self.txt_y_pos.Disable()
+            self.txt_z_pos.Disable()
+            self.btn_stage_goto.Disable()
 
 
 class ScanCtrlPanel(wx.Panel):

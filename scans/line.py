@@ -49,6 +49,10 @@ class LineScan(metaclass=ScannerMeta):
                    params['x_start'].value, params['y_start'].value, params['z_start'].value, dz_list,
                    params['blank_spots'].value)
 
+    @property
+    def boundary_size(self):
+        return self._dx * self.spot_count, self._dy * self.spot_count
+
     def init_scan(self):
         if self.x_start:
             conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
