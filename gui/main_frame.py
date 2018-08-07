@@ -79,6 +79,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_CLOSE, self.on_quit)
 
         pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
+        pub.subscribe(self.on_laser_connection_changed, 'laser.connection_changed')
         pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
 
         p.SetSizerAndFit(sizer)
@@ -102,6 +103,12 @@ class MainFrame(wx.Frame):
 
     def on_laser_status_changed(self, status):
         self.status_bar.SetStatusText('Laser status: ' + str(status))
+
+    def on_laser_connection_changed(self, connected):
+        if connected:
+            self.laser_menu_status.Enable(True)
+        else:
+            self.laser_menu_status.Enable(False)
 
     def on_quit(self, _):
         conn_mgr.laser_disconnect()
