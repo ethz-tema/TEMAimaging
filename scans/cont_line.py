@@ -64,6 +64,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
         conn_mgr.trigger.set_count(self.spot_count * self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
+        conn_mgr.trigger.set_first_only(False)
 
         conn_mgr.stage.wait_until_status()
 

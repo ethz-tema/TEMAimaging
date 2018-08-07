@@ -62,6 +62,7 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
         conn_mgr.trigger.set_count(self.shot_count)
         conn_mgr.trigger.set_freq(self.frequency)
+        conn_mgr.trigger.set_first_only(False)
 
         conn_mgr.stage.wait_until_status()
 
