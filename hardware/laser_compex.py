@@ -174,6 +174,14 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         return int(self.command_with_response('PRESSURE?'))
 
     @property
+    def tube_temp(self):
+        return self.command_with_response('RESERVOIR TEMP?')
+
+    @property
+    def tube_temp_control(self):
+        return self.command_with_response('TEMP CONTROL?')
+
+    @property
     def hv(self):
         return float(self.command_with_response('HV?'))
 

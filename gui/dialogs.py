@@ -62,6 +62,13 @@ class LaserStatusDialog(wx.Dialog):
         self.stxt_laser_version = wx.StaticText(self)
         self.stxt_laser_version.SetLabel('Version: {}'.format(conn_mgr.laser.version))
 
+        self.stxt_laser_temp = wx.StaticText(self)
+        temp = conn_mgr.laser.tube_temp
+        self.stxt_laser_temp.SetLabel('Temperature:    {} °C'.format(temp))
+
+        self.stxt_laser_temp_ctrl = wx.StaticText(self)
+        self.stxt_laser_temp_ctrl.SetLabel('Temp. control: {}'.format(conn_mgr.laser.tube_temp_control))
+
         self.init_ui()
 
     def init_ui(self):
@@ -74,5 +81,7 @@ class LaserStatusDialog(wx.Dialog):
         sizer.Add(self.stxt_total_counter)
         sizer.Add(self.stxt_laser_type)
         sizer.Add(self.stxt_laser_version)
+        sizer.Add(self.stxt_laser_temp)
+        sizer.Add(self.stxt_laser_temp_ctrl)
 
         self.SetSizerAndFit(sizer)
