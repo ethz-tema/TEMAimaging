@@ -1,11 +1,13 @@
 import logging
 import time
+from typing import List
 
 from PIL import Image, ImageOps
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
 from hardware.mcs_stage import MCSAxis
+from scans import Spot
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +29,6 @@ class Engraver(metaclass=ScannerMeta):
         self.y_size = y_size
         self.spot_size = spot_size
         self.shots_per_spot = shots_per_spot
-        self.image = image
-        self.laser = conn_mgr.laser
-        self.trigger = conn_mgr.trigger
-        self.stage = conn_mgr.stage
         self._dist_list = []
         self._curr_step = 0
         self._cleaning = cleaning
@@ -41,7 +39,9 @@ class Engraver(metaclass=ScannerMeta):
         self.frequency = frequency
         self.blank_spots = blank_spots
 
-        flipped_image = ImageOps.flip(self.image)
+        self.coord_list = []  # type: List[Spot]
+
+        flipped_image = ImageOps.flip(image)
         coord_matrix = [[0 for _ in range(flipped_image.size[1])] for _ in range(flipped_image.size[0])]
 
         logger.info("Image pixel count: {}".format(len(list(flipped_image.getdata()))))
@@ -63,13 +63,12 @@ class Engraver(metaclass=ScannerMeta):
             i += 1
 
         logger.info("Image black pixel count: {}".format(black_pixel))
-        self._dist_list = []
-        prev = (0, 0)
         for x in range(flipped_image.size[1]):
             for y in range(flipped_image.size[0]):
                 if not coord_matrix[x][y]:
-                    self._dist_list.append((x - prev[0], y - prev[1]))
-                    prev = (x, y)
+                    x_coord = round(x_start + (x * spot_size))
+                    y_coord = round(y_start + (y * spot_size))
+                    self.coord_list.append(Spot(x_coord, y_coord))
 
     @classmethod
     def from_params(cls, spot_size, shots_per_spot, frequency, cleaning, cleaning_delay, params):
@@ -85,21 +84,17 @@ class Engraver(metaclass=ScannerMeta):
         return self.x_size, self.y_size
 
     def init_scan(self):
-        if self.x_start:
-            conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
-        if self.y_start:
-            conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
         if self.z_start:
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
 
-        self.trigger.set_count(self.shots_per_spot)
-        self.trigger.set_freq(self.frequency)
+        conn_mgr.trigger.set_count(self.shots_per_spot)
+        conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
 
         conn_mgr.stage.wait_until_status()
 
     def next_move(self):
-        if self._curr_step >= len(self._dist_list):
+        if self._curr_step >= len(self.coord_list):
             return False
 
         if self.blank_spots:
@@ -108,18 +103,32 @@ class Engraver(metaclass=ScannerMeta):
             time.sleep(0.3)
             return True
 
-        dx = self._dist_list[self._curr_step][0] * self.spot_size
-        dy = self._dist_list[self._curr_step][1] * self.spot_size
-        self.stage.move(MCSAxis.X, dx, relative=True, wait=False)
-        self.stage.move(MCSAxis.Y, dy, relative=True, wait=False)
-        axes_moved = []
-        if dx != 0:
-            axes_moved.append(MCSAxis.X)
-        if dy != 0:
-            axes_moved.append(MCSAxis.Y)
-        self.stage.wait_until_status(axes_moved)
+        spot = self.coord_list[self._curr_step]
 
-        self.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
+        move_x = False
+        move_y = False
+        if self._curr_step > 0:
+            prev_spot = self.coord_list[self._curr_step - 1]
+
+            if spot.X - prev_spot.X != 0:
+                move_x = True
+            if spot.Y - prev_spot.Y != 0:
+                move_y = True
+        else:
+            move_x = True
+            move_y = True
+
+        axes_to_check = []
+        if move_x:
+            conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
+            axes_to_check.append(MCSAxis.X)
+        if move_y:
+            conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
+            axes_to_check.append(MCSAxis.Y)
+
+        conn_mgr.stage.wait_until_status(axes_to_check)
+
+        conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
         self._curr_step += 1
 
         return True
