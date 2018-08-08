@@ -100,9 +100,28 @@ class RectangleScan(metaclass=ScannerMeta):
 
         spot = self.coord_list[self._curr_step]
 
-        conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
-        conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
-        conn_mgr.stage.wait_until_status()
+        move_x = False
+        move_y = False
+        if self._curr_step > 0:
+            prev_spot = self.coord_list[self._curr_step - 1]
+
+            if spot.X - prev_spot.X != 0:
+                move_x = True
+            if spot.Y - prev_spot.Y != 0:
+                move_y = True
+        else:
+            move_x = True
+            move_y = True
+
+        axes_to_check = []
+        if move_x:
+            conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
+            axes_to_check.append(MCSAxis.X)
+        if move_y:
+            conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
+            axes_to_check.append(MCSAxis.Y)
+
+        conn_mgr.stage.wait_until_status(axes_to_check)
 
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
