@@ -37,21 +37,16 @@ class LineScan(metaclass=ScannerMeta):
         self._curr_step = 0
 
         self.coord_list = []  # type: List[Spot]
-        self.coord_list.append(Spot(x_start, y_start))
 
-        if z_start and z_end:
-            dz = z_end - z_start / (spot_count - 1)
+        if spot_count <= 1:
+            dz = 0
         else:
-            dz = None
+            dz = (z_end - z_start) / (spot_count - 1)
 
         for i in range(spot_count):
             x = round(x_start + math.sin(self.direction) * spot_size * i)
             y = round(y_start + math.cos(self.direction) * spot_size * i)
-
-            if z_start and z_end:
-                z = round(z_start - dz * i)
-            else:
-                z = None
+            z = round(z_start + dz * i)
 
             self.coord_list.append(Spot(x, y, z))
 
@@ -87,12 +82,35 @@ class LineScan(metaclass=ScannerMeta):
 
         spot = self.coord_list[self._curr_step]
 
-        conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
-        conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
-        if spot.Z:
-            conn_mgr.stage.move(MCSAxis.Z, spot.Z, wait=False)
+        move_x = False
+        move_y = False
+        move_z = False
+        if self._curr_step > 0:
+            prev_spot = self.coord_list[self._curr_step - 1]
 
-        conn_mgr.stage.wait_until_status()
+            if spot.X - prev_spot.X != 0:
+                move_x = True
+            if spot.Y - prev_spot.Y != 0:
+                move_y = True
+            if spot.Z - prev_spot.Z != 0:
+                move_z = True
+        else:
+            move_x = True
+            move_y = True
+            move_z = True
+
+        axes_to_check = []
+        if move_x:
+            conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
+            axes_to_check.append(MCSAxis.X)
+        if move_y:
+            conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
+            axes_to_check.append(MCSAxis.Y)
+        if move_z:
+            conn_mgr.stage.move(MCSAxis.Z, spot.Z, wait=False)
+            axes_to_check.append(MCSAxis.Z)
+
+        conn_mgr.stage.wait_until_status(axes_to_check)
 
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
