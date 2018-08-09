@@ -22,24 +22,7 @@ class MeasurementController:
         self._stop_scan_event = threading.Event()
         self._idle = True
 
-        pub.subscribe(self.on_step_trigger_recieved, 'trigger.step')
-
-    def start_scan(self, scan):
-        stop_scan = threading.Event()
-
-        class MeasureThread(threading.Thread):
-            @classmethod
-            def run(cls):
-                try:
-                    while scan.next_move() and not stop_scan.is_set():
-                        scan.next_shot()
-                except MCSError as e:
-                    logger.exception(e)
-
-        thread = MeasureThread()
-        thread.start()
-
-        return stop_scan
+        pub.subscribe(self.on_step_trigger_received, 'trigger.step')
 
     def init_sequence(self, measurement):
         if not self._idle:
@@ -96,7 +79,7 @@ class MeasurementController:
         conn_mgr.stage.stop()
         conn_mgr.trigger.stop_trigger()
 
-    def on_step_trigger_recieved(self):
+    def on_step_trigger_received(self):
         self._step_trigger_event.set()
 
 
