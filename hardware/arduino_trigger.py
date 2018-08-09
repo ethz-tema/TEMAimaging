@@ -142,3 +142,4 @@ class ArduTrigger(serial.threaded.LineReader):
     def stop_trigger(self):
         self.cease_continuous_run.set()
         self.command('S')
+        self.done = True
