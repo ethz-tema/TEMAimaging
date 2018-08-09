@@ -63,19 +63,26 @@ class MeasurementController:
             def run(cls):
                 self.idle = False
                 try:
+                    start_time = time.time()
+                    current_step = 0
                     for scan in self._sequence:
                         if self._stop_scan_event.is_set():
                             break
                         scan.init_scan()
-                        while self._measurement.step_trigger and not self._step_trigger_event.is_set():
+                        wx.CallAfter(pub.sendMessage, 'measurement.step_changed', current_step=current_step)
+                        while self._measurement.step_trigger and not self._step_trigger_event.is_set() and not self._stop_scan_event.is_set():
                             time.sleep(0.01)
-                        while scan.next_move() and not self._stop_scan_event.is_set():
+                        while not self._stop_scan_event.is_set() and scan.next_move():
                             scan.next_shot()
                             time.sleep(self._measurement.shot_delay / 1000)
                         conn_mgr.stage.set_speed(0)
                         time.sleep(self._measurement.step_delay / 1000)
                         self._step_trigger_event.clear()
-                        logger.info('measurement done')
+                        current_step += 1
+                    end_time = time.time()
+
+                    logger.info('measurement done; duration (s): {}'.format(end_time - start_time))
+                    wx.CallAfter(pub.sendMessage, 'measurement.done', duration=end_time - start_time)
                 except MCSError as e:
                     logger.exception(e)
                 finally:
