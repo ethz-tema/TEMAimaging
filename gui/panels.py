@@ -1,3 +1,9 @@
+import matplotlib.backends.backend_wxagg
+import matplotlib.cm
+import matplotlib.collections
+import matplotlib.colors
+import matplotlib.figure
+import matplotlib.patches
 import wx
 import wx.dataview
 from pubsub import pub
@@ -149,6 +155,8 @@ class MeasurementPanel(wx.Panel):
         c7.SetMinWidth(50)
         self.dvc.AppendColumn(c7)
 
+        self.plot_panel = SequencePlotPanel(self)
+
         self.init_ui()
 
     def init_ui(self):
@@ -167,15 +175,20 @@ class MeasurementPanel(wx.Panel):
         btn_add_step = wx.Button(self, wx.ID_ANY, label="Add Step")
         btn_sizer_right.Add(btn_add_step)
 
+        btn_plot_sequence = wx.Button(self, wx.ID_ANY, label="Plot")
+        btn_sizer_right.Add(btn_plot_sequence, 0, wx.LEFT, border=5)
+
         btn_sizer.Add(btn_sizer_left, 1)
         btn_sizer.Add(btn_sizer_right, 0)
 
-        sizer.Add(self.dvc, 1, wx.EXPAND)
+        sizer.Add(self.plot_panel, 0, wx.EXPAND)
+        sizer.Add(self.dvc, 1, wx.EXPAND | wx.TOP, border=5)
         sizer.Add(btn_sizer, 0, wx.EXPAND | wx.TOP, border=5)
 
         btn_open_sequence.Bind(wx.EVT_BUTTON, self.on_click_open_sequence)
         btn_save_sequence.Bind(wx.EVT_BUTTON, self.on_click_save_sequence)
-        self.Bind(wx.EVT_BUTTON, self.on_click_add_step, btn_add_step)
+        btn_add_step.Bind(wx.EVT_BUTTON, self.on_click_add_step)
+        btn_plot_sequence.Bind(wx.EVT_BUTTON, self.on_click_plot_sequence)
         self.dvc.Bind(wx.dataview.EVT_DATAVIEW_ITEM_CONTEXT_MENU, self.on_context_menu)
         self.dvc.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
@@ -206,6 +219,9 @@ class MeasurementPanel(wx.Panel):
                     self.dvc.GetModel().dump_model(file)
             except IOError:
                 raise
+
+    def on_click_plot_sequence(self, _):
+        self.plot_panel.plot(measurement_model.measurement.steps)
 
     def on_click_add_step(self, _):
         dlg = AddScanDialog(self)
@@ -797,3 +813,48 @@ class ScanCtrlPanel(wx.Panel):
         self.num_shot_delay.Enable()
         self.num_step_delay.Enable()
         self.num_blank_delay.Enable()
+
+
+class SequencePlotPanel(wx.Panel):
+    def __init__(self, parent, *args, **kw):
+        super().__init__(parent, *args, **kw)
+        self.figure = matplotlib.figure.Figure((2, 3))
+        self.canvas = matplotlib.backends.backend_wxagg.FigureCanvasWxAgg(self, -1, self.figure)
+
+        self.init_ui()
+
+    def init_ui(self):
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.canvas, 0, wx.EXPAND)
+        self.SetSizerAndFit(sizer)
+
+    def plot(self, steps):
+        ax = self.figure.gca()
+        ax.clear()
+        sequence = []
+        for step in steps:
+            sequence.append(
+                step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
+                                           measurement_model.measurement.cs_delay, step.params))
+
+        map = matplotlib.cm.get_cmap('gist_rainbow')
+        map_norm = matplotlib.colors.Normalize(vmin=0, vmax=len(sequence))
+        scalar_map = matplotlib.cm.ScalarMappable(norm=map_norm, cmap=map)
+
+        i = 0
+        for step in sequence:
+            size = [step.spot_size / 1000 for _ in step.coord_list]
+            angle = [0 for _ in step.coord_list]
+            offsets = [(spot.X / 1000, spot.Y / 1000) for spot in step.coord_list]
+            ax.add_collection(
+                matplotlib.collections.EllipseCollection(size, size, angle, offsets=offsets, units='x',
+                                                         transOffset=ax.transData,
+                                                         facecolors=scalar_map.to_rgba(i), alpha=0.5))
+            i += 1
+
+        ax.grid(True)
+        ax.set_aspect('equal')
+        ax.axis('scaled')
+
+        self.figure.tight_layout()
+        self.canvas.draw()
