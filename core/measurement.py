@@ -275,9 +275,14 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         yaml.register_class(Param)
         yaml.register_class(Measurement)
 
-        self.measurement.steps = []
-        self.Cleared()
-        self.measurement = yaml.load(stream)
+        data = yaml.load(stream)
+
+        if data and type(data) == Measurement:
+            self.measurement.steps = []
+            self.Cleared()
+            self.measurement = data
+        else:
+            raise ValueError('Invalid file')
 
         self._recalculate_ids(False)
         for step in self.measurement.steps:

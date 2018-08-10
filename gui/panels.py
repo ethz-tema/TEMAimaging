@@ -192,6 +192,8 @@ class MeasurementPanel(wx.Panel):
                     self.dvc.GetModel().load_model(file)
             except IOError:
                 raise
+            except ValueError:
+                wx.MessageBox('The file you tried to load is invalid.', 'Invalid file', wx.OK | wx.ICON_ERROR)
 
     def on_click_save_sequence(self, _):
         with wx.FileDialog(self, "Save sequence", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
