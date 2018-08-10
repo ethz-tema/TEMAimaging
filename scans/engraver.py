@@ -76,8 +76,9 @@ class Engraver(metaclass=ScannerMeta):
         width = int(params['y_size'].value / spot_size)
         height = int(params['x_size'].value / spot_size)
         image = Image.open(params['image_path'].value).convert(mode='1').resize((width, height))
-        return cls(spot_size, shots_per_spot, frequency, image, cleaning, cleaning_delay, params['x_size'].value,
-                   params['y_size'].value)
+        return cls(spot_size, shots_per_spot, frequency, image, cleaning, cleaning_delay, params['x_start'].value,
+                   params['y_start'].value, params['z_start'].value, params['blank_spots'].value,
+                   params['x_size'].value, params['y_size'].value)
 
     @property
     def boundary_size(self):
