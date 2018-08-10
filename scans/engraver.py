@@ -42,33 +42,29 @@ class Engraver(metaclass=ScannerMeta):
         self.coord_list = []  # type: List[Spot]
 
         flipped_image = ImageOps.flip(image)
-        coord_matrix = [[0 for _ in range(flipped_image.size[1])] for _ in range(flipped_image.size[0])]
 
         logger.info("Image pixel count: {}".format(len(list(flipped_image.getdata()))))
 
-        line = 0
-        col = 0
+        def to_pixel_coords(index):
+            x_pixels = flipped_image.size[0]
+
+            x = index // x_pixels
+            y = index % x_pixels
+            return x, y
+
         i = 0
         black_pixel = 0
         for pixel in list(flipped_image.getdata()):
-            coord_matrix[line][col] = 1 if pixel == 255 else 0
             if pixel == 0:
+                x_pixel, y_pixel = to_pixel_coords(i)
+                x_coord = round(x_start + (x_pixel * spot_size))
+                y_coord = round(y_start + (y_pixel * spot_size))
+                self.coord_list.append(Spot(x_coord, y_coord))
                 black_pixel += 1
-            col += 1
-
-            if (i + 1) % flipped_image.size[0] == 0:
-                line += 1
-                col = 0
 
             i += 1
 
         logger.info("Image black pixel count: {}".format(black_pixel))
-        for x in range(flipped_image.size[1]):
-            for y in range(flipped_image.size[0]):
-                if not coord_matrix[x][y]:
-                    x_coord = round(x_start + (x * spot_size))
-                    y_coord = round(y_start + (y * spot_size))
-                    self.coord_list.append(Spot(x_coord, y_coord))
 
     @classmethod
     def from_params(cls, spot_size, shots_per_spot, frequency, cleaning, cleaning_delay, params):
@@ -81,7 +77,10 @@ class Engraver(metaclass=ScannerMeta):
 
     @property
     def boundary_size(self):
-        return self.x_size, self.y_size
+        x = max(spot.X for spot in self.coord_list) - min(spot.X for spot in self.coord_list) + self.spot_size
+        y = max(spot.Y for spot in self.coord_list) - min(spot.Y for spot in self.coord_list) + self.spot_size
+
+        return x, y
 
     def init_scan(self):
         if self.z_start:
