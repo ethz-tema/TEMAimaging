@@ -842,19 +842,23 @@ class SequencePlotPanel(wx.Panel):
         scalar_map = matplotlib.cm.ScalarMappable(norm=map_norm, cmap=map)
 
         i = 0
+        legend_entries = []
         for step in sequence:
             size = [step.spot_size / 1000 for _ in step.coord_list]
             angle = [0 for _ in step.coord_list]
             offsets = [(spot.X / 1000, spot.Y / 1000) for spot in step.coord_list]
-            ax.add_collection(
-                matplotlib.collections.EllipseCollection(size, size, angle, offsets=offsets, units='x',
-                                                         transOffset=ax.transData,
-                                                         facecolors=scalar_map.to_rgba(i), alpha=0.5))
+            ax.add_collection(matplotlib.collections.EllipseCollection(size, size, angle, offsets=offsets, units='x',
+                                                                       transOffset=ax.transData,
+                                                                       facecolors=scalar_map.to_rgba(i), alpha=0.5))
+
+            legend_entries.append(matplotlib.patches.Circle([0, 0], color=scalar_map.to_rgba(i), alpha=0.5))
+
             i += 1
 
         ax.grid(True)
         ax.set_aspect('equal')
         ax.axis('scaled')
+        ax.legend(legend_entries, range(len(sequence)), bbox_to_anchor=(1, 1))
 
         self.figure.tight_layout()
         self.canvas.draw()
