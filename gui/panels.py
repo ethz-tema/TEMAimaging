@@ -677,6 +677,9 @@ class ScanCtrlPanel(wx.Panel):
 
         self.meas_ctlr = MeasurementController()
 
+        self.btn_start_scan = wx.Button(self, wx.ID_ANY, 'Start')
+        self.btn_stop_scan = wx.Button(self, wx.ID_ANY, 'Stop')
+
         self.num_cleaning_shot_delay = wx.SpinCtrl(self, max=500, initial=200)
         self.num_shot_delay = wx.SpinCtrl(self, max=1000)
         self.num_step_delay = wx.SpinCtrl(self, max=5000)
@@ -689,6 +692,7 @@ class ScanCtrlPanel(wx.Panel):
         self.chk_step_trigger.Bind(wx.EVT_CHECKBOX, self.on_chk_step_trigger_changed)
 
         pub.subscribe(self.on_model_loaded, 'measurement.model_loaded')
+        pub.subscribe(self.on_measurement_done, 'measurement.done')
 
         self.init_ui()
 
@@ -703,9 +707,6 @@ class ScanCtrlPanel(wx.Panel):
         scan_grid = wx.GridBagSizer(5, 5)
         scan_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        btn_start_scan = wx.Button(self, wx.ID_ANY, 'Start')
-        btn_stop_scan = wx.Button(self, wx.ID_ANY, 'Stop')
-
         scan_grid.Add(wx.StaticText(self, label='CS Delay (ms):'), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         scan_grid.Add(self.num_cleaning_shot_delay, (0, 1))
         scan_grid.Add(wx.StaticText(self, label='Shot Delay (ms):'), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
@@ -713,14 +714,17 @@ class ScanCtrlPanel(wx.Panel):
         scan_grid.Add(wx.StaticText(self, label='Step Delay (ms):'), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         scan_grid.Add(self.num_step_delay, (2, 1))
         scan_grid.Add(self.chk_step_trigger, (3, 0))
-        scan_btn_sizer.Add(btn_start_scan, 1, wx.RIGHT, 2.5)
-        scan_btn_sizer.Add(btn_stop_scan, 1, wx.LEFT, 2.5)
+        scan_btn_sizer.Add(self.btn_start_scan, 1, wx.RIGHT, 2.5)
+        scan_btn_sizer.Add(self.btn_stop_scan, 1, wx.LEFT, 2.5)
 
-        self.Bind(wx.EVT_BUTTON, self.on_click_start_scan, btn_start_scan)
-        self.Bind(wx.EVT_BUTTON, self.on_click_stop_scan, btn_stop_scan)
+        self.Bind(wx.EVT_BUTTON, self.on_click_start_scan, self.btn_start_scan)
+        self.Bind(wx.EVT_BUTTON, self.on_click_stop_scan, self.btn_stop_scan)
 
         scan_box.Add(scan_grid, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, 5)
         scan_box.Add(scan_btn_sizer, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT | wx.EXPAND, 5)
+
+        self.btn_stop_scan.Disable()
+
         self.SetSizerAndFit(scan_box)
 
     def on_num_cleaning_shot_delay_changed(self, _):
@@ -738,6 +742,12 @@ class ScanCtrlPanel(wx.Panel):
     def on_click_start_scan(self, _):
         self.meas_ctlr.init_sequence(measurement_model.measurement)
         self.meas_ctlr.start_sequence()
+        self.chk_step_trigger.Disable()
+        self.num_cleaning_shot_delay.Disable()
+        self.num_shot_delay.Disable()
+        self.num_step_delay.Disable()
+        self.btn_start_scan.Disable()
+        self.btn_stop_scan.Enable()
 
     def on_click_stop_scan(self, _):
         self.meas_ctlr.stop()
@@ -747,3 +757,11 @@ class ScanCtrlPanel(wx.Panel):
         self.num_shot_delay.SetValue(measurement_model.measurement.shot_delay)
         self.num_step_delay.SetValue(measurement_model.measurement.step_delay)
         self.chk_step_trigger.SetValue(measurement_model.measurement.step_trigger)
+
+    def on_measurement_done(self, duration):
+        self.btn_start_scan.Enable()
+        self.btn_stop_scan.Disable()
+        self.chk_step_trigger.Enable()
+        self.num_cleaning_shot_delay.Enable()
+        self.num_shot_delay.Enable()
+        self.num_step_delay.Enable()

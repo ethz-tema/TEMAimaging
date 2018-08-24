@@ -15,7 +15,7 @@ class MainFrame(wx.Frame):
         icon = wx.Icon('logo.png')
         self.SetIcon(icon)
 
-        self.status_bar = self.CreateStatusBar()
+        self.status_bar = self.CreateStatusBar(2)
 
         self.laser_menu_status = wx.MenuItem(id=wx.ID_ANY, text="Status", helpString="Laser status")
 
@@ -81,6 +81,8 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
         pub.subscribe(self.on_laser_connection_changed, 'laser.connection_changed')
         pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
+        pub.subscribe(self.on_measurement_step_changed, 'measurement.step_changed')
+        pub.subscribe(self.on_measurement_done, 'measurement.done')
 
         p.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)
@@ -102,7 +104,13 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
 
     def on_laser_status_changed(self, status):
-        self.status_bar.SetStatusText('Laser status: ' + str(status))
+        self.status_bar.SetStatusText('Laser status: ' + str(status), 0)
+
+    def on_measurement_step_changed(self, current_step):
+        self.status_bar.SetStatusText('Current step: {}'.format(current_step), 1)
+
+    def on_measurement_done(self, duration):
+        self.status_bar.SetStatusText('', 1)
 
     def on_laser_connection_changed(self, connected):
         if connected:
