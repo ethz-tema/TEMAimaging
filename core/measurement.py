@@ -51,7 +51,7 @@ class MeasurementController:
                     for scan in self._sequence:
                         if self._stop_scan_event.is_set():
                             break
-                        scan.init_scan()
+                        scan.init_scan(self._measurement)
                         wx.CallAfter(pub.sendMessage, 'measurement.step_changed', current_step=current_step)
                         while self._measurement.step_trigger and not self._step_trigger_event.is_set() and not self._stop_scan_event.is_set():
                             time.sleep(0.01)
@@ -135,6 +135,7 @@ class Measurement:
         self.cs_delay = 0
         self.shot_delay = 0
         self.step_delay = 0
+        self.blank_delay = 0
         self.step_trigger = False
         self.steps = []
 

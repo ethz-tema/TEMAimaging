@@ -53,7 +53,7 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         # TODO: rotated rectangle
         return 0, 0
 
-    def init_scan(self):
+    def init_scan(self, _):
         if self.x_start is not None:
             conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
         if self.y_start is not None:

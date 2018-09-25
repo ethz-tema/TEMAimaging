@@ -38,6 +38,7 @@ class Engraver(metaclass=ScannerMeta):
         self.z_start = z_start
         self.frequency = frequency
         self.blank_spots = blank_spots
+        self.blank_delay = 0
 
         self.coord_list = []  # type: List[Spot]
 
@@ -82,7 +83,9 @@ class Engraver(metaclass=ScannerMeta):
 
         return x, y
 
-    def init_scan(self):
+    def init_scan(self, measurement):
+        self.blank_delay = measurement.blank_delay
+
         if self.z_start:
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
 
@@ -97,9 +100,9 @@ class Engraver(metaclass=ScannerMeta):
             return False
 
         if self.blank_spots:
+            time.sleep(self.blank_delay / 1000)
             conn_mgr.trigger.single_tof()
             self.blank_spots -= 1
-            time.sleep(0.3)
             return True
 
         spot = self.coord_list[self._curr_step]

@@ -55,7 +55,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
     def boundary_size(self):
         return self._dx, self._dy
 
-    def init_scan(self):
+    def init_scan(self, _):
         if self.x_start is not None:
             conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
         if self.y_start is not None:

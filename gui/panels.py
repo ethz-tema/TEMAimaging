@@ -683,12 +683,14 @@ class ScanCtrlPanel(wx.Panel):
         self.num_cleaning_shot_delay = wx.SpinCtrl(self, max=500, initial=200)
         self.num_shot_delay = wx.SpinCtrl(self, max=1000)
         self.num_step_delay = wx.SpinCtrl(self, max=5000)
+        self.num_blank_delay = wx.SpinCtrl(self, max=5000)
 
         self.chk_step_trigger = wx.CheckBox(self, label="Use step trigger")
 
         self.num_cleaning_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_cleaning_shot_delay_changed)
         self.num_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_shot_delay_changed)
         self.num_step_delay.Bind(wx.EVT_SPINCTRL, self.on_num_step_delay_changed)
+        self.num_blank_delay.Bind(wx.EVT_SPINCTRL, self.on_num_blank_delay_changed)
         self.chk_step_trigger.Bind(wx.EVT_CHECKBOX, self.on_chk_step_trigger_changed)
 
         pub.subscribe(self.on_model_loaded, 'measurement.model_loaded')
@@ -699,6 +701,7 @@ class ScanCtrlPanel(wx.Panel):
         measurement_model.measurement.cs_delay = self.num_cleaning_shot_delay.GetValue()
         measurement_model.measurement.shot_delay = self.num_shot_delay.GetValue()
         measurement_model.measurement.step_delay = self.num_step_delay.GetValue()
+        measurement_model.measurement.blank_delay = self.num_blank_delay.GetValue()
         measurement_model.measurement.step_trigger = self.chk_step_trigger.IsChecked()
 
     def init_ui(self):
@@ -713,7 +716,9 @@ class ScanCtrlPanel(wx.Panel):
         scan_grid.Add(self.num_shot_delay, (1, 1))
         scan_grid.Add(wx.StaticText(self, label='Step Delay (ms):'), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         scan_grid.Add(self.num_step_delay, (2, 1))
-        scan_grid.Add(self.chk_step_trigger, (3, 0))
+        scan_grid.Add(wx.StaticText(self, label='Blank Delay (ms):'), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(self.num_blank_delay, (3, 1))
+        scan_grid.Add(self.chk_step_trigger, (4, 0))
         scan_btn_sizer.Add(self.btn_start_scan, 1, wx.RIGHT, 2.5)
         scan_btn_sizer.Add(self.btn_stop_scan, 1, wx.LEFT, 2.5)
 
@@ -736,6 +741,9 @@ class ScanCtrlPanel(wx.Panel):
     def on_num_step_delay_changed(self, _):
         measurement_model.measurement.step_delay = self.num_step_delay.GetValue()
 
+    def on_num_blank_delay_changed(self, _):
+        measurement_model.measurement.blank_delay = self.num_blank_delay.GetValue()
+
     def on_chk_step_trigger_changed(self, _):
         measurement_model.measurement.step_trigger = self.chk_step_trigger.IsChecked()
 
@@ -746,6 +754,7 @@ class ScanCtrlPanel(wx.Panel):
         self.num_cleaning_shot_delay.Disable()
         self.num_shot_delay.Disable()
         self.num_step_delay.Disable()
+        self.num_blank_delay.Disable()
         self.btn_start_scan.Disable()
         self.btn_stop_scan.Enable()
 
@@ -756,6 +765,7 @@ class ScanCtrlPanel(wx.Panel):
         self.num_cleaning_shot_delay.SetValue(measurement_model.measurement.cs_delay)
         self.num_shot_delay.SetValue(measurement_model.measurement.shot_delay)
         self.num_step_delay.SetValue(measurement_model.measurement.step_delay)
+        self.num_blank_delay.SetValue(measurement_model.measurement.blank_delay)
         self.chk_step_trigger.SetValue(measurement_model.measurement.step_trigger)
 
     def on_measurement_done(self, duration):
@@ -765,3 +775,4 @@ class ScanCtrlPanel(wx.Panel):
         self.num_cleaning_shot_delay.Enable()
         self.num_shot_delay.Enable()
         self.num_step_delay.Enable()
+        self.num_blank_delay.Enable()

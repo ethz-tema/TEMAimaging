@@ -27,6 +27,7 @@ class LineScan(metaclass=ScannerMeta):
         self.shots_per_spot = shots_per_spot
         self.frequency = frequency
         self.blank_spots = blank_spots
+        self.blank_delay = 0
         self.x_start = x_start
         self.y_start = y_start
         self.z_start = z_start
@@ -65,7 +66,9 @@ class LineScan(metaclass=ScannerMeta):
 
         return x, y
 
-    def init_scan(self):
+    def init_scan(self, measurement):
+        self.blank_delay = measurement.blank_delay
+
         conn_mgr.trigger.set_count(self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
@@ -75,9 +78,9 @@ class LineScan(metaclass=ScannerMeta):
             return False
 
         if self.blank_spots:
+            time.sleep(self.blank_delay / 1000)
             conn_mgr.trigger.single_tof()
             self.blank_spots -= 1
-            time.sleep(0.3)
             return True
 
         spot = self.coord_list[self._curr_step]
