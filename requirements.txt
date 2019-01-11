@@ -1,5 +1,6 @@
 # AIOUSB
 cffi
+matplotlib
 numpy
 pillow
 pypubsub
