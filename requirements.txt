@@ -1,5 +1,9 @@
+# AIOUSB
 cffi
+numpy
+pillow
+pypubsub
 pyserial
-Pillow
+pyueye
 ruamel.yaml
 wxPython

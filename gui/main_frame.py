@@ -4,7 +4,7 @@ from pubsub import pub
 from core.conn_mgr import conn_mgr
 from gui.conn_mgr import ConnectionManagerDialog
 from gui.dialogs import LaserStatusDialog
-from gui.panels import LaserPanel, StagePanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
+from gui.panels import LaserPanel, StagePanel, CameraPanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
 from gui.preferences import PreferencesDialog
 
 
@@ -21,6 +21,14 @@ class MainFrame(wx.Frame):
 
         self.stage_menu_reference = wx.MenuItem(id=wx.ID_ANY, text='Reference axes', helpString='Reference stage axes')
         self.stage_menu_reset_speed = wx.MenuItem(id=wx.ID_ANY, text='Reset speed', helpString='Reset axis speeds')
+
+        self.main_panel = wx.Panel(self)
+        self.laser_panel = LaserPanel(self.main_panel)
+        self.stage_panel = StagePanel(self.main_panel)
+        self.laser_manual_shoot_panel = LaserManualShootPanel(self.main_panel)
+        self.scan_ctrl_panel = ScanCtrlPanel(self.main_panel)
+        self.measurement_panel = MeasurementPanel(self.main_panel)
+        self.camera_panel = CameraPanel(self.main_panel)
 
         self.init_ui()
 
@@ -51,22 +59,16 @@ class MainFrame(wx.Frame):
         menubar.Append(stage_menu, '&Stage')
         self.SetMenuBar(menubar)
 
-        p = wx.Panel(self)
-        laser = LaserPanel(p)
-        stage = StagePanel(p)
-        laser_manual = LaserManualShootPanel(p)
-        scan = ScanCtrlPanel(p)
-        measurement = MeasurementPanel(p)
-
         sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         vert_sizer = wx.BoxSizer(wx.VERTICAL)
-        vert_sizer.Add(laser, 0, wx.BOTTOM, border=5)
-        vert_sizer.Add(stage, 0, wx.BOTTOM, border=5)
-        vert_sizer.Add(laser_manual, 0, wx.BOTTOM, border=5)
-        vert_sizer.Add(scan, 0, wx.ALL, border=0)
+        vert_sizer.Add(self.camera_panel, 0, wx.BOTTOM, border=5)
+        vert_sizer.Add(self.laser_panel, 0, wx.BOTTOM, border=5)
+        vert_sizer.Add(self.stage_panel, 0, wx.BOTTOM, border=5)
+        vert_sizer.Add(self.laser_manual_shoot_panel, 0, wx.BOTTOM, border=5)
+        vert_sizer.Add(self.scan_ctrl_panel, 0, wx.ALL, border=0)
 
-        sizer.Add(measurement, 1, wx.ALL | wx.EXPAND, border=10)
+        sizer.Add(self.measurement_panel, 1, wx.ALL | wx.EXPAND, border=10)
         sizer.Add(vert_sizer, 0, wx.TOP | wx.RIGHT | wx.BOTTOM, border=10)
 
         self.Bind(wx.EVT_MENU, self.on_connection_manager, file_menu_conn_mgr)
@@ -83,8 +85,9 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
         pub.subscribe(self.on_measurement_step_changed, 'measurement.step_changed')
         pub.subscribe(self.on_measurement_done, 'measurement.done')
+        pub.subscribe(self.on_image_acquired, 'camera.image_acquired')
 
-        p.SetSizerAndFit(sizer)
+        self.main_panel.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)
 
     def on_stage_connection_changed(self, connected):
@@ -136,3 +139,6 @@ class MainFrame(wx.Frame):
     @staticmethod
     def on_click_stage_menu_reset_speed(_):
         conn_mgr.stage.set_speed(0)
+
+    def on_image_acquired(self, camera, image):
+        wx.CallAfter(self.camera_panel.update_image, image)
