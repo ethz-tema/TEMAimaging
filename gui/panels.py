@@ -269,6 +269,27 @@ class MeasurementPanel(wx.Panel):
                     self.on_click_go_to_start(e, self.dvc.GetSelection())
 
 
+class CameraPanel(wx.Panel):
+    img_width = 320
+    img_height = 256
+
+    def __init__(self, parent):
+        super(CameraPanel, self).__init__(parent, wx.ID_ANY)
+        self.static_bitmap = wx.StaticBitmap(self, size=(self.img_width, self.img_height))
+        self.init_ui()
+
+    def init_ui(self):
+        main_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label="Camera")
+        main_sizer.Add(self.static_bitmap, 0, wx.ALL, border=0)
+        self.SetSizerAndFit(main_sizer)
+
+    def update_image(self, image):
+        img = wx.Image(image.shape[1], image.shape[0])
+        img.SetData(image)
+        img = img.Scale(self.img_width, self.img_height)
+        self.static_bitmap.SetBitmap(wx.Bitmap(img))
+
+
 class LaserPanel(wx.Panel):
     def __init__(self, parent):
         super(LaserPanel, self).__init__(parent, wx.ID_ANY)

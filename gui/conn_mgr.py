@@ -33,6 +33,11 @@ class ConnectionManagerDialog(wx.Dialog):
         self.choice_stage_port = wx.ComboBox(self, wx.ID_ANY, choices=["usb:ix:0"])
         self.btn_stage_connect = wx.Button(self, wx.ID_ANY)
 
+        # Camera
+        self.stxt_camera_status = wx.StaticText(self, wx.ID_ANY)
+        self.choice_camera_port = wx.ComboBox(self, wx.ID_ANY, choices=conn_mgr.camera_list())
+        self.btn_camera_connect = wx.Button(self, wx.ID_ANY)
+
         self.chk_auto_connect = wx.CheckBox(self, wx.ID_ANY, 'Connect devices on startup')
 
         self.btn_save = wx.Button(self, wx.ID_SAVE)
@@ -51,10 +56,12 @@ class ConnectionManagerDialog(wx.Dialog):
         lbl_status_trigger = wx.StaticText(self, wx.ID_ANY, "Status:")
         lbl_status_shutter = wx.StaticText(self, wx.ID_ANY, "Status:")
         lbl_status_stage = wx.StaticText(self, wx.ID_ANY, "Status:")
+        lbl_status_camera = wx.StaticText(self, wx.ID_ANY, "Status:")
 
         lbl_port_laser = wx.StaticText(self, wx.ID_ANY, "Port:")
         lbl_port_trigger = wx.StaticText(self, wx.ID_ANY, "Port:")
         lbl_port_stage = wx.StaticText(self, wx.ID_ANY, "Port:")
+        lbl_port_camera = wx.StaticText(self, wx.ID_ANY, "Port:")
 
         lbl_rate_laser = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
         lbl_rate_trigger = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
@@ -130,6 +137,23 @@ class ConnectionManagerDialog(wx.Dialog):
         stage_sizer.Add(stage_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
         sizer.Add(stage_sizer, 1, wx.ALL | wx.EXPAND, 5)
 
+        # Camera
+        camera_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Camera"), wx.VERTICAL)
+        camera_grid_sizer = wx.FlexGridSizer(0, 4, 5, 5)
+
+        camera_grid_sizer.Add(lbl_status_camera, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        camera_grid_sizer.Add(self.stxt_camera_status, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        fill_sizer(camera_grid_sizer, 2)
+        camera_grid_sizer.Add(lbl_port_camera, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        camera_grid_sizer.Add(self.choice_camera_port, 0, 0, 0)
+        fill_sizer(camera_grid_sizer, 5)
+        camera_grid_sizer.Add(self.btn_camera_connect, 0, 0, 0)
+        camera_grid_sizer.AddGrowableCol(2)
+
+        camera_sizer.Add(camera_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(camera_sizer, 1, wx.ALL | wx.EXPAND, 5)
+
+        # Auto-connect
         sizer.Add(self.chk_auto_connect, 0, wx.LEFT | wx.BOTTOM, 5)
         self.chk_auto_connect.SetValue(Settings.get('general.connect_on_startup'))
 
@@ -143,20 +167,22 @@ class ConnectionManagerDialog(wx.Dialog):
         self.choice_laser_port.SetValue(Settings.get('laser.conn.port'))
         self.choice_laser_rate.SetSelection(self.choice_laser_rate.FindString(str(Settings.get('laser.conn.rate'))))
         self.choice_trigger_port.SetValue(Settings.get('trigger.conn.port'))
-        self.choice_trigger_rate.SetSelection(
-            self.choice_trigger_rate.FindString(str(Settings.get('trigger.conn.rate'))))
+        self.choice_trigger_rate.SetSelection(self.choice_trigger_rate.FindString(str(Settings.get('trigger.conn.rate'))))
         self.num_shutter_output.SetValue(Settings.get('shutter.output'))
         self.choice_stage_port.SetValue(Settings.get('stage.conn.port'))
+        self.choice_camera_port.SetValue(str(Settings.get('camera.conn.port')))
 
         self.on_connection_changed_laser(conn_mgr.laser_connected)
         self.on_connection_changed_trigger(conn_mgr.trigger_connected)
         self.on_connection_changed_shutter(conn_mgr.shutter_connected)
         self.on_connection_changed_stage(conn_mgr.stage_connected)
+        self.on_connection_changed_camera(conn_mgr.camera_connected)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_laser, self.btn_laser_connect)
         self.Bind(wx.EVT_BUTTON, self.on_click_trigger, self.btn_trigger_connect)
         self.Bind(wx.EVT_BUTTON, self.on_click_shutter, self.btn_shutter_connect)
         self.Bind(wx.EVT_BUTTON, self.on_click_stage, self.btn_stage_connect)
+        self.Bind(wx.EVT_BUTTON, self.on_click_camera, self.btn_camera_connect)
         self.Bind(wx.EVT_BUTTON, self.on_click_save, self.btn_save)
         self.Bind(wx.EVT_BUTTON, self.on_click_cancel, self.btn_cancel)
 
@@ -164,6 +190,7 @@ class ConnectionManagerDialog(wx.Dialog):
         pub.subscribe(self.on_connection_changed_trigger, 'trigger.connection_changed')
         pub.subscribe(self.on_connection_changed_shutter, 'shutter.connection_changed')
         pub.subscribe(self.on_connection_changed_stage, 'stage.connection_changed')
+        pub.subscribe(self.on_connection_changed_camera, 'camera.connection_changed')
 
         self.SetSizer(sizer)
         sizer.Fit(self)
@@ -219,6 +246,13 @@ class ConnectionManagerDialog(wx.Dialog):
         else:
             conn_mgr.stage_connect(self.choice_stage_port.GetValue())
 
+    # noinspection PyUnusedLocal
+    def on_click_camera(self, e):
+        if conn_mgr.camera_connected:
+            conn_mgr.camera_disconnect()
+        else:
+            conn_mgr.camera_connect(self.choice_camera_port.GetValue())
+
     def on_connection_changed_laser(self, connected):
         if connected:
             self.stxt_laser_status.SetLabel("Connected")
@@ -258,3 +292,13 @@ class ConnectionManagerDialog(wx.Dialog):
             self.stxt_stage_status.SetLabel("Disconnected")
             self.stxt_stage_status.SetForegroundColour(wx.Colour((255, 0, 0)))
             self.btn_stage_connect.SetLabel("Connect")
+
+    def on_connection_changed_camera(self, connected):
+        if connected:
+            self.stxt_camera_status.SetLabel("Connected")
+            self.stxt_camera_status.SetForegroundColour(wx.Colour((0, 150, 0)))
+            self.btn_camera_connect.SetLabel("Disconnect")
+        else:
+            self.stxt_camera_status.SetLabel("Disconnected")
+            self.stxt_camera_status.SetForegroundColour(wx.Colour((255, 0, 0)))
+            self.btn_camera_connect.SetLabel("Connect")
