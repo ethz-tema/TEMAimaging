@@ -1,9 +1,11 @@
 import math
 import time
+from typing import List
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
 from hardware.mcs_stage import MCSAxis
+from scans import Spot
 
 
 class RectangleScan(metaclass=ScannerMeta):
@@ -21,8 +23,6 @@ class RectangleScan(metaclass=ScannerMeta):
     def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
                  direction=0,
                  x_start=None, y_start=None, z_start=None, zig_zag_mode=False, blank_lines=0):
-        self.x_size = x_size
-        self.y_size = y_size
         self.x_steps = x_size // spot_size
         self.y_steps = y_size // spot_size
         self.spot_size = spot_size
@@ -32,13 +32,38 @@ class RectangleScan(metaclass=ScannerMeta):
         self.z_start = z_start
         self.shots_per_spot = shots_per_spot
         self.frequency = frequency
-        self._curr_step = 0
-        self._backwards = False
-        self._steps = self.x_steps * self.y_steps
+
         self._cleaning = cleaning
         self._cleaning_delay = cleaning_delay
-        self.zig_zag_mode = zig_zag_mode
         self.blank_spots = blank_lines * self.x_steps
+        self.blank_delay = 0
+
+        self._curr_step = 0
+
+        self.coord_list = []  # type: List[Spot]
+        self.coord_list.append(Spot(x_start, y_start))
+
+        steps = self.x_steps * self.y_steps
+
+        backwards = False
+        for i in range(1, steps):
+            if i % self.x_steps == 0:  # EOL
+                if zig_zag_mode:
+                    x_step = 0
+                    y_step = 1
+                    backwards = not backwards
+                else:
+                    x_step = -self.x_steps + 1
+                    y_step = 1
+            else:
+                x_step = 1 if not backwards else -1
+                y_step = 0
+
+            dx = round(spot_size * (math.cos(self.direction) * x_step + math.sin(self.direction) * y_step))
+            dy = round(spot_size * (math.cos(self.direction) * y_step - math.sin(self.direction) * x_step))
+
+            prev_spot = self.coord_list[i - 1]
+            self.coord_list.append(Spot(prev_spot.X + dx, prev_spot.Y + dy))
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
@@ -49,18 +74,17 @@ class RectangleScan(metaclass=ScannerMeta):
 
     @property
     def boundary_size(self):
-        if self.direction in [0, 90, 180, 270]:
-            return self.x_size, self.y_size
-        # TODO: rotated rectangle
-        return 0, 0
+        x = max(spot.X for spot in self.coord_list) - min(spot.X for spot in self.coord_list) + self.spot_size
+        y = max(spot.Y for spot in self.coord_list) - min(spot.Y for spot in self.coord_list) + self.spot_size
 
-    def init_scan(self):
-        if self.x_start:
-            conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
-        if self.y_start:
-            conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
+        return x, y
+
+    def init_scan(self, measurement):
+        self.blank_delay = measurement.blank_delay
+
         if self.z_start:
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
+
         conn_mgr.trigger.set_count(self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
@@ -68,38 +92,43 @@ class RectangleScan(metaclass=ScannerMeta):
         conn_mgr.stage.wait_until_status()
 
     def next_move(self):
-        if self._curr_step >= self._steps:
+        if self._curr_step >= len(self.coord_list):
             return False
 
         if self.blank_spots:
+            time.sleep(self.blank_delay / 1000)
             conn_mgr.trigger.single_tof()
             self.blank_spots -= 1
-            time.sleep(0.3)
             return True
 
-        self._curr_step += 1
+        spot = self.coord_list[self._curr_step]
+
+        move_x = False
+        move_y = False
+        if self._curr_step > 0:
+            prev_spot = self.coord_list[self._curr_step - 1]
+
+            if spot.X - prev_spot.X != 0:
+                move_x = True
+            if spot.Y - prev_spot.Y != 0:
+                move_y = True
+        else:
+            move_x = True
+            move_y = True
+
+        axes_to_check = []
+        if move_x:
+            conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
+            axes_to_check.append(MCSAxis.X)
+        if move_y:
+            conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
+            axes_to_check.append(MCSAxis.Y)
+
+        conn_mgr.stage.wait_until_status(axes_to_check)
 
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
-        if self._curr_step % self.x_steps == 0:  # EOL
-            if self.zig_zag_mode:
-                x_step = 0
-                y_step = 1
-                self._backwards = not self._backwards
-            else:
-                x_step = -self.x_steps + 1
-                y_step = 1
-        else:
-            x_step = 1 if not self._backwards else -1
-            y_step = 0
-
-        dx = self.spot_size * (math.cos(self.direction) * x_step + math.sin(self.direction) * y_step)
-        dy = self.spot_size * (math.cos(self.direction) * y_step - math.sin(self.direction) * x_step)
-
-        conn_mgr.stage.move(MCSAxis.X, dx, relative=True, wait=False)
-        conn_mgr.stage.move(MCSAxis.Y, dy, relative=True, wait=False)
-
-        conn_mgr.stage.wait_until_status()
+        self._curr_step += 1
         return True
 
     def next_shot(self):

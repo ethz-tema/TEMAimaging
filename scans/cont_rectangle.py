@@ -53,12 +53,12 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         # TODO: rotated rectangle
         return 0, 0
 
-    def init_scan(self):
-        if self.x_start:
+    def init_scan(self, _):
+        if self.x_start is not None:
             conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
-        if self.y_start:
+        if self.y_start is not None:
             conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
-        if self.z_start:
+        if self.z_start is not None:
             conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
         conn_mgr.trigger.set_count(self.shot_count)
         conn_mgr.trigger.set_freq(self.frequency)
