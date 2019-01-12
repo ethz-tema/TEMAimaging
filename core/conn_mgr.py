@@ -161,13 +161,10 @@ class ConnectionManager:
             pub.sendMessage('stage.connection_changed', connected=False)
 
     def camera_list(self):
-        return ['CAM_ANY'] + ['CAM_{:03d}'.format(device_id) for device_id in UeyeCamera.get_device_ids()]
+        return UeyeCamera.get_device_ids()
 
-    def camera_connect(self, cam_id):
+    def camera_connect(self, dev_id):
         if not self.camera_connected:
-            dev_id = 0
-            if cam_id != 'CAM_ANY':
-                dev_id = int(cam_id[4:])
             self.camera = UeyeCamera(dev_id)
             try:
                 self.camera.init()

@@ -26,7 +26,7 @@ class UeyeCamera:
     def get_device_ids():
         camera_list = ueye.UEYE_CAMERA_LIST()
         UeyeCamera.check_code(ueye.is_GetCameraList(camera_list))
-        return [int(cam_info.dwDeviceID) for cam_info in camera_list.uci]
+        return [str(cam_info.dwDeviceID) for cam_info in camera_list.uci]
 
     @staticmethod
     def get_bits_per_pixel(color_mode):
@@ -54,7 +54,7 @@ class UeyeCamera:
         }[color_mode]
 
     def __init__(self, dev_id, img_width=1280, img_height=1024, color_mode=ueye.IS_CM_RGB8_PACKED):
-        self.h_cam = ueye.HIDS(dev_id)
+        self.h_cam = ueye.HIDS(int(dev_id))
         self.img_width = img_width
         self.img_height = img_height
         self.color_mode = color_mode
