@@ -1,4 +1,37 @@
+import os
+import time
+from importlib import import_module
 from threading import Thread
+
+camera_resolutions = {
+    "640x480": (640, 480),
+    "720x576": (720, 576),
+    "1280x1024": (1280, 1024),
+    "1920x1080": (1920, 1080)
+}
+
+
+class Camera:
+    driver_name = None
+
+    @staticmethod
+    def get_driver_from_name(name):
+        subs = Camera.__subclasses__()
+        for klass in subs:
+            if klass.driver_name == name:
+                return klass
+
+        raise ValueError("Invalid driver name")
+
+    def __init__(self):
+        pass
+
+    def init(self):
+        pass
+
+    @staticmethod
+    def get_device_ids():
+        pass
 
 
 class CameraThread(Thread):
@@ -27,3 +60,7 @@ class CameraThread(Thread):
 class CameraException(Exception):
     def __init__(self, fatal):
         self.fatal = fatal
+
+
+for m in os.listdir('hardware/camera'):
+    import_module('hardware.camera.{}'.format(m.split('.')[0]))

@@ -3,6 +3,7 @@ from pubsub import pub
 
 from core.conn_mgr import conn_mgr
 from core.settings import Settings
+from hardware.camera import Camera, camera_resolutions
 
 
 class ConnectionManagerDialog(wx.Dialog):
@@ -35,7 +36,9 @@ class ConnectionManagerDialog(wx.Dialog):
 
         # Camera
         self.stxt_camera_status = wx.StaticText(self, wx.ID_ANY)
-        self.choice_camera_port = wx.ComboBox(self, wx.ID_ANY, choices=conn_mgr.camera_list())
+        self.choice_camera_driver = wx.Choice(self, wx.ID_ANY, choices=["uEye", "v4l2"])
+        self.choice_camera_port = wx.Choice(self, wx.ID_ANY, choices=[])
+        self.choice_camera_resolution = wx.Choice(self, wx.ID_ANY, choices=list(camera_resolutions.keys()))
         self.btn_camera_connect = wx.Button(self, wx.ID_ANY)
 
         self.chk_auto_connect = wx.CheckBox(self, wx.ID_ANY, 'Connect devices on startup')
@@ -63,6 +66,9 @@ class ConnectionManagerDialog(wx.Dialog):
         lbl_port_stage = wx.StaticText(self, wx.ID_ANY, "Port:")
         lbl_port_camera = wx.StaticText(self, wx.ID_ANY, "Port:")
 
+        lbl_camera_resolution = wx.StaticText(self, wx.ID_ANY, "Resolution:")
+        lbl_camera_driver = wx.StaticText(self, wx.ID_ANY, "Driver:")
+
         lbl_rate_laser = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
         lbl_rate_trigger = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
 
@@ -85,7 +91,7 @@ class ConnectionManagerDialog(wx.Dialog):
         laser_grid_sizer.Add(self.btn_laser_connect, 0, 0, 0)
 
         laser_sizer.Add(laser_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(laser_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(laser_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Trigger
         trigger_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Trigger"), wx.VERTICAL)
@@ -102,7 +108,7 @@ class ConnectionManagerDialog(wx.Dialog):
         trigger_grid_sizer.Add(self.btn_trigger_connect, 0, 0, 0)
 
         trigger_sizer.Add(trigger_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(trigger_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(trigger_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Shutter
         shutter_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Shutter"), wx.VERTICAL)
@@ -119,7 +125,7 @@ class ConnectionManagerDialog(wx.Dialog):
         shutter_grid_sizer.AddGrowableCol(2)
 
         shutter_sizer.Add(shutter_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(shutter_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(shutter_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Stage
         stage_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Stage"), wx.VERTICAL)
@@ -135,7 +141,7 @@ class ConnectionManagerDialog(wx.Dialog):
         stage_grid_sizer.AddGrowableCol(2)
 
         stage_sizer.Add(stage_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(stage_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(stage_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Camera
         camera_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Camera"), wx.VERTICAL)
@@ -144,14 +150,19 @@ class ConnectionManagerDialog(wx.Dialog):
         camera_grid_sizer.Add(lbl_status_camera, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         camera_grid_sizer.Add(self.stxt_camera_status, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         fill_sizer(camera_grid_sizer, 2)
+        camera_grid_sizer.Add(lbl_camera_driver, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        camera_grid_sizer.Add(self.choice_camera_driver, 0, 0, 0)
         camera_grid_sizer.Add(lbl_port_camera, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         camera_grid_sizer.Add(self.choice_camera_port, 0, 0, 0)
+        camera_grid_sizer.Add(lbl_camera_resolution, 0, wx.ALIGN_CENTER_VERTICAL, 0)
+        camera_grid_sizer.Add(self.choice_camera_resolution, 0, 0, 0)
+
         fill_sizer(camera_grid_sizer, 5)
         camera_grid_sizer.Add(self.btn_camera_connect, 0, 0, 0)
         camera_grid_sizer.AddGrowableCol(2)
 
         camera_sizer.Add(camera_grid_sizer, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(camera_sizer, 1, wx.ALL | wx.EXPAND, 5)
+        sizer.Add(camera_sizer, 0, wx.ALL | wx.EXPAND, 5)
 
         # Auto-connect
         sizer.Add(self.chk_auto_connect, 0, wx.LEFT | wx.BOTTOM, 5)
@@ -164,13 +175,21 @@ class ConnectionManagerDialog(wx.Dialog):
         sizer_buttons.Realize()
         sizer.Add(sizer_buttons, 0, wx.ALIGN_RIGHT | wx.BOTTOM, 12)
 
+        self.Bind(wx.EVT_CHOICE, self.on_choice_camera_driver_choice, self.choice_camera_driver)
+
         self.choice_laser_port.SetValue(Settings.get('laser.conn.port'))
         self.choice_laser_rate.SetSelection(self.choice_laser_rate.FindString(str(Settings.get('laser.conn.rate'))))
         self.choice_trigger_port.SetValue(Settings.get('trigger.conn.port'))
-        self.choice_trigger_rate.SetSelection(self.choice_trigger_rate.FindString(str(Settings.get('trigger.conn.rate'))))
+        self.choice_trigger_rate.SetSelection(
+            self.choice_trigger_rate.FindString(str(Settings.get('trigger.conn.rate'))))
         self.num_shutter_output.SetValue(Settings.get('shutter.output'))
         self.choice_stage_port.SetValue(Settings.get('stage.conn.port'))
-        self.choice_camera_port.SetValue(str(Settings.get('camera.conn.port')))
+
+        self.choice_camera_driver.SetSelection(self.choice_camera_driver.FindString(str(Settings.get('camera.driver'))))
+        self.choice_camera_port.Set(Camera.get_driver_from_name(str(Settings.get('camera.driver'))).get_device_ids())
+        self.choice_camera_port.SetSelection(self.choice_camera_port.FindString(str(Settings.get('camera.conn.port'))))
+        self.choice_camera_resolution.SetSelection(
+            self.choice_camera_resolution.FindString(str(Settings.get('camera.resolution'))))
 
         self.on_connection_changed_laser(conn_mgr.laser_connected)
         self.on_connection_changed_trigger(conn_mgr.trigger_connected)
@@ -211,7 +230,9 @@ class ConnectionManagerDialog(wx.Dialog):
 
         Settings.set('stage.conn.port', self.choice_stage_port.GetValue())
 
-        Settings.set('camera.conn.port', self.choice_camera_port.GetValue())
+        Settings.set('camera.driver', self.choice_camera_driver.GetStringSelection())
+        Settings.set('camera.conn.port', self.choice_camera_port.GetStringSelection())
+        Settings.set('camera.resolution', self.choice_camera_resolution.GetStringSelection())
 
         Settings.set('general.connect_on_startup', self.chk_auto_connect.GetValue())
         Settings.save()
@@ -253,7 +274,13 @@ class ConnectionManagerDialog(wx.Dialog):
         if conn_mgr.camera_connected:
             conn_mgr.camera_disconnect()
         else:
-            conn_mgr.camera_connect(self.choice_camera_port.GetValue())
+            conn_mgr.camera_connect(self.choice_camera_driver.GetStringSelection(),
+                                    self.choice_camera_port.GetStringSelection(),
+                                    camera_resolutions[self.choice_camera_resolution.GetStringSelection()])
+
+    def on_choice_camera_driver_choice(self, e):
+        self.choice_camera_port.Set(Camera.get_driver_from_name(e.GetString()).get_device_ids())
+        self.choice_camera_port.SetSelection(0)
 
     def on_connection_changed_laser(self, connected):
         if connected:

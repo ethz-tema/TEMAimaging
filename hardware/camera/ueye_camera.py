@@ -1,7 +1,7 @@
 from PIL import Image
 from pyueye import ueye
 
-from hardware.camera import CameraException
+from hardware.camera import Camera, CameraException
 
 
 class UeyeCameraException(CameraException):
@@ -13,7 +13,9 @@ class UeyeCameraException(CameraException):
         return 'ERR{:04d}'.format(self.error_code)
 
 
-class UeyeCamera:
+class UeyeCamera(Camera):
+    driver_name = "uEye"
+
     @staticmethod
     def check_code(return_code, ok_codes=None):
         if ok_codes is None:
@@ -54,6 +56,7 @@ class UeyeCamera:
         }[color_mode]
 
     def __init__(self, dev_id, img_width=1280, img_height=1024, color_mode=ueye.IS_CM_RGB8_PACKED):
+        super().__init__()
         self.h_cam = ueye.HIDS(int(dev_id))
         self.img_width = img_width
         self.img_height = img_height

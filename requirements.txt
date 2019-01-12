@@ -6,5 +6,6 @@ pillow
 pypubsub
 pyserial
 pyueye
+PyV4L2Camera
 ruamel.yaml
 wxPython
