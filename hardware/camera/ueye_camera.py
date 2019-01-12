@@ -1,8 +1,7 @@
 from threading import Thread
 
-from pyueye import ueye
-
 import numpy as np
+from pyueye import ueye
 
 
 class CameraException(Exception):

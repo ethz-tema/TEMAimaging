@@ -7,10 +7,10 @@ from core import utils
 from core.settings import Settings
 from core.utils import LaserStatusPoller, ShutterStatusPoller
 from hardware.arduino_trigger import ArduTrigger
+from hardware.camera.ueye_camera import CameraException, CameraThread
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSStage, MCSAxis
 from hardware.shutter import AIODevice, ShutterException, Shutter
-from hardware.ueye_camera import Camera, CameraException, CameraThread
 
 
 class ConnectionManager:
