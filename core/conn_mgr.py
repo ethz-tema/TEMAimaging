@@ -7,7 +7,8 @@ from core import utils
 from core.settings import Settings
 from core.utils import LaserStatusPoller, ShutterStatusPoller
 from hardware.arduino_trigger import ArduTrigger
-from hardware.camera.ueye_camera import CameraException, CameraThread
+from hardware.camera import CameraThread, CameraException
+from hardware.camera.ueye_camera import UeyeCamera
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSStage, MCSAxis
 from hardware.shutter import AIODevice, ShutterException, Shutter
@@ -160,14 +161,14 @@ class ConnectionManager:
             pub.sendMessage('stage.connection_changed', connected=False)
 
     def camera_list(self):
-        return ['CAM_ANY'] + ['CAM_{:03d}'.format(device_id) for device_id in Camera.get_device_ids()]
+        return ['CAM_ANY'] + ['CAM_{:03d}'.format(device_id) for device_id in UeyeCamera.get_device_ids()]
 
     def camera_connect(self, cam_id):
         if not self.camera_connected:
             dev_id = 0
             if cam_id != 'CAM_ANY':
                 dev_id = int(cam_id[4:])
-            self.camera = Camera(dev_id)
+            self.camera = UeyeCamera(dev_id)
             try:
                 self.camera.init()
             except CameraException:
@@ -187,7 +188,7 @@ class ConnectionManager:
             self._camera_thread.stop()
             self._camera_thread = None
             try:
-                self.camera.exit()
+                self.camera.close()
             except CameraException:
                 return
             self.camera = None
