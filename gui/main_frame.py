@@ -126,6 +126,7 @@ class MainFrame(wx.Frame):
         conn_mgr.trigger_disconnect()
         conn_mgr.shutter_disconnect()
         conn_mgr.stage_disconnect()
+        conn_mgr.camera_disconnect()
         self.Destroy()
 
     def on_click_laser_menu_status(self, _):
