@@ -1,4 +1,4 @@
-import numpy as np
+from PIL import Image
 from pyueye import ueye
 
 from hardware.camera import CameraException
@@ -93,8 +93,8 @@ class UeyeCamera:
             UeyeCamera.check_code(ueye.is_InquireImageMem(self.h_cam, mem_ptr, mem_id, x, y, bits, pitch))
             raw_data = ueye.get_data(mem_ptr, x, y, bits, pitch, True)
             if self.n_channels == 1:
-                return np.reshape(raw_data, (self.img_height, self.img_width)).copy()
-            return np.reshape(raw_data, (self.img_height, self.img_width, self.n_channels)).copy()
+                return Image.frombytes('L', (self.img_width, self.img_height), raw_data, 'raw', 'L')
+            return Image.frombytes('RGB', (self.img_width, self.img_height), raw_data, 'raw', 'RGB')
         finally:
             ueye.is_FreeImageMem(self.h_cam, mem_ptr, mem_id)
 

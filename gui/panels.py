@@ -6,6 +6,7 @@ import matplotlib.figure
 import matplotlib.patches
 import wx
 import wx.dataview
+from PIL import Image
 from pubsub import pub
 
 import core.scanner_registry
@@ -290,20 +291,26 @@ class CameraPanel(wx.Panel):
     img_height = 256
 
     def __init__(self, parent):
-        super(CameraPanel, self).__init__(parent, wx.ID_ANY)
-        self.static_bitmap = wx.StaticBitmap(self, size=(self.img_width, self.img_height))
+        super().__init__(parent, wx.ID_ANY, size=wx.Size(CameraPanel.img_width, CameraPanel.img_height))
+        self.static_bitmap = wx.Bitmap(self.img_width, self.img_height)
+        self.image_set = False
         self.init_ui()
 
     def init_ui(self):
-        main_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label="Camera")
-        main_sizer.Add(self.static_bitmap, 0, wx.ALL, border=0)
-        self.SetSizerAndFit(main_sizer)
+        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
 
-    def update_image(self, image):
-        img = wx.Image(image.shape[1], image.shape[0])
-        img.SetData(image)
-        img = img.Scale(self.img_width, self.img_height)
-        self.static_bitmap.SetBitmap(wx.Bitmap(img))
+    def on_paint(self, _):
+        if self.image_set:
+            dc = wx.AutoBufferedPaintDC(self)
+            dc.DrawBitmap(self.static_bitmap, 0, 0)
+
+    def update_image(self, im: Image):
+        im = im.resize((CameraPanel.img_width, CameraPanel.img_height)).tobytes()
+
+        self.static_bitmap.CopyFromBuffer(im)
+        self.image_set = True
+        self.Refresh()
 
 
 class LaserPanel(wx.Panel):
