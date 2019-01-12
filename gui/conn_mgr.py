@@ -211,6 +211,8 @@ class ConnectionManagerDialog(wx.Dialog):
 
         Settings.set('stage.conn.port', self.choice_stage_port.GetValue())
 
+        Settings.set('camera.conn.port', self.choice_camera_port.GetValue())
+
         Settings.set('general.connect_on_startup', self.chk_auto_connect.GetValue())
         Settings.save()
 
