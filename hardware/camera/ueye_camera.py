@@ -69,6 +69,13 @@ class UeyeCamera(Camera):
         self.bpp = UeyeCamera.get_bits_per_pixel(self.color_mode)
         self.n_channels = int((7 + self.bpp) / 8)
 
+        self.mem_id = ueye.int()
+        self.mem_ptr = ueye.c_mem_p()
+        self.x = ueye.int()
+        self.y = ueye.int()
+        self.bits = ueye.int()
+        self.pitch = ueye.int()
+
     def __enter__(self):
         self.init()
 
@@ -77,29 +84,28 @@ class UeyeCamera(Camera):
 
     def init(self):
         UeyeCamera.check_code(ueye.is_InitCamera(self.h_cam, None))
+
         UeyeCamera.check_code(ueye.is_SetColorMode(self.h_cam, self.color_mode))
         UeyeCamera.check_code(ueye.is_SetDisplayMode(self.h_cam, ueye.IS_SET_DM_DIB))
         UeyeCamera.check_code(ueye.is_AOI(self.h_cam, ueye.IS_AOI_IMAGE_SET_AOI, self.aoi, ueye.sizeof(self.aoi)))
 
-    def get_frame(self):
-        mem_id = ueye.int()
-        mem_ptr = ueye.c_mem_p()
-        x = ueye.int()
-        y = ueye.int()
-        bits = ueye.int()
-        pitch = ueye.int()
         UeyeCamera.check_code(
-            ueye.is_AllocImageMem(self.h_cam, self.img_width, self.img_height, self.bpp, mem_ptr, mem_id))
-        try:
-            UeyeCamera.check_code(ueye.is_SetImageMem(self.h_cam, mem_ptr, mem_id))
-            UeyeCamera.check_code(ueye.is_FreezeVideo(self.h_cam, ueye.IS_WAIT))
-            UeyeCamera.check_code(ueye.is_InquireImageMem(self.h_cam, mem_ptr, mem_id, x, y, bits, pitch))
-            raw_data = ueye.get_data(mem_ptr, x, y, bits, pitch, True)
+            ueye.is_AllocImageMem(self.h_cam, self.img_width, self.img_height, self.bpp, self.mem_ptr, self.mem_id))
+        UeyeCamera.check_code(ueye.is_SetImageMem(self.h_cam, self.mem_ptr, self.mem_id))
+        UeyeCamera.check_code(ueye.is_CaptureVideo(self.h_cam, ueye.IS_DONT_WAIT))
+        UeyeCamera.check_code(
+            ueye.is_InquireImageMem(self.h_cam, self.mem_ptr, self.mem_id, self.x, self.y, self.bits, self.pitch))
+
+        ueye.is_EnableEvent(self.h_cam, ueye.IS_SET_EVENT_FRAME)
+
+    def get_frame(self):
+        if ueye.is_WaitEvent(self.h_cam, ueye.IS_SET_EVENT_FRAME, 1000) == ueye.IS_SUCCESS:
+            raw_data = ueye.get_data(self.mem_ptr, self.x, self.y, self.bits, self.pitch, False)
             if self.n_channels == 1:
                 return Image.frombytes('L', (self.img_width, self.img_height), raw_data, 'raw', 'L')
             return Image.frombytes('RGB', (self.img_width, self.img_height), raw_data, 'raw', 'RGB')
-        finally:
-            ueye.is_FreeImageMem(self.h_cam, mem_ptr, mem_id)
 
     def close(self):
+        ueye.is_DisableEvent(self.h_cam, ueye.IS_SET_EVENT_FRAME)
+        ueye.is_FreeImageMem(self.h_cam, self.mem_ptr, self.mem_id)
         UeyeCamera.check_code(ueye.is_ExitCamera(self.h_cam))
