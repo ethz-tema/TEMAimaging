@@ -38,6 +38,7 @@ class ConnectionManagerDialog(wx.Dialog):
         self.stxt_camera_status = wx.StaticText(self, wx.ID_ANY)
         self.choice_camera_driver = wx.Choice(self, wx.ID_ANY, choices=["uEye", "v4l2"])
         self.choice_camera_port = wx.Choice(self, wx.ID_ANY, choices=[])
+        self.choice_camera_port.SetMinSize((120, -1))
         self.choice_camera_resolution = wx.Choice(self, wx.ID_ANY, choices=list(camera_resolutions.keys()))
         self.btn_camera_connect = wx.Button(self, wx.ID_ANY)
 
@@ -281,6 +282,7 @@ class ConnectionManagerDialog(wx.Dialog):
     def on_choice_camera_driver_choice(self, e):
         self.choice_camera_port.Set(Camera.get_driver_from_name(e.GetString()).get_device_ids())
         self.choice_camera_port.SetSelection(0)
+        self.choice_camera_port.Fit()
 
     def on_connection_changed_laser(self, connected):
         if connected:
