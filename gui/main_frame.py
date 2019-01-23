@@ -2,6 +2,8 @@ import wx
 from pubsub import pub
 
 from core.conn_mgr import conn_mgr
+from core.settings import Settings
+from gui.camera_frame import CameraFrame
 from gui.conn_mgr import ConnectionManagerDialog
 from gui.dialogs import LaserStatusDialog
 from gui.panels import LaserPanel, StagePanel, CameraPanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
@@ -63,6 +65,7 @@ class MainFrame(wx.Frame):
 
         vert_sizer = wx.BoxSizer(wx.VERTICAL)
         vert_sizer.Add(self.camera_panel, 0, wx.BOTTOM, border=5)
+        self.camera_panel.Show(not Settings.get('camera.separate_window') and conn_mgr.camera_connected)
         vert_sizer.Add(self.laser_panel, 0, wx.BOTTOM, border=5)
         vert_sizer.Add(self.stage_panel, 0, wx.BOTTOM, border=5)
         vert_sizer.Add(self.laser_manual_shoot_panel, 0, wx.BOTTOM, border=5)
@@ -83,12 +86,15 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
         pub.subscribe(self.on_laser_connection_changed, 'laser.connection_changed')
         pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
+        pub.subscribe(self.on_camera_connection_changed, 'camera.connection_changed')
         pub.subscribe(self.on_measurement_step_changed, 'measurement.step_changed')
         pub.subscribe(self.on_measurement_done, 'measurement.done')
         pub.subscribe(self.on_image_acquired, 'camera.image_acquired')
 
         self.main_panel.SetSizerAndFit(sizer)
         sizer.SetSizeHints(self)
+
+        pub.sendMessage('gui.startup_finished')
 
     def on_stage_connection_changed(self, connected):
         if connected:
@@ -97,6 +103,16 @@ class MainFrame(wx.Frame):
         else:
             self.stage_menu_reference.Enable(False)
             self.stage_menu_reset_speed.Enable(False)
+
+    def on_camera_connection_changed(self, connected):
+        if Settings.get('camera.separate_window'):
+            if connected:
+                frame = CameraFrame(self)
+                frame.Show()
+
+        self.camera_panel.Show(not Settings.get('camera.separate_window') and connected)
+        self.main_panel.Fit()
+        self.main_panel.GetParent().Fit()
 
     def on_connection_manager(self, _):
         dlg = ConnectionManagerDialog(self)

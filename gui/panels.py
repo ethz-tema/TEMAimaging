@@ -287,12 +287,11 @@ class MeasurementPanel(wx.Panel):
 
 
 class CameraPanel(wx.Panel):
-    img_width = 320
-    img_height = 256
-
-    def __init__(self, parent):
-        super().__init__(parent, wx.ID_ANY, size=wx.Size(CameraPanel.img_width, CameraPanel.img_height))
-        self.static_bitmap = wx.Bitmap(self.img_width, self.img_height)
+    def __init__(self, parent, width=320, height=240):
+        super().__init__(parent, wx.ID_ANY, size=wx.Size(width, height))
+        self.width = width
+        self.height = height
+        self.static_bitmap = wx.Bitmap(width, height)
         self.image_set = False
         self.init_ui()
 
@@ -306,7 +305,7 @@ class CameraPanel(wx.Panel):
             dc.DrawBitmap(self.static_bitmap, 0, 0)
 
     def update_image(self, im: Image):
-        im = im.resize((CameraPanel.img_width, CameraPanel.img_height)).tobytes()
+        im = im.resize((self.width, self.height)).tobytes()
 
         self.static_bitmap.CopyFromBuffer(im)
         self.image_set = True
