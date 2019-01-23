@@ -51,6 +51,8 @@ class CameraThread(Thread):
             except CameraException as e:
                 if e.fatal:
                     raise e
+            if self.camera.driver_name == 'v4l2':
+                time.sleep(1 / 30)  # TODO: Fix this; sleep a bit so the UI thread has time to process
 
     def stop(self):
         self.alive = False
