@@ -39,6 +39,7 @@ class RectangleScan(metaclass=ScannerMeta):
         self.blank_delay = 0
 
         self._curr_step = 0
+        self._curr_blank = 0
 
         self.coord_list = []  # type: List[Spot]
         self.coord_list.append(Spot(x_start, y_start))
@@ -96,9 +97,12 @@ class RectangleScan(metaclass=ScannerMeta):
             return False
 
         if self.blank_spots:
-            time.sleep(self.blank_delay / 1000)
+            if self._curr_blank == 0:
+                time.sleep(self.blank_delay / 1000)
             conn_mgr.trigger.single_tof()
             self.blank_spots -= 1
+            self._curr_blank += 1
+            time.sleep(self.blank_delay / 1000)
             return True
 
         spot = self.coord_list[self._curr_step]
