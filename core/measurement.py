@@ -200,7 +200,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         if isinstance(node, Step):
             mapper = {0: str(node.index), 1: (True, False, node.scan_type.display_name), 2: (False, False, ''),
                       3: (False, False, ''),
-                      4: (True, True, str(node.spot_size // 1000)),
+                      4: (True, True, str(node.spot_size / 1000)),
                       5: (True, True, str(node.frequency)), 6: (True, True, str(node.shots_per_spot)),
                       7: (True, node.cleaning_shot)}
             return mapper[col]
@@ -223,7 +223,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         node = self.ItemToObject(item)
         if isinstance(node, Step):
             if col == 4:
-                node.spot_size = int(variant) * 1000
+                node.spot_size = int((float(variant) * 1000))
             if col == 5:
                 node.frequency = int(variant)
             if col == 6:
