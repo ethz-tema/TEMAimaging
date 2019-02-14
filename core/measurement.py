@@ -9,7 +9,7 @@ from ruamel.yaml import YAML
 
 import core.scanner_registry
 from core.conn_mgr import conn_mgr
-from hardware.mcs_stage import MCSError
+from hardware.stage.mcs_stage import MCSError
 
 logger = logging.getLogger(__name__)
 

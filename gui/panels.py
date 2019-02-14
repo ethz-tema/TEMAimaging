@@ -15,7 +15,7 @@ from gui.dialogs import AddScanDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
 from gui.utils import FloatValidator
 from hardware.laser_compex import OpMode
-from hardware.mcs_stage import MCSAxis
+from hardware.stage.mcs_stage import MCSAxis
 
 
 class MeasurementDVContextMenu(wx.Menu):

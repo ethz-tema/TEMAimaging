@@ -8,8 +8,8 @@ from core.settings import Settings
 from core.utils import LaserStatusPoller, ShutterStatusPoller
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
-from hardware.mcs_stage import MCSStage, MCSAxis
 from hardware.shutter import AIODevice, ShutterException, Shutter
+from hardware.stage.mcs_stage import MCSStage, MCSAxis
 from hardware.ueye_camera import Camera, CameraException, CameraThread
 
 

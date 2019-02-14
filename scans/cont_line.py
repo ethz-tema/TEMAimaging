@@ -2,7 +2,7 @@ import math
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.mcs_stage import MCSAxis
+from hardware.stage.mcs_stage import MCSAxis
 
 
 class ContinuousLineScan(metaclass=ScannerMeta):

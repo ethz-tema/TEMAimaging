@@ -4,7 +4,7 @@ from typing import List
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.mcs_stage import MCSAxis
+from hardware.stage.mcs_stage import MCSAxis
 from scans import Spot
 
 
