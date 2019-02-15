@@ -9,6 +9,7 @@ from core.utils import LaserStatusPoller, ShutterStatusPoller
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.shutter import AIODevice, ShutterException, Shutter
+from hardware.stage import Stage
 from hardware.stage.mcs_stage import MCSStage, MCSAxis
 from hardware.ueye_camera import Camera, CameraException, CameraThread
 
@@ -29,7 +30,7 @@ class ConnectionManager:
         self._shutter_device = None
         self._shutter_status_poller = None
 
-        self.stage = None
+        self.stage = None  # type: Stage
         self.stage_connected = False
         self._stage_position_poller = None
 
@@ -133,7 +134,7 @@ class ConnectionManager:
     def stage_connect(self, port):
         if not self.stage_connected:
             self.stage = MCSStage(port)
-            self.stage.open_mcs()
+            self.stage.connect()
 
             if Settings.get('stage.find_ref_on_connect'):
                 self.stage.find_references()
@@ -154,7 +155,7 @@ class ConnectionManager:
     def stage_disconnect(self):
         if self.stage_connected:
             self._stage_position_poller.stop()
-            self.stage.close_mcs()
+            self.stage.disconnect()
 
             self.stage_connected = False
             pub.sendMessage('stage.connection_changed', connected=False)

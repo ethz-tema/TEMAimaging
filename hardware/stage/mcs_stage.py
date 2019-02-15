@@ -1,9 +1,14 @@
 import logging
+import threading
 from enum import IntEnum
+from typing import Tuple
+from warnings import warn
 
 from cffi import FFI, error
 
 from core.settings import Settings
+from core.utils import StatusPoller
+from hardware.stage import Stage, Axis, AxisMovementMode, AxisType, AxisStatus
 
 
 class SAError(IntEnum):
@@ -112,51 +117,59 @@ except error.CDefError:
 logger = logging.getLogger(__name__)
 
 
-class MCSStage:
-    @staticmethod
-    def check_return(status):
-        if status != SAError.SA_OK:
-            raise MCSError(SAError(status))
-        else:
-            return True
+def check_return(status):
+    if status != SAError.SA_OK:
+        raise MCSError(SAError(status))
+    else:
+        return True
 
+
+class MCSStage(Stage):
     @classmethod
     def find_systems(cls):
         out = ffi.new('char[4096]')
         out_size = ffi.new('unsigned int *', ffi.sizeof(out))
-        if cls.check_return(lib.SA_FindSystems(b'', out, out_size)):
+        if check_return(lib.SA_FindSystems(b'', out, out_size)):
             return ffi.unpack(out, out_size[0]).split('\n')
 
     def __init__(self, conn_id):
+        super().__init__()
         self.id = conn_id
-        self.handle = 0
-        self.is_open = False
-        self._num_channels = None
+        self.handle = None
+        self.status_poller_thread = MCSStage.PollThread(self)
+        self.check_movement = threading.Event()
+        self._frame_triggered = False
 
-    def open_mcs(self):
-        if not self.is_open:
+    def connect(self):
+        if not self._connected:
             handle = ffi.new('SA_INDEX *')
             locator = str(self.id).encode('ASCII')
 
-            if self.check_return(lib.SA_OpenSystem(handle, locator, b'sync')):
+            if check_return(lib.SA_OpenSystem(handle, locator, b'sync')):
                 self.handle = handle[0]
-                self.is_open = True
+                self._connected = True
+                logger.info("Connected. axes type: {}".format(self.axes_type))
+                for ax in self.axes_type:
+                    self._axes[ax] = MCSAxisImpl(ax.value, self)
+                self.status_poller_thread.start()
             else:
-                self.is_open = False
+                self._connected = False
 
-    def close_mcs(self):
-        if self.is_open:
-            if self.check_return(lib.SA_CloseSystem(self.handle)):
-                self.is_open = False
+    def disconnect(self):
+        if self._connected:
+            self.status_poller_thread.stop()
+            if check_return(lib.SA_CloseSystem(self.handle)):
+                self._connected = False
+                self.handle = None
 
-    def get_axis_status(self, axis):
-        if self.is_open:
+    def get_axis_status(self, axis):  # TODO: move to MCSAxis
+        if self._connected:
             s = ffi.new('unsigned int *')
-            self.check_return(lib.SA_GetStatus_S(self.handle, axis, s))
+            check_return(lib.SA_GetStatus_S(self.handle, axis, s))
             return s[0]
 
-    def wait_until_status(self, axes=None, status=SAChannelStatus.SA_STOPPED_STATUS):
-        if self.is_open:
+    def wait_until_status(self, axes=None, status=SAChannelStatus.SA_STOPPED_STATUS):  # TODO: event driven system?
+        if self._connected:
             if axes is None:
                 axes = [MCSAxis.X, MCSAxis.Y, MCSAxis.Z]
             statuses = {}
@@ -167,47 +180,37 @@ class MCSStage:
                     return
 
     def stop(self, axis=None):
-        if self.is_open:
-            if axis is None:
-                for axis in MCSAxis:
-                    self.stop(axis)
+        warn("stop() is deprecated", DeprecationWarning)
+        if axis is None:
+            self.movement_queue.clear()
+            for ax in self.axes.values():
+                ax.stop()
+            return
 
-            self.check_return(lib.SA_Stop_S(self.handle, axis))
+        self.mcs_axis_to_axis(axis).stop()
 
     def set_hcm_mode(self, mode):
-        if self.is_open:
-            self.check_return(lib.SA_SetHCMEnabled(self.handle, mode))
+        if self._connected:
+            check_return(lib.SA_SetHCMEnabled(self.handle, mode))
 
     @property
-    def num_channels(self):
-        if self._num_channels is not None:
-            return self._num_channels
-
-        if self.is_open:
+    def _num_channels(self):
+        if self._connected:
             ch = ffi.new('unsigned int *')
-            if self.check_return(lib.SA_GetNumberOfChannels(self.handle, ch)):
-                self._num_channels = ch[0]
-                return self._num_channels
+            if check_return(lib.SA_GetNumberOfChannels(self.handle, ch)):
+                return ch[0]
 
     def get_position_limit(self, axis):
-        if self.is_open:
-            min_limit = ffi.new('int *')
-            max_limit = ffi.new('int *')
-            self.check_return(lib.SA_GetPositionLimit_S(self.handle, axis, min_limit, max_limit))
-
-            return min_limit[0], max_limit[0]
+        warn("get_position_limit deprecated", DeprecationWarning)
+        return self.mcs_axis_to_axis(axis).position_limit
 
     def set_position_limit(self, axis, min_limit, max_limit):
-        if self.is_open:
-            if self.get_position_known(axis):
-                self.check_return(lib.SA_SetPositionLimit_S(self.handle, axis, min_limit, max_limit))
+        warn("set_position_limit deprecated", DeprecationWarning)
+        self.mcs_axis_to_axis(axis).position_limit = min_limit, max_limit
 
     def find_reference(self, axis, hold_time=0):
-        if self.is_open:
-            if not self.get_position_known(axis):
-                self.check_return(
-                    lib.SA_FindReferenceMark_S(self.handle, axis, SAFindRefMarkDirection.SA_BACKWARD_FORWARD_DIRECTION,
-                                               hold_time, 1))
+        warn("find_reference deprecated", DeprecationWarning)
+        self.mcs_axis_to_axis(axis).find_reference()
 
     def find_references(self, hold_time=0):
         if Settings.get('stage.ref_x'):
@@ -220,58 +223,210 @@ class MCSStage:
         self.wait_until_status()
 
     def get_position_known(self, axis=None):
+        warn("get_position_known deprecated", DeprecationWarning)
         if axis is None:
             return [self.get_position_known(axis) for axis in MCSAxis]
 
-        if self.is_open:
-            known = ffi.new('unsigned int *')
-            lib.SA_GetPhysicalPositionKnown_S(self.handle, axis, known)
-            return known[0]
+        return self.mcs_axis_to_axis(axis).is_referenced
 
     def get_position(self, axis=None):
+        warn("get_position deprecated", DeprecationWarning)
         if axis is None:
             return [self.get_position(axis) for axis in MCSAxis]
 
-        if self.is_open:
-            pos = ffi.new('int *')
-            self.check_return(lib.SA_GetPosition_S(self.handle, axis, pos))
-            return pos[0]
+        return self.mcs_axis_to_axis(axis).position
 
     def get_speed(self, axis=None):
+        warn("get_speed deprecated", DeprecationWarning)
         if axis is None:
             for a in MCSAxis:
                 self.get_speed(a)
 
-        if self.is_open:
-            speed = ffi.new('unsigned int *')
-            lib.SA_GetClosedLoopMoveSpeed_S(self.handle, axis, speed)
-            return speed[0]
+        return self.mcs_axis_to_axis(axis).speed
 
     def set_speed(self, speed, axis=None):
+        warn("set_speed deprecated", DeprecationWarning)
         if axis is None:
             for a in MCSAxis:
                 self.set_speed(speed, a)
             return
 
-        logger.info('set_speed (axis={}, speed={})'.format(axis, speed))
-        if self.is_open:
-            self.check_return(lib.SA_SetClosedLoopMoveSpeed_S(self.handle, int(axis), int(speed)))
+        self.mcs_axis_to_axis(axis).speed = speed
 
     def move(self, axis, position, hold_time=0, relative=False, wait=True):
-        logger.info('move (axis={}, pos={}, relative={}, wait={}'.format(axis, position, relative, wait))
-        position = int(position)
-        if self.is_open:
-            if relative:
-                self.check_return(lib.SA_GotoPositionRelative_S(self.handle, axis, position, hold_time))
-            else:
-                self.check_return(lib.SA_GotoPositionAbsolute_S(self.handle, axis, position, hold_time))
+        warn("move deprecated", DeprecationWarning)
+        if relative:
+            self.mcs_axis_to_axis(axis).movement_mode = AxisMovementMode.CL_RELATIVE
+        else:
+            self.mcs_axis_to_axis(axis).movement_mode = AxisMovementMode.CL_ABSOLUTE
 
-            if wait:
-                self.wait_until_status([axis])
+        self.mcs_axis_to_axis(axis).move(position)
+
+        if wait:
+            self.wait_until_status([axis])
+
+    def stop_all(self):
+        self.movement_queue.clear()
+        for ax in self.axes.values():
+            ax.stop()
+
+    def mcs_axis_to_axis(self, mcs_axis: MCSAxis):
+        mapping = {MCSAxis.X: AxisType.X,
+                   MCSAxis.Y: AxisType.Y,
+                   MCSAxis.Z: AxisType.Z}
+
+        return self.axes[mapping[mcs_axis]]
+
+    def trigger_frame(self):
+        frame = self.movement_queue.pop()
+        for axis, v in frame.items():
+            if v is not None:
+                self.axes[axis].move(v)
+        self._frame_triggered = True
+
+    class PollThread(StatusPoller):
+        def __init__(self, stage):
+            super().__init__()
+            self.stage = stage
+
+        def run(self):
+            while not self._run.is_set():
+                self.stage.check_movement.wait()
+                statuses = {}
+                for a in self.stage._axes.values():
+                    if a.moved:
+                        if a.axis_status == AxisStatus.STOPPED:
+                            a.reset_moved()
+                            statuses[a] = True
+                if all(statuses.values()):
+                    self.stage.on_movement_completed()
+                    if self.stage._frame_triggered:
+                        self.stage.on_frame_completed()
+                        self.stage._frame_triggered = False
+                    statuses.clear()
+                    self.stage.check_movement.clear()
+
+        def stop(self):
+            self._run.set()
+            self.stage.check_movement.set()
+            self.join()
+
+
+class MCSAxisImpl(Axis):
+    _channel_status_map = {
+        SAChannelStatus.SA_STOPPED_STATUS: AxisStatus.STOPPED,
+        SAChannelStatus.SA_STEPPING_STATUS: AxisStatus.MOVING,
+        SAChannelStatus.SA_SCANNING_STATUS: AxisStatus.MOVING,
+        SAChannelStatus.SA_HOLDING_STATUS: AxisStatus.STOPPED,
+        SAChannelStatus.SA_TARGET_STATUS: AxisStatus.MOVING,
+        SAChannelStatus.SA_MOVE_DELAY_STATUS: AxisStatus.WAITING,
+        SAChannelStatus.SA_CALIBRATING_STATUS: AxisStatus.MOVING,
+        SAChannelStatus.SA_FINDING_REF_STATUS: AxisStatus.MOVING,
+        SAChannelStatus.SA_OPENING_STATUS: AxisStatus.MOVING
+    }
+
+    def __init__(self, channel: int, stage: 'MCSStage'):
+        super().__init__(channel, stage)
+        self._movement_mode = None
+        self._moved = False
+
+    def move(self, value: int):
+        position = int(value)
+        logger.debug('[move] Channel: {}, Value: {}, Mode: {}'.format(self._channel, value, self.movement_mode))
+        if self._stage.handle:
+            if self.movement_mode == AxisMovementMode.CL_RELATIVE and value != 0:
+                check_return(lib.SA_GotoPositionRelative_S(self._stage.handle, self._channel, position, 0))
+                self._stage.check_movement.set()
+                self._moved = True
+            elif self.movement_mode == AxisMovementMode.CL_ABSOLUTE:
+                check_return(lib.SA_GotoPositionAbsolute_S(self._stage.handle, self._channel, position, 0))
+                self._moved = True
+                self._stage.check_movement.set()
+            else:
+                raise ValueError("Invalid movement mode ({}) specified.".format(self.movement_mode))
+
+    def stop(self):
+        logger.debug('[stop] Channel: {}'.format(self._channel))
+        if self._stage.handle:
+            check_return(lib.SA_Stop_S(self._stage.handle, self._channel))
+            self._moved = False
+
+    def find_reference(self):
+        if self._stage.handle and not self.is_referenced:
+            check_return(lib.SA_FindReferenceMark_S(self._stage.handle, self._channel,
+                                                    SAFindRefMarkDirection.SA_BACKWARD_FORWARD_DIRECTION,
+                                                    0, 1))
+            self._moved = True
+            self._stage.check_movement.set()
+
+    @property
+    def is_referenced(self) -> bool:
+        if self._stage.handle:
+            known = ffi.new('unsigned int *')
+            lib.SA_GetPhysicalPositionKnown_S(self._stage.handle, self._channel, known)
+            return bool(known[0])
+        else:
+            return False
+
+    @property
+    def position(self) -> int:
+        if self._stage.handle:
+            pos = ffi.new('int *')
+            check_return(lib.SA_GetPosition_S(self._stage.handle, self._channel, pos))
+            return pos[0]
+
+    @property
+    def speed(self) -> int:
+        if self._stage.handle:
+            speed = ffi.new('unsigned int *')
+            lib.SA_GetClosedLoopMoveSpeed_S(self._stage.handle, self._channel, speed)
+            return speed[0]
+
+    @speed.setter
+    def speed(self, value):
+        logger.info('[speed.setter] Channel: {}, Speed: {}'.format(self._channel, value))
+        if self._stage.handle:
+            check_return(lib.SA_SetClosedLoopMoveSpeed_S(self._stage.handle, self._channel, value))
+
+    @property
+    def position_limit(self) -> Tuple[int, int]:
+        if self._stage.handle:
+            min_limit = ffi.new('int *')
+            max_limit = ffi.new('int *')
+            check_return(lib.SA_GetPositionLimit_S(self._stage.handle, self._channel, min_limit, max_limit))
+
+            return min_limit[0], max_limit[0]
+
+    @position_limit.setter
+    def position_limit(self, value):
+        if self._stage.handle and self.is_referenced:
+            check_return(lib.SA_SetPositionLimit_S(self._stage.handle, self._channel, value[0], value[1]))
+
+    @property
+    def movement_mode(self) -> AxisMovementMode:
+        return self._movement_mode
+
+    @movement_mode.setter
+    def movement_mode(self, value: AxisMovementMode):
+        self._movement_mode = value
+
+    @property
+    def axis_status(self) -> AxisStatus:
+        if self._stage.handle:
+            s = ffi.new('unsigned int *')
+            check_return(lib.SA_GetStatus_S(self._stage.handle, self._channel, s))
+            return MCSAxisImpl._channel_status_map[SAChannelStatus(s[0])]
+
+    @property
+    def moved(self):
+        return self._moved
+
+    def reset_moved(self):
+        self._moved = False
 
 # stage = MCSStage('usb:ix:0')
 
-# stage.open_mcs()
+# stage.connect()
 # stage.find_references()
 
 # stage.set_position_limit(MCSAxis.X, -25000000, 25000000)
@@ -281,7 +436,7 @@ class MCSStage:
 # for i in range(5):
 #    stage.move(MCSAxis.X, 100000, relative=True)
 
-# stage.close_mcs()
+# stage.disconnect()
 
 # for i in range(3):
 #    error = lib.SA_SetClosedLoopMoveSpeed_S(mcs_handle[0], i, 20000000)
