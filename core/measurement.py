@@ -32,6 +32,7 @@ class MeasurementController:
         self._step_trigger_event.clear()
         self._stop_scan_event.clear()
         self._sequence.clear()
+        conn_mgr.stage.movement_queue.clear()
         for step in measurement.steps:
             self._sequence.append(
                 step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
