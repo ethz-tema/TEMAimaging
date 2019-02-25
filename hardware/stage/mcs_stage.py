@@ -384,6 +384,7 @@ class MCSAxisImpl(Axis):
 
     @speed.setter
     def speed(self, value):
+        value = int(value)
         logger.info('[speed.setter] Channel: {}, Speed: {}'.format(self._channel, value))
         if self._stage.handle:
             check_return(lib.SA_SetClosedLoopMoveSpeed_S(self._stage.handle, self._channel, value))
@@ -399,7 +400,7 @@ class MCSAxisImpl(Axis):
 
     @position_limit.setter
     def position_limit(self, value):
-        if self._stage.handle and self.is_referenced:
+        if self._stage.handle and self.is_referenced:  # TODO: raise Error if not referenced?
             check_return(lib.SA_SetPositionLimit_S(self._stage.handle, self._channel, value[0], value[1]))
 
     @property
