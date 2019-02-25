@@ -179,16 +179,6 @@ class MCSStage(Stage):
                 if all(statuses.values()):
                     return
 
-    def stop(self, axis=None):
-        warn("stop() is deprecated", DeprecationWarning)
-        if axis is None:
-            self.movement_queue.clear()
-            for ax in self.axes.values():
-                ax.stop()
-            return
-
-        self.mcs_axis_to_axis(axis).stop()
-
     def set_hcm_mode(self, mode):
         if self._connected:
             check_return(lib.SA_SetHCMEnabled(self.handle, mode))
@@ -200,34 +190,15 @@ class MCSStage(Stage):
             if check_return(lib.SA_GetNumberOfChannels(self.handle, ch)):
                 return ch[0]
 
-    def get_position_limit(self, axis):
-        warn("get_position_limit deprecated", DeprecationWarning)
-        return self.mcs_axis_to_axis(axis).position_limit
-
-    def set_position_limit(self, axis, min_limit, max_limit):
-        warn("set_position_limit deprecated", DeprecationWarning)
-        self.mcs_axis_to_axis(axis).position_limit = min_limit, max_limit
-
-    def find_reference(self, axis, hold_time=0):
-        warn("find_reference deprecated", DeprecationWarning)
-        self.mcs_axis_to_axis(axis).find_reference()
-
-    def find_references(self, hold_time=0):
+    def find_references(self):
         if Settings.get('stage.ref_x'):
-            self.find_reference(MCSAxis.X, hold_time)
+            self.axes[AxisType.X].find_reference()
         if Settings.get('stage.ref_y'):
-            self.find_reference(MCSAxis.Y, hold_time)
+            self.axes[AxisType.Y].find_reference()
         if Settings.get('stage.ref_z'):
-            self.find_reference(MCSAxis.Z, hold_time)
+            self.axes[AxisType.Z].find_reference()
 
         self.wait_until_status()
-
-    def get_position_known(self, axis=None):
-        warn("get_position_known deprecated", DeprecationWarning)
-        if axis is None:
-            return [self.get_position_known(axis) for axis in MCSAxis]
-
-        return self.mcs_axis_to_axis(axis).is_referenced
 
     def get_position(self, axis=None):
         warn("get_position deprecated", DeprecationWarning)
@@ -235,14 +206,6 @@ class MCSStage(Stage):
             return [self.get_position(axis) for axis in MCSAxis]
 
         return self.mcs_axis_to_axis(axis).position
-
-    def get_speed(self, axis=None):
-        warn("get_speed deprecated", DeprecationWarning)
-        if axis is None:
-            for a in MCSAxis:
-                self.get_speed(a)
-
-        return self.mcs_axis_to_axis(axis).speed
 
     def set_speed(self, speed, axis=None):
         warn("set_speed deprecated", DeprecationWarning)
@@ -424,22 +387,3 @@ class MCSAxisImpl(Axis):
 
     def reset_moved(self):
         self._moved = False
-
-# stage = MCSStage('usb:ix:0')
-
-# stage.connect()
-# stage.find_references()
-
-# stage.set_position_limit(MCSAxis.X, -25000000, 25000000)
-# stage.set_position_limit(MCSAxis.Y, -34000000, 35000000)
-# stage.set_position_limit(MCSAxis.Z, -750000, 2700000)
-
-# for i in range(5):
-#    stage.move(MCSAxis.X, 100000, relative=True)
-
-# stage.disconnect()
-
-# for i in range(3):
-#    error = lib.SA_SetClosedLoopMoveSpeed_S(mcs_handle[0], i, 20000000)
-#    print(SAError(error))
-# lib.SA_SetClosedLoopMoveAcceleration_S(mcs_handle[0], i, 0)

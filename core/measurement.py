@@ -77,7 +77,7 @@ class MeasurementController:
 
     def stop(self):
         self._stop_scan_event.set()
-        conn_mgr.stage.stop()
+        conn_mgr.stage.stop_all()
         conn_mgr.trigger.stop_trigger()
 
     def on_step_trigger_received(self):
