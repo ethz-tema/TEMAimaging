@@ -2,6 +2,7 @@ import math
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
+from hardware.stage import AxisType
 from hardware.stage.mcs_stage import MCSAxis
 
 
@@ -73,9 +74,9 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         self._curr_line += 1
 
         if self._vx != 0:
-            conn_mgr.stage.set_speed(self._vx, MCSAxis.X)
+            conn_mgr.stage.axes[AxisType.X].speed = self._vx
         if self._vy != 0:
-            conn_mgr.stage.set_speed(self._vy, MCSAxis.Y)
+            conn_mgr.stage.axes[AxisType.Y].speed = self._vy
 
         if self._dx != 0:
             conn_mgr.stage.move(MCSAxis.X, self._dx, relative=True, wait=False)
@@ -86,7 +87,9 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
 
         conn_mgr.stage.wait_until_status()
 
-        conn_mgr.stage.set_speed(0)
+        conn_mgr.stage.axes[AxisType.X].speed = 0
+        conn_mgr.stage.axes[AxisType.Y].speed = 0
+        conn_mgr.stage.axes[AxisType.Z].speed = 0
         conn_mgr.stage.move(MCSAxis.Y, self.spot_size, relative=True, wait=False)
 
         if self.zig_zag_mode:

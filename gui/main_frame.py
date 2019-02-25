@@ -6,6 +6,7 @@ from gui.conn_mgr import ConnectionManagerDialog
 from gui.dialogs import LaserStatusDialog
 from gui.panels import LaserPanel, StagePanel, CameraPanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
 from gui.preferences import PreferencesDialog
+from hardware.stage import AxisType
 
 
 class MainFrame(wx.Frame):
@@ -138,7 +139,9 @@ class MainFrame(wx.Frame):
 
     @staticmethod
     def on_click_stage_menu_reset_speed(_):
-        conn_mgr.stage.set_speed(0)
+        conn_mgr.stage.axes[AxisType.X].speed = 0
+        conn_mgr.stage.axes[AxisType.Y].speed = 0
+        conn_mgr.stage.axes[AxisType.Z].speed = 0
 
     def on_image_acquired(self, camera, image):
         wx.CallAfter(self.camera_panel.update_image, image)

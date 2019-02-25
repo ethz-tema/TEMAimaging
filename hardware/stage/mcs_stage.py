@@ -207,15 +207,6 @@ class MCSStage(Stage):
 
         return self.mcs_axis_to_axis(axis).position
 
-    def set_speed(self, speed, axis=None):
-        warn("set_speed deprecated", DeprecationWarning)
-        if axis is None:
-            for a in MCSAxis:
-                self.set_speed(speed, a)
-            return
-
-        self.mcs_axis_to_axis(axis).speed = speed
-
     def move(self, axis, position, hold_time=0, relative=False, wait=True):
         warn("move deprecated", DeprecationWarning)
         if relative:

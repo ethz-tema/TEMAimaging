@@ -9,6 +9,7 @@ from ruamel.yaml import YAML
 
 import core.scanner_registry
 from core.conn_mgr import conn_mgr
+from hardware.stage import AxisType
 from hardware.stage.mcs_stage import MCSError
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,9 @@ class MeasurementController:
                         while not self._stop_scan_event.is_set() and scan.next_move():
                             scan.next_shot()
                             time.sleep(self._measurement.shot_delay / 1000)
-                        conn_mgr.stage.set_speed(0)
+                        conn_mgr.stage.axes[AxisType.X].speed = 0
+                        conn_mgr.stage.axes[AxisType.Y].speed = 0
+                        conn_mgr.stage.axes[AxisType.Z].speed = 0
                         time.sleep(self._measurement.step_delay / 1000)
                         self._step_trigger_event.clear()
                         current_step += 1

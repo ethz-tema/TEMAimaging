@@ -2,6 +2,7 @@ import math
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
+from hardware.stage import AxisType
 from hardware.stage.mcs_stage import MCSAxis
 
 
@@ -69,11 +70,11 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         conn_mgr.stage.wait_until_status()
 
         if self._vx != 0:
-            conn_mgr.stage.set_speed(abs(self._vx), MCSAxis.X)
+            conn_mgr.stage.axes[AxisType.X].speed = abs(self._vx)
         if self._vy != 0:
-            conn_mgr.stage.set_speed(abs(self._vy), MCSAxis.Y)
+            conn_mgr.stage.axes[AxisType.X].speed = abs(self._vy)
         if self._vz != 0:
-            conn_mgr.stage.set_speed(abs(self._vz), MCSAxis.Z)
+            conn_mgr.stage.axes[AxisType.X].speed = abs(self._vz)
 
     def next_move(self):
         if self._curr_step >= self.spot_count:
@@ -94,7 +95,9 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         self._curr_step += 1
         conn_mgr.stage.wait_until_status()
 
-        conn_mgr.stage.set_speed(0)
+        conn_mgr.stage.axes[AxisType.X].speed = 0
+        conn_mgr.stage.axes[AxisType.Y].speed = 0
+        conn_mgr.stage.axes[AxisType.Z].speed = 0
         return False
 
     def next_shot(self):
