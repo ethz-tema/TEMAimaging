@@ -295,7 +295,7 @@ class MCSStage(Stage):
                 statuses = {}
                 for a in self.stage._axes.values():
                     if a.moved:
-                        if a.axis_status == AxisStatus.STOPPED:
+                        if a.status == AxisStatus.STOPPED:
                             a.reset_moved()
                             statuses[a] = True
                 if all(statuses.values()):
@@ -412,7 +412,7 @@ class MCSAxisImpl(Axis):
         self._movement_mode = value
 
     @property
-    def axis_status(self) -> AxisStatus:
+    def status(self) -> AxisStatus:
         if self._stage.handle:
             s = ffi.new('unsigned int *')
             check_return(lib.SA_GetStatus_S(self._stage.handle, self._channel, s))

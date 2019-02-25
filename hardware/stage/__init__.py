@@ -105,7 +105,7 @@ class Axis(ABC):
 
     @property
     @abstractmethod
-    def axis_status(self) -> AxisStatus:
+    def status(self) -> AxisStatus:
         pass
 
 
