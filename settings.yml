@@ -31,3 +31,6 @@ stage:
 camera:
   conn:
     port: CAM_ANY
+  separate_window: True
+  driver: v4l2
+  resolution: 720x576
