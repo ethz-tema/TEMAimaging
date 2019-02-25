@@ -9,8 +9,8 @@ from core.utils import LaserStatusPoller, ShutterStatusPoller
 from hardware.arduino_trigger import ArduTrigger
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.shutter import AIODevice, ShutterException, Shutter
-from hardware.stage import Stage
-from hardware.stage.mcs_stage import MCSStage, MCSAxis
+from hardware.stage import Stage, AxisType
+from hardware.stage.mcs_stage import MCSStage
 from hardware.ueye_camera import Camera, CameraException, CameraThread
 
 
@@ -139,12 +139,12 @@ class ConnectionManager:
             if Settings.get('stage.find_ref_on_connect'):
                 self.stage.find_references()
 
-            self.stage.set_position_limit(MCSAxis.X, Settings.get('stage.pos_limit.X.min'),
-                                          Settings.get('stage.pos_limit.X.max'))
-            self.stage.set_position_limit(MCSAxis.Y, Settings.get('stage.pos_limit.Y.min'),
-                                          Settings.get('stage.pos_limit.Y.max'))
-            self.stage.set_position_limit(MCSAxis.Z, Settings.get('stage.pos_limit.Z.min'),
-                                          Settings.get('stage.pos_limit.Z.max'))
+            self.stage.axes[AxisType.X].position_limit = (Settings.get('stage.pos_limit.X.min'),
+                                                          Settings.get('stage.pos_limit.X.max'))
+            self.stage.axes[AxisType.Y].position_limit = (Settings.get('stage.pos_limit.Y.min'),
+                                                          Settings.get('stage.pos_limit.Y.max'))
+            self.stage.axes[AxisType.Z].position_limit = (Settings.get('stage.pos_limit.Z.min'),
+                                                          Settings.get('stage.pos_limit.Z.max'))
 
             self.stage_connected = True
             pub.sendMessage('stage.connection_changed', connected=True)
