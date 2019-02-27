@@ -15,7 +15,7 @@ from gui.dialogs import AddScanDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
 from gui.utils import FloatValidator
 from hardware.laser_compex import OpMode
-from hardware.stage.mcs_stage import MCSAxis
+from hardware.stage import AxisType, AxisMovementMode
 
 
 class MeasurementDVContextMenu(wx.Menu):
@@ -236,16 +236,16 @@ class MeasurementPanel(wx.Panel):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['x_start'].value = float(conn_mgr.stage.get_position(MCSAxis.X))
-                node.params['y_start'].value = float(conn_mgr.stage.get_position(MCSAxis.Y))
-                node.params['z_start'].value = float(conn_mgr.stage.get_position(MCSAxis.Z))
+                node.params['x_start'].value = float(conn_mgr.stage.axes[AxisType.X].position)
+                node.params['y_start'].value = float(conn_mgr.stage.axes[AxisType.Y].position)
+                node.params['z_start'].value = float(conn_mgr.stage.axes[AxisType.Z].position)
                 self.dvc.GetModel().edit_step(node)
 
     def on_click_set_end_position(self, _, item):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['z_end'].value = conn_mgr.stage.get_position(MCSAxis.Z)
+                node.params['z_end'].value = float(conn_mgr.stage.axes[AxisType.Z].position)
                 self.dvc.GetModel().edit_step(node)
 
     def on_click_go_to_start(self, _, item):
@@ -673,9 +673,9 @@ class StagePanel(wx.Panel):
         conn_mgr.stage.move(MCSAxis.Z, 10000 * direction, relative=True)
 
     def on_stage_position_changed(self, position):
-        self.txt_curr_x_pos.SetLabel(str(position[MCSAxis.X] / 1000))
-        self.txt_curr_y_pos.SetLabel(str(position[MCSAxis.Y] / 1000))
-        self.txt_curr_z_pos.SetLabel(str(position[MCSAxis.Z] / 1000))
+        self.txt_curr_x_pos.SetLabel(str(position[AxisType.X] / 1000))
+        self.txt_curr_y_pos.SetLabel(str(position[AxisType.Y] / 1000))
+        self.txt_curr_z_pos.SetLabel(str(position[AxisType.Z] / 1000))
 
     def on_stage_connection_changed(self, connected):
         if connected:

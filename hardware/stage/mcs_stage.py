@@ -200,13 +200,6 @@ class MCSStage(Stage):
 
         self.wait_until_status()
 
-    def get_position(self, axis=None):
-        warn("get_position deprecated", DeprecationWarning)
-        if axis is None:
-            return [self.get_position(axis) for axis in MCSAxis]
-
-        return self.mcs_axis_to_axis(axis).position
-
     def move(self, axis, position, hold_time=0, relative=False, wait=True):
         warn("move deprecated", DeprecationWarning)
         if relative:
