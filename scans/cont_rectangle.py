@@ -2,8 +2,7 @@ import math
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.stage import AxisType
-from hardware.stage.mcs_stage import MCSAxis
+from hardware.stage import AxisType, AxisMovementMode
 
 
 class ContinuousRectangleScan(metaclass=ScannerMeta):
@@ -56,16 +55,22 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
 
     def init_scan(self, _):
         if self.x_start is not None:
-            conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
+            conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.X].move(self.x_start)
         if self.y_start is not None:
-            conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
+            conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.Y].move(self.y_start)
         if self.z_start is not None:
-            conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
+            conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.Z].move(self.z_start)
         conn_mgr.trigger.set_count(self.shot_count)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(False)
 
         conn_mgr.stage.wait_until_status()
+
+        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_RELATIVE
+        conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_RELATIVE
 
     def next_move(self):
         if self._curr_line >= self.y_steps:
@@ -79,9 +84,9 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
             conn_mgr.stage.axes[AxisType.Y].speed = self._vy
 
         if self._dx != 0:
-            conn_mgr.stage.move(MCSAxis.X, self._dx, relative=True, wait=False)
+            conn_mgr.stage.axes[AxisType.X].move(self._dx)
         if self._dy != 0:
-            conn_mgr.stage.move(MCSAxis.Y, self._dy, relative=True, wait=False)
+            conn_mgr.stage.axes[AxisType.Y].move(self._dy)
 
         conn_mgr.trigger.go()
 
@@ -90,13 +95,14 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         conn_mgr.stage.axes[AxisType.X].speed = 0
         conn_mgr.stage.axes[AxisType.Y].speed = 0
         conn_mgr.stage.axes[AxisType.Z].speed = 0
-        conn_mgr.stage.move(MCSAxis.Y, self.spot_size, relative=True, wait=False)
+
+        conn_mgr.stage.axes[AxisType.Y].move(self.spot_size)
 
         if self.zig_zag_mode:
             self._dx = -self._dx
             self._dy = -self._dy
         else:
-            conn_mgr.stage.move(MCSAxis.X, -self.x_steps * self.spot_size, relative=True, wait=False)
+            conn_mgr.stage.axes[AxisType.X].move(-self.x_steps * self.spot_size)
 
         conn_mgr.stage.wait_until_status()
         return True

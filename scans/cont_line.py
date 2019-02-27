@@ -2,8 +2,7 @@ import math
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.stage import AxisType
-from hardware.stage.mcs_stage import MCSAxis
+from hardware.stage import AxisType, AxisMovementMode
 
 
 class ContinuousLineScan(metaclass=ScannerMeta):
@@ -58,11 +57,14 @@ class ContinuousLineScan(metaclass=ScannerMeta):
 
     def init_scan(self, _):
         if self.x_start is not None:
-            conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
+            conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.X].move(self.x_start)
         if self.y_start is not None:
-            conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
+            conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.X].move(self.y_start)
         if self.z_start is not None:
-            conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
+            conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.X].move(self.z_start)
         conn_mgr.trigger.set_count(self.spot_count * self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(False)
@@ -76,6 +78,10 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         if self._vz != 0:
             conn_mgr.stage.axes[AxisType.X].speed = abs(self._vz)
 
+        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_RELATIVE
+        conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_RELATIVE
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_RELATIVE
+
     def next_move(self):
         if self._curr_step >= self.spot_count:
             return False
@@ -86,11 +92,11 @@ class ContinuousLineScan(metaclass=ScannerMeta):
             return False
 
         if self._dx != 0:
-            conn_mgr.stage.move(MCSAxis.X, self._dx, relative=True, wait=False)
+            conn_mgr.stage.axes[AxisType.X].move(self._dx)
         if self._dy != 0:
-            conn_mgr.stage.move(MCSAxis.Y, self._dy, relative=True, wait=False)
+            conn_mgr.stage.axes[AxisType.X].move(self._dy)
         if self._dz != 0:
-            conn_mgr.stage.move(MCSAxis.Z, self._dz, relative=True, wait=False)
+            conn_mgr.stage.axes[AxisType.X].move(self._dz)
 
         self._curr_step += 1
         conn_mgr.stage.wait_until_status()

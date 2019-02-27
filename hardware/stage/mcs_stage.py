@@ -2,7 +2,6 @@ import logging
 import threading
 from enum import IntEnum
 from typing import Tuple
-from warnings import warn
 
 from cffi import FFI, error
 
@@ -94,12 +93,6 @@ class SAFindRefMarkDirection(IntEnum):
     SA_BACKWARD_FORWARD_DIRECTION_ABORT_ON_ENDSTOP = 7
 
 
-class MCSAxis(IntEnum):
-    X = 0
-    Y = 1
-    Z = 2
-
-
 class MCSError(Exception):
     def __init__(self, status):
         self.status = status
@@ -165,13 +158,13 @@ class MCSStage(Stage):
     def get_axis_status(self, axis):  # TODO: move to MCSAxis
         if self._connected:
             s = ffi.new('unsigned int *')
-            check_return(lib.SA_GetStatus_S(self.handle, axis, s))
+            check_return(lib.SA_GetStatus_S(self.handle, axis.value, s))
             return s[0]
 
     def wait_until_status(self, axes=None, status=SAChannelStatus.SA_STOPPED_STATUS):  # TODO: event driven system?
         if self._connected:
             if axes is None:
-                axes = [MCSAxis.X, MCSAxis.Y, MCSAxis.Z]
+                axes = [AxisType.X, AxisType.Y, AxisType.Z]
             statuses = {}
             while True:
                 for a in axes:
@@ -200,29 +193,10 @@ class MCSStage(Stage):
 
         self.wait_until_status()
 
-    def move(self, axis, position, hold_time=0, relative=False, wait=True):
-        warn("move deprecated", DeprecationWarning)
-        if relative:
-            self.mcs_axis_to_axis(axis).movement_mode = AxisMovementMode.CL_RELATIVE
-        else:
-            self.mcs_axis_to_axis(axis).movement_mode = AxisMovementMode.CL_ABSOLUTE
-
-        self.mcs_axis_to_axis(axis).move(position)
-
-        if wait:
-            self.wait_until_status([axis])
-
     def stop_all(self):
         self.movement_queue.clear()
         for ax in self.axes.values():
             ax.stop()
-
-    def mcs_axis_to_axis(self, mcs_axis: MCSAxis):
-        mapping = {MCSAxis.X: AxisType.X,
-                   MCSAxis.Y: AxisType.Y,
-                   MCSAxis.Z: AxisType.Z}
-
-        return self.axes[mapping[mcs_axis]]
 
     def trigger_frame(self):
         frame = self.movement_queue.pop()

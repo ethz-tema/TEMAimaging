@@ -4,7 +4,7 @@ from typing import List
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.stage.mcs_stage import MCSAxis
+from hardware.stage import AxisType, AxisMovementMode
 from scans import Spot
 
 
@@ -73,6 +73,10 @@ class LineScan(metaclass=ScannerMeta):
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
 
+        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+
     def next_move(self):
         if self._curr_step >= len(self.coord_list):
             return False
@@ -104,14 +108,14 @@ class LineScan(metaclass=ScannerMeta):
 
         axes_to_check = []
         if move_x:
-            conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
-            axes_to_check.append(MCSAxis.X)
+            conn_mgr.stage.axes[AxisType.X].move(spot.X)
+            axes_to_check.append(AxisType.X)
         if move_y:
-            conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
-            axes_to_check.append(MCSAxis.Y)
+            conn_mgr.stage.axes[AxisType.Y].move(spot.Y)
+            axes_to_check.append(AxisType.Y)
         if move_z:
-            conn_mgr.stage.move(MCSAxis.Z, spot.Z, wait=False)
-            axes_to_check.append(MCSAxis.Z)
+            conn_mgr.stage.axes[AxisType.Z].move(spot.Z)
+            axes_to_check.append(AxisType.Z)
 
         conn_mgr.stage.wait_until_status(axes_to_check)
 
