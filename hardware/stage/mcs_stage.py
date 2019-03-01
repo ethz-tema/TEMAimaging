@@ -143,7 +143,7 @@ class MCSStage(Stage):
                 self._connected = True
                 logger.info("Connected. axes type: {}".format(self.axes_type))
                 for ax in self.axes_type:
-                    self._axes[ax] = MCSAxisImpl(ax.name, ax.value, self)
+                    self._axes[ax] = MCSAxis(ax.name, ax.value, self)
                 self.status_poller_thread.start()
             else:
                 self._connected = False
@@ -238,7 +238,7 @@ class MCSStage(Stage):
         self.check_movement.set()
 
 
-class MCSAxisImpl(Axis):
+class MCSAxis(Axis):
     _channel_status_map = {
         SAChannelStatus.SA_STOPPED_STATUS: AxisStatus.STOPPED,
         SAChannelStatus.SA_STEPPING_STATUS: AxisStatus.MOVING,
@@ -344,7 +344,7 @@ class MCSAxisImpl(Axis):
         if self._stage.handle:
             s = ffi.new('unsigned int *')
             check_return(lib.SA_GetStatus_S(self._stage.handle, self._channel, s))
-            return MCSAxisImpl._channel_status_map[SAChannelStatus(s[0])]
+            return MCSAxis._channel_status_map[SAChannelStatus(s[0])]
 
     @property
     def moved(self):
