@@ -68,7 +68,7 @@ class RectangleScan(metaclass=ScannerMeta):
             prev_spot = self.coord_list[i - 1]
             spot = Spot(prev_spot.X + dx, prev_spot.Y + dy)
             self.coord_list.append(spot)
-            conn_mgr.stage.movement_queue.put(spot)
+            conn_mgr.stage.movement_queue.put(spot)  # TODO: move this to init_scan since it modifies hardware state
 
         self.frame_event = Event()
         self.movement_completed_event = Event()
@@ -135,6 +135,9 @@ class RectangleScan(metaclass=ScannerMeta):
 
     def next_shot(self):
         pass
+
+    def done(self):
+        conn_mgr.stage.on_frame_completed -= self.on_frame_completed
 
     def on_frame_completed(self):
         self.frame_event.set()
