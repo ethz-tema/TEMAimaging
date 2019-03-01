@@ -220,13 +220,16 @@ class MCSStage(Stage):
                             statuses[a] = True
                         else:
                             statuses[a] = False
-                if statuses and all(statuses.values()):
-                    logger.debug("Waited for: {}".format(statuses.keys()))
-                    self.stage.on_movement_completed()
-                    if self.stage._frame_triggered:
-                        self.stage.on_frame_completed()
-                        self.stage._frame_triggered = False
-                    statuses.clear()
+                if statuses:
+                    if all(statuses.values()):
+                        logger.debug("Waited for: {}".format(statuses.keys()))
+                        self.stage.on_movement_completed()
+                        if self.stage._frame_triggered:
+                            self.stage.on_frame_completed()
+                            self.stage._frame_triggered = False
+                        statuses.clear()
+                        self.stage.check_movement.clear()
+                else:
                     self.stage.check_movement.clear()
 
         def stop(self):
