@@ -143,7 +143,7 @@ class MCSStage(Stage):
                 self._connected = True
                 logger.info("Connected. axes type: {}".format(self.axes_type))
                 for ax in self.axes_type:
-                    self._axes[ax] = MCSAxisImpl(ax.value, self)
+                    self._axes[ax] = MCSAxisImpl(ax.name, ax.value, self)
                 self.status_poller_thread.start()
             else:
                 self._connected = False
@@ -191,8 +191,6 @@ class MCSStage(Stage):
         if Settings.get('stage.ref_z'):
             self.axes[AxisType.Z].find_reference()
 
-        self.wait_until_status()
-
     def stop_all(self):
         self.movement_queue.clear()
         for ax in self.axes.values():
@@ -202,7 +200,8 @@ class MCSStage(Stage):
         frame = self.movement_queue.pop()
         for axis, v in frame.items():
             if v is not None:
-                self.axes[axis].move(v)
+                self.axes[axis].move(v, False)
+        self.commit_move()
         self._frame_triggered = True
 
     class PollThread(StatusPoller):
@@ -211,15 +210,18 @@ class MCSStage(Stage):
             self.stage = stage
 
         def run(self):
+            statuses = {}
             while not self._run.is_set():
                 self.stage.check_movement.wait()
-                statuses = {}
                 for a in self.stage._axes.values():
                     if a.moved:
                         if a.status == AxisStatus.STOPPED:
                             a.reset_moved()
                             statuses[a] = True
-                if all(statuses.values()):
+                        else:
+                            statuses[a] = False
+                if statuses and all(statuses.values()):
+                    logger.debug("Waited for: {}".format(statuses.keys()))
                     self.stage.on_movement_completed()
                     if self.stage._frame_triggered:
                         self.stage.on_frame_completed()
@@ -231,6 +233,9 @@ class MCSStage(Stage):
             self._run.set()
             self.stage.check_movement.set()
             self.join()
+
+    def commit_move(self):
+        self.check_movement.set()
 
 
 class MCSAxisImpl(Axis):
@@ -246,23 +251,25 @@ class MCSAxisImpl(Axis):
         SAChannelStatus.SA_OPENING_STATUS: AxisStatus.MOVING
     }
 
-    def __init__(self, channel: int, stage: 'MCSStage'):
-        super().__init__(channel, stage)
+    def __init__(self, name: str, channel: int, stage: 'MCSStage'):
+        super().__init__(name, channel, stage)
         self._movement_mode = None
         self._moved = False
 
-    def move(self, value: int):
+    def move(self, value: int, auto_commit=True):
         position = int(value)
         logger.debug('[move] Channel: {}, Value: {}, Mode: {}'.format(self._channel, value, self.movement_mode))
         if self._stage.handle:
             if self.movement_mode == AxisMovementMode.CL_RELATIVE and value != 0:
                 check_return(lib.SA_GotoPositionRelative_S(self._stage.handle, self._channel, position, 0))
-                self._stage.check_movement.set()
                 self._moved = True
+                if auto_commit:
+                    self._stage.check_movement.set()
             elif self.movement_mode == AxisMovementMode.CL_ABSOLUTE:
                 check_return(lib.SA_GotoPositionAbsolute_S(self._stage.handle, self._channel, position, 0))
                 self._moved = True
-                self._stage.check_movement.set()
+                if auto_commit:
+                    self._stage.check_movement.set()
             else:
                 raise ValueError("Invalid movement mode ({}) specified.".format(self.movement_mode))
 

@@ -48,12 +48,20 @@ class EventHandler:
 
 
 class Axis(ABC):
-    def __init__(self, channel: int, stage: 'Stage'):
+    def __init__(self, name: str, channel: int, stage: 'Stage'):
+        self._name = name
         self._channel = channel
         self._stage = stage
 
+    def __repr__(self):
+        return "Name: {}, Channel: {}".format(self._name, self._channel)
+
+    @property
+    def name(self):
+        return self._name
+
     @abstractmethod
-    def move(self, value: int):
+    def move(self, value: int, auto_commit=True):
         pass
 
     @abstractmethod
@@ -178,4 +186,8 @@ class Stage(ABC):
 
     @abstractmethod
     def trigger_frame(self):
+        pass
+
+    @abstractmethod
+    def commit_move(self):
         pass
