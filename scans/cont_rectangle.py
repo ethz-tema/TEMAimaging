@@ -1,4 +1,5 @@
 import math
+from threading import Event
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
@@ -40,6 +41,8 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         self._dx = math.cos(self.direction) * self.spot_size * self.x_steps
         self._dy = math.sin(self.direction) * self.spot_size * self.y_steps
 
+        self.movement_completed_event = Event()
+
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, _, params):
         return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value,
@@ -54,20 +57,31 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         return 0, 0
 
     def init_scan(self, _):
+        conn_mgr.stage.on_movement_completed += self.on_movement_completed
+
+        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+
+        moved = False
         if self.x_start is not None:
-            conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.X].move(self.x_start)
+            conn_mgr.stage.axes[AxisType.X].move(self.x_start, False)
+            moved = True
         if self.y_start is not None:
-            conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.Y].move(self.y_start)
+            conn_mgr.stage.axes[AxisType.Y].move(self.y_start, False)
+            moved = True
         if self.z_start is not None:
-            conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.Z].move(self.z_start)
+            conn_mgr.stage.axes[AxisType.Z].move(self.z_start, False)
+            moved = True
+
+        conn_mgr.stage.commit_move()
+
         conn_mgr.trigger.set_count(self.shot_count)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(False)
 
-        conn_mgr.stage.wait_until_status()
+        if moved:
+            self.movement_completed_event.wait()
 
         conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_RELATIVE
         conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_RELATIVE
@@ -79,33 +93,44 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         self._curr_line += 1
 
         if self._vx != 0:
-            conn_mgr.stage.axes[AxisType.X].speed = self._vx
+            conn_mgr.stage.axes[AxisType.X].speed = abs(self._vx)
         if self._vy != 0:
-            conn_mgr.stage.axes[AxisType.Y].speed = self._vy
+            conn_mgr.stage.axes[AxisType.Y].speed = abs(self._vy)
 
         if self._dx != 0:
-            conn_mgr.stage.axes[AxisType.X].move(self._dx)
+            conn_mgr.stage.axes[AxisType.X].move(self._dx, False)
         if self._dy != 0:
-            conn_mgr.stage.axes[AxisType.Y].move(self._dy)
+            conn_mgr.stage.axes[AxisType.Y].move(self._dy, False)
+
+        conn_mgr.stage.commit_move()
 
         conn_mgr.trigger.go()
 
-        conn_mgr.stage.wait_until_status()
+        self.movement_completed_event.wait()
+        self.movement_completed_event.clear()
 
         conn_mgr.stage.axes[AxisType.X].speed = 0
         conn_mgr.stage.axes[AxisType.Y].speed = 0
-        conn_mgr.stage.axes[AxisType.Z].speed = 0
 
-        conn_mgr.stage.axes[AxisType.Y].move(self.spot_size)
+        conn_mgr.stage.axes[AxisType.Y].move(self.spot_size, False)
 
         if self.zig_zag_mode:
             self._dx = -self._dx
             self._dy = -self._dy
         else:
-            conn_mgr.stage.axes[AxisType.X].move(-self.x_steps * self.spot_size)
+            conn_mgr.stage.axes[AxisType.X].move(-self.x_steps * self.spot_size, False)
 
-        conn_mgr.stage.wait_until_status()
+        conn_mgr.stage.commit_move()
+
+        self.movement_completed_event.wait()
+        self.movement_completed_event.clear()
         return True
 
     def next_shot(self):
         pass
+
+    def done(self):
+        conn_mgr.stage.on_movement_completed -= self.on_movement_completed
+
+    def on_movement_completed(self):
+        self.movement_completed_event.set()
