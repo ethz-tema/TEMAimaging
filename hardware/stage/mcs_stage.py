@@ -155,23 +155,6 @@ class MCSStage(Stage):
                 self._connected = False
                 self.handle = None
 
-    def get_axis_status(self, axis):  # TODO: move to MCSAxis
-        if self._connected:
-            s = ffi.new('unsigned int *')
-            check_return(lib.SA_GetStatus_S(self.handle, axis.value, s))
-            return s[0]
-
-    def wait_until_status(self, axes=None, status=SAChannelStatus.SA_STOPPED_STATUS):  # TODO: event driven system?
-        if self._connected:
-            if axes is None:
-                axes = [AxisType.X, AxisType.Y, AxisType.Z]
-            statuses = {}
-            while True:
-                for a in axes:
-                    statuses[a] = self.get_axis_status(a) == status
-                if all(statuses.values()):
-                    return
-
     def set_hcm_mode(self, mode):
         if self._connected:
             check_return(lib.SA_SetHCMEnabled(self.handle, mode))
