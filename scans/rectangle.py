@@ -66,10 +66,12 @@ class RectangleScan(metaclass=ScannerMeta):
             dy = round(spot_size * (math.cos(self.direction) * y_step - math.sin(self.direction) * x_step))
 
             prev_spot = self.coord_list[i - 1]
-            self.coord_list.append(Spot(prev_spot.X + dx, prev_spot.Y + dy))
-            conn_mgr.stage.movement_queue.put(Spot(prev_spot.X + dx, prev_spot.Y + dy))
+            spot = Spot(prev_spot.X + dx, prev_spot.Y + dy)
+            self.coord_list.append(spot)
+            conn_mgr.stage.movement_queue.put(spot)
 
         self.frame_event = Event()
+        self.movement_completed_event = Event()
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
@@ -86,6 +88,8 @@ class RectangleScan(metaclass=ScannerMeta):
         return x, y
 
     def init_scan(self, measurement):
+        conn_mgr.stage.on_movement_completed += self.on_movement_completed
+
         self.blank_delay = measurement.blank_delay
 
         conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
@@ -101,7 +105,10 @@ class RectangleScan(metaclass=ScannerMeta):
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
 
-        conn_mgr.stage.wait_until_status()
+        if self.z_start:
+            self.movement_completed_event.wait()
+
+        conn_mgr.stage.on_movement_completed -= self.on_movement_completed
 
     def next_move(self):
         if self._curr_step >= len(self.coord_list):
@@ -131,3 +138,6 @@ class RectangleScan(metaclass=ScannerMeta):
 
     def on_frame_completed(self):
         self.frame_event.set()
+
+    def on_movement_completed(self):
+        self.movement_completed_event.set()
