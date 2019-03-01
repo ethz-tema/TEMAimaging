@@ -65,6 +65,10 @@ class MeasurementController:
                         conn_mgr.stage.axes[AxisType.Z].speed = 0
                         time.sleep(self._measurement.step_delay / 1000)
                         self._step_trigger_event.clear()
+                        try:
+                            scan.done()
+                        except AttributeError:
+                            pass
                         current_step += 1
                     end_time = time.time()
 
