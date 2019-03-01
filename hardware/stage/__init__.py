@@ -35,7 +35,8 @@ class EventHandler:
         return self
 
     def __isub__(self, handler: Callable):
-        self._handlers.remove(handler)
+        if handler in self._handlers:
+            self._handlers.remove(handler)
         return self
 
     def __call__(self, *args, **kwargs):
