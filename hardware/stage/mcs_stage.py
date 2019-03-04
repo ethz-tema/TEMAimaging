@@ -7,7 +7,7 @@ from cffi import FFI, error
 
 from core.settings import Settings
 from core.utils import StatusPoller
-from hardware.stage import Stage, Axis, AxisMovementMode, AxisType, AxisStatus
+from hardware.stage import Stage, Axis, AxisMovementMode, AxisType, AxisStatus, StageError
 
 
 class SAError(IntEnum):
@@ -93,7 +93,7 @@ class SAFindRefMarkDirection(IntEnum):
     SA_BACKWARD_FORWARD_DIRECTION_ABORT_ON_ENDSTOP = 7
 
 
-class MCSError(Exception):
+class MCSError(StageError):
     def __init__(self, status):
         self.status = status
 

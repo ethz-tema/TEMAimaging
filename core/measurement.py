@@ -9,8 +9,7 @@ from ruamel.yaml import YAML
 
 import core.scanner_registry
 from core.conn_mgr import conn_mgr
-from hardware.stage import AxisType
-from hardware.stage.mcs_stage import MCSError
+from hardware.stage import AxisType, StageError
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +73,7 @@ class MeasurementController:
 
                     logger.info('measurement done; duration (s): {}'.format(end_time - start_time))
                     wx.CallAfter(pub.sendMessage, 'measurement.done', duration=end_time - start_time)
-                except MCSError as e:
+                except StageError as e:
                     logger.exception(e)
                 finally:
                     self.idle = True

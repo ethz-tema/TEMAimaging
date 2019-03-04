@@ -24,6 +24,10 @@ class AxisStatus(Enum):
     WAITING = 2
 
 
+class StageError(Exception):
+    pass
+
+
 class EventHandler:
     # TODO: semantics for unregistering event handlers after scan is done
     def __init__(self):
