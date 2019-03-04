@@ -651,8 +651,8 @@ class StagePanel(wx.Panel):
 
     def on_click_move(self, _, axis, direction):
         step_size = self.num_step_size.GetValue() * 1000
-        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_RELATIVE
-        conn_mgr.stage.axes[AxisType.X].move(step_size * direction)
+        conn_mgr.stage.axes[axis].movement_mode = AxisMovementMode.CL_RELATIVE
+        conn_mgr.stage.axes[axis].move(step_size * direction)
 
     def on_click_goto(self, _):
         try:
