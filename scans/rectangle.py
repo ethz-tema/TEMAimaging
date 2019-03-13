@@ -107,6 +107,7 @@ class RectangleScan(metaclass=ScannerMeta):
 
         if self.z_start:
             self.movement_completed_event.wait()
+            self.movement_completed_event.clear()
 
         conn_mgr.stage.on_movement_completed -= self.on_movement_completed
 

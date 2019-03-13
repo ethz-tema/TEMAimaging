@@ -82,6 +82,7 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
 
         if moved:
             self.movement_completed_event.wait()
+            self.movement_completed_event.clear()
 
         conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_RELATIVE
         conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_RELATIVE
