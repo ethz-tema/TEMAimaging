@@ -1,10 +1,11 @@
 import math
 import time
+from threading import Event
 from typing import List
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.mcs_stage import MCSAxis
+from hardware.stage import AxisMovementMode, AxisType
 from scans import Spot
 
 
@@ -43,6 +44,7 @@ class RectangleScan(metaclass=ScannerMeta):
 
         self.coord_list = []  # type: List[Spot]
         self.coord_list.append(Spot(x_start, y_start))
+        conn_mgr.stage.movement_queue.put(Spot(x_start, y_start))
 
         steps = self.x_steps * self.y_steps
 
@@ -64,7 +66,12 @@ class RectangleScan(metaclass=ScannerMeta):
             dy = round(spot_size * (math.cos(self.direction) * y_step - math.sin(self.direction) * x_step))
 
             prev_spot = self.coord_list[i - 1]
-            self.coord_list.append(Spot(prev_spot.X + dx, prev_spot.Y + dy))
+            spot = Spot(prev_spot.X + dx, prev_spot.Y + dy)
+            self.coord_list.append(spot)
+            conn_mgr.stage.movement_queue.put(spot)  # TODO: move this to init_scan since it modifies hardware state
+
+        self.frame_event = Event()
+        self.movement_completed_event = Event()
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
@@ -81,16 +88,28 @@ class RectangleScan(metaclass=ScannerMeta):
         return x, y
 
     def init_scan(self, measurement):
+        conn_mgr.stage.on_movement_completed += self.on_movement_completed
+
         self.blank_delay = measurement.blank_delay
 
+        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+
+        conn_mgr.stage.on_frame_completed += self.on_frame_completed
+
         if self.z_start:
-            conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
+            conn_mgr.stage.axes[AxisType.Z].move(self.z_start)
 
         conn_mgr.trigger.set_count(self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
 
-        conn_mgr.stage.wait_until_status()
+        if self.z_start:
+            self.movement_completed_event.wait()
+            self.movement_completed_event.clear()
+
+        conn_mgr.stage.on_movement_completed -= self.on_movement_completed
 
     def next_move(self):
         if self._curr_step >= len(self.coord_list):
@@ -105,30 +124,10 @@ class RectangleScan(metaclass=ScannerMeta):
             time.sleep(self.blank_delay / 1000)
             return True
 
-        spot = self.coord_list[self._curr_step]
+        conn_mgr.stage.trigger_frame()
 
-        move_x = False
-        move_y = False
-        if self._curr_step > 0:
-            prev_spot = self.coord_list[self._curr_step - 1]
-
-            if spot.X - prev_spot.X != 0:
-                move_x = True
-            if spot.Y - prev_spot.Y != 0:
-                move_y = True
-        else:
-            move_x = True
-            move_y = True
-
-        axes_to_check = []
-        if move_x:
-            conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
-            axes_to_check.append(MCSAxis.X)
-        if move_y:
-            conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
-            axes_to_check.append(MCSAxis.Y)
-
-        conn_mgr.stage.wait_until_status(axes_to_check)
+        self.frame_event.wait()
+        self.frame_event.clear()
 
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
@@ -137,3 +136,12 @@ class RectangleScan(metaclass=ScannerMeta):
 
     def next_shot(self):
         pass
+
+    def done(self):
+        conn_mgr.stage.on_frame_completed -= self.on_frame_completed
+
+    def on_frame_completed(self):
+        self.frame_event.set()
+
+    def on_movement_completed(self):
+        self.movement_completed_event.set()

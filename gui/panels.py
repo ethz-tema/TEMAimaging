@@ -16,7 +16,7 @@ from gui.dialogs import AddScanDialog
 from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
 from gui.utils import FloatValidator
 from hardware.laser_compex import OpMode
-from hardware.mcs_stage import MCSAxis
+from hardware.stage import AxisType, AxisMovementMode
 
 
 class MeasurementDVContextMenu(wx.Menu):
@@ -237,24 +237,27 @@ class MeasurementPanel(wx.Panel):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['x_start'].value = float(conn_mgr.stage.get_position(MCSAxis.X))
-                node.params['y_start'].value = float(conn_mgr.stage.get_position(MCSAxis.Y))
-                node.params['z_start'].value = float(conn_mgr.stage.get_position(MCSAxis.Z))
+                node.params['x_start'].value = float(conn_mgr.stage.axes[AxisType.X].position)
+                node.params['y_start'].value = float(conn_mgr.stage.axes[AxisType.Y].position)
+                node.params['z_start'].value = float(conn_mgr.stage.axes[AxisType.Z].position)
                 self.dvc.GetModel().edit_step(node)
 
     def on_click_set_end_position(self, _, item):
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['z_end'].value = conn_mgr.stage.get_position(MCSAxis.Z)
+                node.params['z_end'].value = float(conn_mgr.stage.axes[AxisType.Z].position)
                 self.dvc.GetModel().edit_step(node)
 
     def on_click_go_to_start(self, _, item):
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
-            conn_mgr.stage.move(MCSAxis.X, node.params['x_start'].value, wait=False)
-            conn_mgr.stage.move(MCSAxis.Y, node.params['y_start'].value, wait=False)
-            conn_mgr.stage.move(MCSAxis.Z, node.params['z_start'].value, wait=False)
+            conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.X].move(node.params['x_start'].value)
+            conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.Y].move(node.params['y_start'].value)
+            conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.Z].move(node.params['z_start'].value)
 
     def on_context_menu(self, e):
         item = e.GetItem()
@@ -620,15 +623,15 @@ class StagePanel(wx.Panel):
         main_sizer.Add(pos_sizer, 0, wx.ALL, 10)
         main_sizer.Add(self.btn_stage_goto, 0, wx.ALL | wx.EXPAND, 10)
 
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=1: self.on_click_move(e, a, d), self.stage_move_xp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.X, d=-1: self.on_click_move(e, a, d), self.stage_move_xn)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Y, d=1: self.on_click_move(e, a, d), self.stage_move_yp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Y, d=-1: self.on_click_move(e, a, d), self.stage_move_yn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.X, d=1: self.on_click_move(e, a, d), self.stage_move_xp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.X, d=-1: self.on_click_move(e, a, d), self.stage_move_xn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Y, d=1: self.on_click_move(e, a, d), self.stage_move_yp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Y, d=-1: self.on_click_move(e, a, d), self.stage_move_yn)
 
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_c(e, d), self.stage_focus_cp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_c(e, d), self.stage_focus_cn)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=1: self.on_click_focus_f(e, d), self.stage_focus_fp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=MCSAxis.Z, d=-1: self.on_click_focus_f(e, d), self.stage_focus_fn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=1: self.on_click_focus_c(e, d), self.stage_focus_cp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=-1: self.on_click_focus_c(e, d), self.stage_focus_cn)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=1: self.on_click_focus_f(e, d), self.stage_focus_fp)
+        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=-1: self.on_click_focus_f(e, d), self.stage_focus_fn)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_goto, self.btn_stage_goto)
 
@@ -654,34 +657,40 @@ class StagePanel(wx.Panel):
 
     def on_click_move(self, _, axis, direction):
         step_size = self.num_step_size.GetValue() * 1000
-        conn_mgr.stage.move(axis, step_size * direction, relative=True)
+        conn_mgr.stage.axes[axis].movement_mode = AxisMovementMode.CL_RELATIVE
+        conn_mgr.stage.axes[axis].move(step_size * direction)
 
     def on_click_goto(self, _):
         try:
-            conn_mgr.stage.move(MCSAxis.X, float(self.txt_x_pos.GetValue()) * 1000, wait=False)
+            conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.X].move(float(self.txt_x_pos.GetValue()) * 1000)
         except ValueError:
             pass
         try:
-            conn_mgr.stage.move(MCSAxis.Y, float(self.txt_y_pos.GetValue()) * 1000, wait=False)
+            conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.Y].move(float(self.txt_y_pos.GetValue()) * 1000)
         except ValueError:
             pass
         try:
-            conn_mgr.stage.move(MCSAxis.Z, float(self.txt_z_pos.GetValue()) * 1000, wait=False)
+            conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+            conn_mgr.stage.axes[AxisType.Z].move(float(self.txt_z_pos.GetValue()) * 1000)
         except ValueError:
             pass
 
     @staticmethod
     def on_click_focus_c(_, direction):
-        conn_mgr.stage.move(MCSAxis.Z, 100000 * direction, relative=True)
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_RELATIVE
+        conn_mgr.stage.axes[AxisType.Z].move(100000 * direction)
 
     @staticmethod
     def on_click_focus_f(_, direction):
-        conn_mgr.stage.move(MCSAxis.Z, 10000 * direction, relative=True)
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_RELATIVE
+        conn_mgr.stage.axes[AxisType.Z].move(10000 * direction)
 
     def on_stage_position_changed(self, position):
-        self.txt_curr_x_pos.SetLabel(str(position[MCSAxis.X] / 1000))
-        self.txt_curr_y_pos.SetLabel(str(position[MCSAxis.Y] / 1000))
-        self.txt_curr_z_pos.SetLabel(str(position[MCSAxis.Z] / 1000))
+        self.txt_curr_x_pos.SetLabel(str(position[AxisType.X] / 1000))
+        self.txt_curr_y_pos.SetLabel(str(position[AxisType.Y] / 1000))
+        self.txt_curr_z_pos.SetLabel(str(position[AxisType.Z] / 1000))
 
     def on_stage_connection_changed(self, connected):
         if connected:

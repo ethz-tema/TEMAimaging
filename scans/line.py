@@ -1,10 +1,11 @@
 import math
 import time
+from threading import Event
 from typing import List
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.mcs_stage import MCSAxis
+from hardware.stage import AxisType, AxisMovementMode
 from scans import Spot
 
 
@@ -51,6 +52,8 @@ class LineScan(metaclass=ScannerMeta):
 
             self.coord_list.append(Spot(x, y, z))
 
+        self.movement_completed_event = Event()
+
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
         spot_count = params['spot_count'].value
@@ -67,11 +70,16 @@ class LineScan(metaclass=ScannerMeta):
         return x, y
 
     def init_scan(self, measurement):
+        conn_mgr.stage.on_movement_completed += self.on_movement_completed
         self.blank_delay = measurement.blank_delay
 
         conn_mgr.trigger.set_count(self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(True)
+
+        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
 
     def next_move(self):
         if self._curr_step >= len(self.coord_list):
@@ -102,18 +110,17 @@ class LineScan(metaclass=ScannerMeta):
             move_y = True
             move_z = True
 
-        axes_to_check = []
         if move_x:
-            conn_mgr.stage.move(MCSAxis.X, spot.X, wait=False)
-            axes_to_check.append(MCSAxis.X)
+            conn_mgr.stage.axes[AxisType.X].move(spot.X, False)
         if move_y:
-            conn_mgr.stage.move(MCSAxis.Y, spot.Y, wait=False)
-            axes_to_check.append(MCSAxis.Y)
+            conn_mgr.stage.axes[AxisType.Y].move(spot.Y, False)
         if move_z:
-            conn_mgr.stage.move(MCSAxis.Z, spot.Z, wait=False)
-            axes_to_check.append(MCSAxis.Z)
+            conn_mgr.stage.axes[AxisType.Z].move(spot.Z, False)
 
-        conn_mgr.stage.wait_until_status(axes_to_check)
+        conn_mgr.stage.commit_move()
+
+        self.movement_completed_event.wait()
+        self.movement_completed_event.clear()
 
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
@@ -122,3 +129,9 @@ class LineScan(metaclass=ScannerMeta):
 
     def next_shot(self):
         pass
+
+    def done(self):
+        conn_mgr.stage.on_movement_completed -= self.on_movement_completed
+
+    def on_movement_completed(self):
+        self.movement_completed_event.set()

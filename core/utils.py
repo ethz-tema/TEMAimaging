@@ -4,6 +4,7 @@ import wx
 from pubsub import pub
 
 from core.settings import Settings
+from hardware.stage import Stage, AxisType
 
 
 class StatusPoller(Thread):
@@ -44,11 +45,16 @@ class ShutterStatusPoller(StatusPoller):
 
 
 class StagePositionPoller(StatusPoller):
-    def __init__(self, stage):
+    def __init__(self, stage: Stage):
         super().__init__()
         self._stage = stage
 
     def run(self):
         self._run.clear()
         while not self._run.wait(Settings.get('stage.position_poll_rate')):
-            wx.CallAfter(pub.sendMessage, 'stage.position_changed', position=self._stage.get_position())
+            pos = {
+                AxisType.X: self._stage.axes[AxisType.X].position,
+                AxisType.Y: self._stage.axes[AxisType.Y].position,
+                AxisType.Z: self._stage.axes[AxisType.Z].position
+            }
+            wx.CallAfter(pub.sendMessage, 'stage.position_changed', position=pos)

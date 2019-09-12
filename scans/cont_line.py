@@ -1,8 +1,10 @@
 import math
+from threading import Event
 
 from core.conn_mgr import conn_mgr
 from core.scanner_registry import ScannerMeta
-from hardware.mcs_stage import MCSAxis
+from hardware.stage import AxisType, AxisMovementMode
+from scans import Spot
 
 
 class ContinuousLineScan(metaclass=ScannerMeta):
@@ -26,7 +28,6 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         self.z_start = z_start
         self.frequency = frequency
 
-        self._curr_step = 0
         self._vx = math.sin(self.direction) * self.spot_size * self.frequency / shots_per_spot
         self._vy = math.cos(self.direction) * self.spot_size * self.frequency / shots_per_spot
 
@@ -38,6 +39,9 @@ class ContinuousLineScan(metaclass=ScannerMeta):
 
         time = spot_size * spot_count / v
         self._vz = dz / time
+
+        self.on_frame_completed_event = Event()
+        self.movement_completed_event = Event()
 
     @classmethod
     def from_params(cls, spot_size, shots_per_spot, frequency, cleaning, _, params):
@@ -56,46 +60,66 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         return self._dx, self._dy
 
     def init_scan(self, _):
+        conn_mgr.stage.on_movement_completed += self.on_movement_completed
+
+        conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
+        conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
+
+        moved = False
         if self.x_start is not None:
-            conn_mgr.stage.move(MCSAxis.X, self.x_start, wait=False)
+            conn_mgr.stage.axes[AxisType.X].move(self.x_start, False)
+            moved = True
         if self.y_start is not None:
-            conn_mgr.stage.move(MCSAxis.Y, self.y_start, wait=False)
+            conn_mgr.stage.axes[AxisType.Y].move(self.y_start, False)
+            moved = True
         if self.z_start is not None:
-            conn_mgr.stage.move(MCSAxis.Z, self.z_start, wait=False)
+            conn_mgr.stage.axes[AxisType.Z].move(self.z_start, False)
+            moved = True
+
+        conn_mgr.stage.commit_move()
+
         conn_mgr.trigger.set_count(self.spot_count * self.shots_per_spot)
         conn_mgr.trigger.set_freq(self.frequency)
         conn_mgr.trigger.set_first_only(False)
 
-        conn_mgr.stage.wait_until_status()
+        if moved:
+            self.movement_completed_event.wait()
+            self.movement_completed_event.clear()
+
+        conn_mgr.stage.on_movement_completed -= self.on_movement_completed
 
         if self._vx != 0:
-            conn_mgr.stage.set_speed(abs(self._vx), MCSAxis.X)
+            conn_mgr.stage.axes[AxisType.X].speed = abs(self._vx)
         if self._vy != 0:
-            conn_mgr.stage.set_speed(abs(self._vy), MCSAxis.Y)
+            conn_mgr.stage.axes[AxisType.Y].speed = abs(self._vy)
         if self._vz != 0:
-            conn_mgr.stage.set_speed(abs(self._vz), MCSAxis.Z)
+            conn_mgr.stage.axes[AxisType.Z].speed = abs(self._vz)
+
+        conn_mgr.stage.on_frame_completed += self.on_frame_completed
+        conn_mgr.stage.movement_queue.put(
+            Spot(self.x_start + self._dx, self.y_start + self._dy, self.z_start + self._dz))
 
     def next_move(self):
-        if self._curr_step >= self.spot_count:
+        if not self.spot_count:
             return False
 
         conn_mgr.trigger.go()
 
-        if self._curr_step + 1 >= self.spot_count:  # skip move after last shot
-            return False
+        conn_mgr.stage.trigger_frame()
 
-        if self._dx != 0:
-            conn_mgr.stage.move(MCSAxis.X, self._dx, relative=True, wait=False)
-        if self._dy != 0:
-            conn_mgr.stage.move(MCSAxis.Y, self._dy, relative=True, wait=False)
-        if self._dz != 0:
-            conn_mgr.stage.move(MCSAxis.Z, self._dz, relative=True, wait=False)
-
-        self._curr_step += 1
-        conn_mgr.stage.wait_until_status()
-
-        conn_mgr.stage.set_speed(0)
+        self.on_frame_completed_event.wait()
+        self.on_frame_completed_event.clear()
         return False
 
     def next_shot(self):
         pass
+
+    def done(self):
+        conn_mgr.stage.on_frame_completed -= self.on_frame_completed
+
+    def on_frame_completed(self):
+        self.on_frame_completed_event.set()
+
+    def on_movement_completed(self):
+        self.movement_completed_event.set()

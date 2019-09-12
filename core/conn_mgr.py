@@ -9,8 +9,9 @@ from core.utils import LaserStatusPoller, ShutterStatusPoller
 from hardware.arduino_trigger import ArduTrigger
 from hardware.camera import CameraThread, CameraException, Camera, camera_resolutions
 from hardware.laser_compex import CompexLaserProtocol
-from hardware.mcs_stage import MCSStage, MCSAxis
 from hardware.shutter import AIODevice, ShutterException, Shutter
+from hardware.stage import Stage, AxisType
+from hardware.stage.mcs_stage import MCSStage
 
 
 class ConnectionManager:
@@ -29,7 +30,7 @@ class ConnectionManager:
         self._shutter_device = None
         self._shutter_status_poller = None
 
-        self.stage = None
+        self.stage = None  # type: Stage
         self.stage_connected = False
         self._stage_position_poller = None
 
@@ -134,17 +135,17 @@ class ConnectionManager:
     def stage_connect(self, port):
         if not self.stage_connected:
             self.stage = MCSStage(port)
-            self.stage.open_mcs()
+            self.stage.connect()
 
             if Settings.get('stage.find_ref_on_connect'):
                 self.stage.find_references()
 
-            self.stage.set_position_limit(MCSAxis.X, Settings.get('stage.pos_limit.X.min'),
-                                          Settings.get('stage.pos_limit.X.max'))
-            self.stage.set_position_limit(MCSAxis.Y, Settings.get('stage.pos_limit.Y.min'),
-                                          Settings.get('stage.pos_limit.Y.max'))
-            self.stage.set_position_limit(MCSAxis.Z, Settings.get('stage.pos_limit.Z.min'),
-                                          Settings.get('stage.pos_limit.Z.max'))
+            self.stage.axes[AxisType.X].position_limit = (Settings.get('stage.pos_limit.X.min'),
+                                                          Settings.get('stage.pos_limit.X.max'))
+            self.stage.axes[AxisType.Y].position_limit = (Settings.get('stage.pos_limit.Y.min'),
+                                                          Settings.get('stage.pos_limit.Y.max'))
+            self.stage.axes[AxisType.Z].position_limit = (Settings.get('stage.pos_limit.Z.min'),
+                                                          Settings.get('stage.pos_limit.Z.max'))
 
             self.stage_connected = True
             pub.sendMessage('stage.connection_changed', connected=True)
@@ -155,7 +156,7 @@ class ConnectionManager:
     def stage_disconnect(self):
         if self.stage_connected:
             self._stage_position_poller.stop()
-            self.stage.close_mcs()
+            self.stage.disconnect()
 
             self.stage_connected = False
             pub.sendMessage('stage.connection_changed', connected=False)

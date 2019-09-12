@@ -9,7 +9,7 @@ from ruamel.yaml import YAML
 
 import core.scanner_registry
 from core.conn_mgr import conn_mgr
-from hardware.mcs_stage import MCSError
+from hardware.stage import AxisType, StageError
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ class MeasurementController:
         self._step_trigger_event.clear()
         self._stop_scan_event.clear()
         self._sequence.clear()
+        conn_mgr.stage.movement_queue.clear()
         for step in measurement.steps:
             self._sequence.append(
                 step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
@@ -58,15 +59,21 @@ class MeasurementController:
                         while not self._stop_scan_event.is_set() and scan.next_move():
                             scan.next_shot()
                             time.sleep(self._measurement.shot_delay / 1000)
-                        conn_mgr.stage.set_speed(0)
+                        conn_mgr.stage.axes[AxisType.X].speed = 0
+                        conn_mgr.stage.axes[AxisType.Y].speed = 0
+                        conn_mgr.stage.axes[AxisType.Z].speed = 0
                         time.sleep(self._measurement.step_delay / 1000)
                         self._step_trigger_event.clear()
+                        try:
+                            scan.done()
+                        except AttributeError:
+                            pass
                         current_step += 1
                     end_time = time.time()
 
                     logger.info('measurement done; duration (s): {}'.format(end_time - start_time))
                     wx.CallAfter(pub.sendMessage, 'measurement.done', duration=end_time - start_time)
-                except MCSError as e:
+                except StageError as e:
                     logger.exception(e)
                 finally:
                     self.idle = True
@@ -76,7 +83,7 @@ class MeasurementController:
 
     def stop(self):
         self._stop_scan_event.set()
-        conn_mgr.stage.stop()
+        conn_mgr.stage.stop_all()
         conn_mgr.trigger.stop_trigger()
 
     def on_step_trigger_received(self):
