@@ -64,6 +64,7 @@ class PreferencesDialog(PreferencesBaseDialog):
         super().__init__(parent, *args, **kw)
 
         self._create_stage_page()
+        self._create_camera_page()
 
         self.SetMinSize(self.GetBestSize())
         self.SetMaxSize(self.GetBestSize())
@@ -170,3 +171,26 @@ class PreferencesDialog(PreferencesBaseDialog):
 
         panel.SetSizer(border)
         self.notebook.AddPage(panel, "Stage")
+
+    def _create_camera_page(self):
+        panel = wx.Panel(self.notebook, wx.ID_ANY)
+
+        border = wx.BoxSizer(wx.VERTICAL)
+
+        sizer = wx.StaticBoxSizer(wx.StaticBox(panel, wx.ID_ANY, "General"),
+                                  wx.HORIZONTAL)
+        grid_sizer = wx.GridBagSizer(hgap=3, vgap=3)
+
+        grid_sizer.Add(wx.StaticText(panel, wx.ID_ANY, "Show feed in separate window"), pos=(0, 0), span=(1, 1),
+                       flag=wx.ALIGN_CENTER_VERTICAL)
+        ctrl = wx.CheckBox(panel, wx.ID_ANY)
+        ctrl.SetValue(Settings.get('camera.separate_window'))
+        self.ctrl_map['camera.separate_window'] = ctrl
+        grid_sizer.Add(ctrl, pos=(0, 1), span=(1, 1), flag=wx.ALIGN_RIGHT)
+        grid_sizer.AddGrowableCol(0)
+
+        sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 10)
+        border.Add(sizer, 0, wx.ALL | wx.EXPAND, 10)
+
+        panel.SetSizer(border)
+        self.notebook.AddPage(panel, "Camera")

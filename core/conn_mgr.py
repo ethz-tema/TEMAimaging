@@ -7,10 +7,10 @@ from core import utils
 from core.settings import Settings
 from core.utils import LaserStatusPoller, ShutterStatusPoller
 from hardware.arduino_trigger import ArduTrigger
+from hardware.camera import CameraThread, CameraException, Camera, camera_resolutions
 from hardware.laser_compex import CompexLaserProtocol
 from hardware.mcs_stage import MCSStage, MCSAxis
 from hardware.shutter import AIODevice, ShutterException, Shutter
-from hardware.ueye_camera import Camera, CameraException, CameraThread
 
 
 class ConnectionManager:
@@ -55,7 +55,8 @@ class ConnectionManager:
             except Exception as e:
                 logging.exception(e)
             try:
-                self.camera_connect(Settings.get('camera.conn.port'))
+                self.camera_connect(Settings.get('camera.driver'), Settings.get('camera.conn.port'),
+                                    camera_resolutions[Settings.get("camera.resolution")])
             except Exception as e:
                 logging.exception(e)
 
@@ -159,24 +160,28 @@ class ConnectionManager:
             self.stage_connected = False
             pub.sendMessage('stage.connection_changed', connected=False)
 
-    def camera_list(self):
-        return ['CAM_ANY'] + ['CAM_{:03d}'.format(device_id) for device_id in Camera.get_device_ids()]
+    def camera_list(self, driver_name):
+        driver = Camera.get_driver_from_name(driver_name)
 
-    def camera_connect(self, cam_id):
+        if driver:
+            return driver.get_device_ids()
+        else:
+            return []
+
+    def camera_connect(self, driver, dev_id, resolution):
         if not self.camera_connected:
-            dev_id = 0
-            if cam_id != 'CAM_ANY':
-                dev_id = int(cam_id[4:])
-            self.camera = Camera(dev_id)
-            try:
-                self.camera.init()
-            except CameraException:
-                self.camera = None
-                return
-            self._camera_thread = CameraThread(self.camera, notify=ConnectionManager.camera_notify_image_acquired)
-            self._camera_thread.start()
-            self.camera_connected = True
-            pub.sendMessage('camera.connection_changed', connected=True)
+            self.camera = Camera.get_driver_from_name(driver)(dev_id, resolution[0], resolution[1])
+
+            if self.camera:
+                try:
+                    self.camera.init()
+                except CameraException:
+                    self.camera = None
+                    return
+                self._camera_thread = CameraThread(self.camera, notify=ConnectionManager.camera_notify_image_acquired)
+                self._camera_thread.start()
+                self.camera_connected = True
+                pub.sendMessage('camera.connection_changed', connected=True)
 
     @staticmethod
     def camera_notify_image_acquired(camera, image):
@@ -187,7 +192,7 @@ class ConnectionManager:
             self._camera_thread.stop()
             self._camera_thread = None
             try:
-                self.camera.exit()
+                self.camera.close()
             except CameraException:
                 return
             self.camera = None
