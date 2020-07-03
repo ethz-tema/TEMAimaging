@@ -1,7 +1,10 @@
 import glob
 
 from PIL import Image
-from PyV4L2Camera.camera import Camera as PYV4L2Camera
+try:
+    from PyV4L2Camera.camera import Camera as PYV4L2Camera
+except ImportError:
+    pass
 
 from hardware.camera import Camera, CameraException
 

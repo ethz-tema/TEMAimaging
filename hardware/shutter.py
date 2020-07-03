@@ -1,4 +1,7 @@
-from AIOUSB import *
+try:
+    from AIOUSB import *
+except ImportError:
+    pass
 
 MAX_DIO_BYTES = 32
 

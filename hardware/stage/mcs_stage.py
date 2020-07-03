@@ -106,6 +106,8 @@ except error.FFIError:
     pass
 except error.CDefError:
     pass
+except OSError:
+    pass
 
 logger = logging.getLogger(__name__)
 

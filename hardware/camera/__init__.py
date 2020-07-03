@@ -65,4 +65,8 @@ class CameraException(Exception):
 
 
 for m in os.listdir('hardware/camera'):
-    import_module('hardware.camera.{}'.format(m.split('.')[0]))
+    try:
+        import_module('hardware.camera.{}'.format(m.split('.')[0]))
+    except ImportError:
+        pass
+
