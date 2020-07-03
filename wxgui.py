@@ -8,17 +8,17 @@ DEBUG = False
 logging.basicConfig(level=logging.DEBUG)
 
 
-class GeolasPyApp(wx.App, wit.InspectionMixin):
+class TemaImagingApp(wx.App, wit.InspectionMixin):
     def OnInit(self):
         if DEBUG:
             self.Init()
 
         from gui.main_frame import MainFrame
-        frm = MainFrame(None, title="geolasPy")
+        frm = MainFrame(None, title="TEMAimaging")
 
         frm.Show()
         return True
 
 
 if __name__ == '__main__':
-    GeolasPyApp(False).MainLoop()
+    TemaImagingApp(False).MainLoop()

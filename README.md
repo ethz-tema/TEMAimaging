@@ -1,4 +1,4 @@
-# geolasPy
+# TEMAimaging
 
 ## Setup
 The program depends on python3. Additionally python3 development files have to be installed.
@@ -18,7 +18,7 @@ The program depends on python3. Additionally python3 development files have to b
 * ```cd AIOUSB/AIOUSB; mkdir build; cd build```
 * ```cmake -DBUILD_PYTHON=ON -DBUILD_SAMPLES=OFF -DCMAKE_INSTALL_PREFIX=install ..```
 * ```make; make install```
-* ```cp install/lib/python2.7/* {geolas_DIR}/venv/lib/python3.5/site-packages```
+* ```cp install/lib/python2.7/* {tema_imaging_DIR}/venv/lib/python3.5/site-packages```
 
 ### Installation
 * Install the dependencies with ```venv/bin/pip install -r requirements.txt``` 
