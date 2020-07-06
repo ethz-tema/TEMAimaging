@@ -21,7 +21,7 @@ from core.conn_mgr import conn_mgr
 from core.settings import Settings
 from gui.camera_frame import CameraFrame
 from gui.conn_mgr import ConnectionManagerDialog
-from gui.dialogs import LaserStatusDialog
+from gui.dialogs import LaserStatusDialog, AboutDialog
 from gui.panels import LaserPanel, StagePanel, CameraPanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
 from gui.preferences import PreferencesDialog
 from hardware.stage import AxisType
@@ -40,6 +40,9 @@ class MainFrame(wx.Frame):
 
         self.stage_menu_reference = wx.MenuItem(id=wx.ID_ANY, text='Reference axes', helpString='Reference stage axes')
         self.stage_menu_reset_speed = wx.MenuItem(id=wx.ID_ANY, text='Reset speed', helpString='Reset axis speeds')
+
+        self.help_menu_about = wx.MenuItem(id=wx.ID_ANY, text='About',
+                                                helpString='Show information about the software')
 
         self.main_panel = wx.Panel(self)
         self.laser_panel = LaserPanel(self.main_panel)
@@ -65,6 +68,9 @@ class MainFrame(wx.Frame):
         stage_menu.Append(self.stage_menu_reference)
         stage_menu.Append(self.stage_menu_reset_speed)
 
+        help_menu = wx.Menu()
+        help_menu.Append(self.help_menu_about)
+
         if not conn_mgr.laser_connected:
             self.laser_menu_status.Enable(False)
 
@@ -76,6 +82,7 @@ class MainFrame(wx.Frame):
         menubar.Append(file_menu, '&File')
         menubar.Append(laser_menu, '&Laser')
         menubar.Append(stage_menu, '&Stage')
+        menubar.Append(help_menu, 'Help')
         self.SetMenuBar(menubar)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -97,6 +104,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_click_laser_menu_status, self.laser_menu_status)
         self.Bind(wx.EVT_MENU, self.on_click_stage_menu_reference, self.stage_menu_reference)
         self.Bind(wx.EVT_MENU, self.on_click_stage_menu_reset_speed, self.stage_menu_reset_speed)
+        self.Bind(wx.EVT_MENU, self.on_click_help_menu_about, self.help_menu_about)
 
         self.Bind(wx.EVT_CLOSE, self.on_quit)
 
@@ -178,3 +186,7 @@ class MainFrame(wx.Frame):
 
     def on_image_acquired(self, camera, image):
         wx.CallAfter(self.camera_panel.update_image, image)
+
+    @staticmethod
+    def on_click_help_menu_about(_):
+        AboutDialog()
