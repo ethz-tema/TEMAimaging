@@ -787,8 +787,8 @@ class ScanCtrlPanel(wx.Panel):
         scan_grid.Add(wx.StaticText(self, label='Blank Delay (ms):'), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
         scan_grid.Add(self.num_blank_delay, (3, 1))
         scan_grid.Add(self.chk_step_trigger, (4, 0))
-        scan_btn_sizer.Add(self.btn_start_scan, 1, wx.RIGHT, 2.5)
-        scan_btn_sizer.Add(self.btn_stop_scan, 1, wx.LEFT, 2.5)
+        scan_btn_sizer.Add(self.btn_start_scan, 1, wx.RIGHT, 2)
+        scan_btn_sizer.Add(self.btn_stop_scan, 1, wx.LEFT, 2)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_start_scan, self.btn_start_scan)
         self.Bind(wx.EVT_BUTTON, self.on_click_stop_scan, self.btn_stop_scan)

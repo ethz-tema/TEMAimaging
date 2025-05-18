@@ -27,6 +27,7 @@ class PreferencesBaseDialog(wx.Dialog):
         self.ctrl_map = {}
 
         self.notebook = wx.Notebook(self, wx.ID_ANY)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
 
         self.btn_save = wx.Button(self, wx.ID_SAVE)
         self.btn_cancel = wx.Button(self, wx.ID_CANCEL)
@@ -39,9 +40,7 @@ class PreferencesBaseDialog(wx.Dialog):
     def _init_ui(self):
         self.SetTitle("Preferences")
 
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        sizer.Add(self.notebook, 1, wx.ALL | wx.EXPAND, 12)
+        self.sizer.Add(self.notebook, 1, wx.ALL | wx.EXPAND, 12)
 
         # Buttons
         btn_sizer = wx.StdDialogButtonSizer()
@@ -49,10 +48,10 @@ class PreferencesBaseDialog(wx.Dialog):
         btn_sizer.AddButton(self.btn_save)
         btn_sizer.Realize()
 
-        sizer.Add(btn_sizer, 0, wx.ALIGN_RIGHT | wx.BOTTOM | wx.EXPAND, 12)
+        self.sizer.Add(btn_sizer, 0, wx.BOTTOM | wx.EXPAND, 12)
 
-        self.SetSizer(sizer)
-        sizer.Fit(self)
+        self.SetSizer(self.sizer)
+        self.sizer.Fit(self)
 
     def on_save(self, e):
         self._update_settings()
@@ -82,8 +81,7 @@ class PreferencesDialog(PreferencesBaseDialog):
         self._create_stage_page()
         self._create_camera_page()
 
-        self.SetMinSize(self.GetBestSize())
-        self.SetMaxSize(self.GetBestSize())
+        self.sizer.Fit(self)
 
     def _create_stage_page(self):
         panel = wx.Panel(self.notebook, wx.ID_ANY)
