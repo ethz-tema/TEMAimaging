@@ -21,22 +21,22 @@ import wx.lib.mixins.inspection as wit
 
 DEBUG = False
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
 
 
 class TemaImagingApp(wx.App, wit.InspectionMixin):
-    def OnInit(self):
+    def OnInit(self) -> bool:
         if DEBUG:
             self.Init()
 
         from tema_imaging.gui.main_frame import MainFrame
-        frm = MainFrame(None, title="TEMAimaging")
+        frm = MainFrame("TEMAimaging")
 
         frm.Show()
         return True
 
 
-def main():
+def main() -> None:
     TemaImagingApp(False).MainLoop()
 
 

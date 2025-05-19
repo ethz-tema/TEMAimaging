@@ -23,8 +23,8 @@ from tema_imaging.hardware.camera import Camera, camera_resolutions
 
 
 class ConnectionManagerDialog(wx.Dialog):
-    def __init__(self, parent, *args, **kw):
-        super().__init__(parent, *args, **kw)
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent)
 
         rate_choices = ['9600', '19200']
 
@@ -67,7 +67,7 @@ class ConnectionManagerDialog(wx.Dialog):
         self.init_ui()
         self.Layout()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         self.SetTitle("Connection Manager")
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -89,7 +89,7 @@ class ConnectionManagerDialog(wx.Dialog):
         lbl_rate_laser = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
         lbl_rate_trigger = wx.StaticText(self, wx.ID_ANY, "Baud Rate:")
 
-        def fill_sizer(s, count):
+        def fill_sizer(s: wx.Sizer, count: int) -> None:
             for c in range(count):
                 s.Add((0, 0), 0, 0, 0)
 
@@ -231,12 +231,10 @@ class ConnectionManagerDialog(wx.Dialog):
         self.SetSizer(sizer)
         sizer.Fit(self)
 
-    # noinspection PyUnusedLocal
-    def on_click_cancel(self, e):
+    def on_click_cancel(self, e: wx.CommandEvent) -> None:
         self.EndModal(wx.ID_CANCEL)
 
-    # noinspection PyUnusedLocal
-    def on_click_save(self, e):
+    def on_click_save(self, e: wx.CommandEvent):
         Settings.set('laser.conn.port', self.choice_laser_port.GetValue())
         Settings.set('laser.conn.rate', int(self.choice_laser_rate.GetStringSelection()))
 
@@ -256,38 +254,33 @@ class ConnectionManagerDialog(wx.Dialog):
 
         self.EndModal(wx.ID_SAVE)
 
-    # noinspection PyUnusedLocal
-    def on_click_laser(self, e):
+    def on_click_laser(self, _: wx.CommandEvent) -> None:
         if conn_mgr.laser_connected:
             conn_mgr.laser_disconnect()
         else:
             conn_mgr.laser_connect(self.choice_laser_port.GetValue(),
                                    self.choice_laser_rate.GetStringSelection())
 
-    # noinspection PyUnusedLocal
-    def on_click_trigger(self, e):
+    def on_click_trigger(self, _: wx.CommandEvent):
         if conn_mgr.trigger_connected:
             conn_mgr.trigger_disconnect()
         else:
             conn_mgr.trigger_connect(self.choice_trigger_port.GetValue(),
                                      self.choice_trigger_rate.GetStringSelection())
 
-    # noinspection PyUnusedLocal
-    def on_click_shutter(self, e):
+    def on_click_shutter(self, _: wx.CommandEvent):
         if conn_mgr.shutter_connected:
             conn_mgr.shutter_disconnect()
         else:
             conn_mgr.shutter_connect(self.num_shutter_output.GetValue())
 
-    # noinspection PyUnusedLocal
-    def on_click_stage(self, e):
+    def on_click_stage(self, _: wx.CommandEvent):
         if conn_mgr.stage_connected:
             conn_mgr.stage_disconnect()
         else:
             conn_mgr.stage_connect(self.choice_stage_port.GetValue())
 
-    # noinspection PyUnusedLocal
-    def on_click_camera(self, e):
+    def on_click_camera(self, _: wx.CommandEvent):
         if conn_mgr.camera_connected:
             conn_mgr.camera_disconnect()
         else:
@@ -295,12 +288,12 @@ class ConnectionManagerDialog(wx.Dialog):
                                     self.choice_camera_port.GetStringSelection(),
                                     camera_resolutions[self.choice_camera_resolution.GetStringSelection()])
 
-    def on_choice_camera_driver_choice(self, e):
+    def on_choice_camera_driver_choice(self, e: wx.CommandEvent) -> None:
         self.choice_camera_port.Set(Camera.get_driver_from_name(e.GetString()).get_device_ids())
         self.choice_camera_port.SetSelection(0)
         self.choice_camera_port.Fit()
 
-    def on_connection_changed_laser(self, connected):
+    def on_connection_changed_laser(self, connected: bool) -> None:
         if connected:
             self.stxt_laser_status.SetLabel("Connected")
             self.stxt_laser_status.SetForegroundColour(wx.Colour((0, 150, 0)))
@@ -310,7 +303,7 @@ class ConnectionManagerDialog(wx.Dialog):
             self.stxt_laser_status.SetForegroundColour(wx.Colour((255, 0, 0)))
             self.btn_laser_connect.SetLabel("Connect")
 
-    def on_connection_changed_trigger(self, connected):
+    def on_connection_changed_trigger(self, connected: bool) -> None:
         if connected:
             self.stxt_trigger_status.SetLabel("Connected")
             self.stxt_trigger_status.SetForegroundColour(wx.Colour((0, 150, 0)))
@@ -320,7 +313,7 @@ class ConnectionManagerDialog(wx.Dialog):
             self.stxt_trigger_status.SetForegroundColour(wx.Colour((255, 0, 0)))
             self.btn_trigger_connect.SetLabel("Connect")
 
-    def on_connection_changed_shutter(self, connected):
+    def on_connection_changed_shutter(self, connected: bool) -> None:
         if connected:
             self.stxt_shutter_status.SetLabel("Connected")
             self.stxt_shutter_status.SetForegroundColour(wx.Colour((0, 150, 0)))
@@ -330,7 +323,7 @@ class ConnectionManagerDialog(wx.Dialog):
             self.stxt_shutter_status.SetForegroundColour(wx.Colour((255, 0, 0)))
             self.btn_shutter_connect.SetLabel("Connect")
 
-    def on_connection_changed_stage(self, connected):
+    def on_connection_changed_stage(self, connected: bool) -> None:
         if connected:
             self.stxt_stage_status.SetLabel("Connected")
             self.stxt_stage_status.SetForegroundColour(wx.Colour((0, 150, 0)))
@@ -340,7 +333,7 @@ class ConnectionManagerDialog(wx.Dialog):
             self.stxt_stage_status.SetForegroundColour(wx.Colour((255, 0, 0)))
             self.btn_stage_connect.SetLabel("Connect")
 
-    def on_connection_changed_camera(self, connected):
+    def on_connection_changed_camera(self, connected: bool) -> None:
         if connected:
             self.stxt_camera_status.SetLabel("Connected")
             self.stxt_camera_status.SetForegroundColour(wx.Colour((0, 150, 0)))

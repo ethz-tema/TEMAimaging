@@ -15,25 +15,27 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import wx
+from PIL import Image
 from pubsub import pub
 
 from tema_imaging.gui.panels import CameraPanel
+from tema_imaging.hardware.camera import Camera
 
 
 class CameraFrame(wx.Frame):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent)
 
         self.camera_panel = CameraPanel(self, 720 * 2, 576 * 2)
 
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         sizer = wx.BoxSizer()
         sizer.Add(self.camera_panel)
 
         pub.subscribe(self.on_image_acquired, 'camera.image_acquired')
         self.SetSizerAndFit(sizer)
 
-    def on_image_acquired(self, camera, image):
+    def on_image_acquired(self, _: Camera, image: Image.Image) -> None:
         wx.CallAfter(self.camera_panel.update_image, image)

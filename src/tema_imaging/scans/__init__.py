@@ -16,7 +16,7 @@
 
 
 class Spot:
-    def __init__(self, x, y, z=None):
+    def __init__(self, x: float, y: float, z: float | None = None):
         self.X = x
         self.Y = y
         self.Z = z

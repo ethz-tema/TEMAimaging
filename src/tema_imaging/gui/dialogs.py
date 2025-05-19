@@ -22,8 +22,8 @@ from tema_imaging.core.conn_mgr import conn_mgr
 
 
 class AddScanDialog(wx.Dialog):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent)
 
         self.choice_scan_type = wx.Choice(self, wx.ID_ANY,
                                           choices=list(sorted(
@@ -33,7 +33,7 @@ class AddScanDialog(wx.Dialog):
 
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         self.SetTitle("Add Scan")
         self.choice_scan_type.SetSelection(0)
 
@@ -56,13 +56,13 @@ class AddScanDialog(wx.Dialog):
         sizer.Fit(self)
         self.Layout()
 
-    def on_click_add(self, e):
+    def on_click_add(self, _: wx.CommandEvent) -> None:
         self.EndModal(wx.ID_ADD)
 
 
 class LaserStatusDialog(wx.Dialog):
-    def __init__(self, *args, **kw):
-        super().__init__(*args, **kw)
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent)
 
         self.stxt_pressure = wx.StaticText(self)
         self.stxt_pressure.SetLabel("Pressure: {} mbar".format(conn_mgr.laser.pressure))
@@ -88,7 +88,7 @@ class LaserStatusDialog(wx.Dialog):
 
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         self.SetTitle("Laser Status")
 
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -105,10 +105,10 @@ class LaserStatusDialog(wx.Dialog):
 
 
 class AboutDialog:
-    def __init__(self):
+    def __init__(self) -> None:
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         info = wx.adv.AboutDialogInfo()
 
         info.Name = "TEMAimaging"

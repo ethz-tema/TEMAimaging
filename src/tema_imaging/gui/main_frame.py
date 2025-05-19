@@ -15,21 +15,26 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import wx
+from PIL import Image
 from pubsub import pub
 
+import tema_imaging.hardware.laser_compex
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.settings import Settings
 from tema_imaging.gui.camera_frame import CameraFrame
 from tema_imaging.gui.conn_mgr import ConnectionManagerDialog
-from tema_imaging.gui.dialogs import LaserStatusDialog, AboutDialog
-from tema_imaging.gui.panels import LaserPanel, StagePanel, CameraPanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
+from tema_imaging.gui.dialogs import AboutDialog, LaserStatusDialog
+from tema_imaging.gui.panels import (
+    CameraPanel, LaserManualShootPanel, LaserPanel, MeasurementPanel, ScanCtrlPanel, StagePanel,
+)
 from tema_imaging.gui.preferences import PreferencesDialog
+from tema_imaging.hardware.camera import Camera
 from tema_imaging.hardware.stage import AxisType
 
 
 class MainFrame(wx.Frame):
-    def __init__(self, *args, **kwargs):
-        super(MainFrame, self).__init__(*args, **kwargs)
+    def __init__(self, title: str) -> None:
+        super().__init__(None, title=title)
 
         icon = wx.Icon('logo.png')
         self.SetIcon(icon)
@@ -42,7 +47,7 @@ class MainFrame(wx.Frame):
         self.stage_menu_reset_speed = wx.MenuItem(id=wx.ID_ANY, text='Reset speed', helpString='Reset axis speeds')
 
         self.help_menu_about = wx.MenuItem(id=wx.ID_ANY, text='About',
-                                                helpString='Show information about the software')
+                                           helpString='Show information about the software')
 
         self.main_panel = wx.Panel(self)
         self.laser_panel = LaserPanel(self.main_panel)
@@ -54,7 +59,7 @@ class MainFrame(wx.Frame):
 
         self.init_ui()
 
-    def init_ui(self):
+    def init_ui(self) -> None:
         file_menu = wx.Menu()
         file_menu_conn_mgr = file_menu.Append(wx.ID_ANY, 'Connection Manager', 'Open connection manager')
         file_menu_settings = file_menu.Append(wx.ID_PREFERENCES)
@@ -121,7 +126,7 @@ class MainFrame(wx.Frame):
 
         pub.sendMessage('gui.startup_finished')
 
-    def on_stage_connection_changed(self, connected):
+    def on_stage_connection_changed(self, connected: bool) -> None:
         if connected:
             self.stage_menu_reference.Enable(True)
             self.stage_menu_reset_speed.Enable(True)
@@ -129,7 +134,7 @@ class MainFrame(wx.Frame):
             self.stage_menu_reference.Enable(False)
             self.stage_menu_reset_speed.Enable(False)
 
-    def on_camera_connection_changed(self, connected):
+    def on_camera_connection_changed(self, connected: bool) -> None:
         if Settings.get('camera.separate_window'):
             if connected:
                 frame = CameraFrame(self)
@@ -139,30 +144,30 @@ class MainFrame(wx.Frame):
         self.main_panel.Fit()
         self.main_panel.GetParent().Fit()
 
-    def on_connection_manager(self, _):
+    def on_connection_manager(self, _: wx.CommandEvent) -> None:
         with ConnectionManagerDialog(self) as dlg:
             dlg.ShowModal()
 
-    def on_settings(self, _):
+    def on_settings(self, _: wx.CommandEvent) -> None:
         with PreferencesDialog(self) as dlg:
             dlg.ShowModal()
 
-    def on_laser_status_changed(self, status):
+    def on_laser_status_changed(self, status: tema_imaging.hardware.laser_compex.OpMode) -> None:
         self.status_bar.SetStatusText('Laser status: ' + str(status), 0)
 
-    def on_measurement_step_changed(self, current_step):
+    def on_measurement_step_changed(self, current_step: int) -> None:
         self.status_bar.SetStatusText('Current step: {}'.format(current_step), 1)
 
-    def on_measurement_done(self, duration):
+    def on_measurement_done(self, duration: float) -> None:
         self.status_bar.SetStatusText('', 1)
 
-    def on_laser_connection_changed(self, connected):
+    def on_laser_connection_changed(self, connected: bool) -> None:
         if connected:
             self.laser_menu_status.Enable(True)
         else:
             self.laser_menu_status.Enable(False)
 
-    def on_quit(self, _):
+    def on_quit(self, _: wx.CloseEvent | wx.CommandEvent) -> None:
         conn_mgr.laser_disconnect()
         conn_mgr.trigger_disconnect()
         conn_mgr.shutter_disconnect()
@@ -170,23 +175,23 @@ class MainFrame(wx.Frame):
         conn_mgr.camera_disconnect()
         self.Destroy()
 
-    def on_click_laser_menu_status(self, _):
+    def on_click_laser_menu_status(self, _: wx.CommandEvent) -> None:
         with LaserStatusDialog(self) as dlg:
             dlg.ShowModal()
 
     @staticmethod
-    def on_click_stage_menu_reference(_):
+    def on_click_stage_menu_reference(_: wx.CommandEvent) -> None:
         conn_mgr.stage.find_references()
 
     @staticmethod
-    def on_click_stage_menu_reset_speed(_):
+    def on_click_stage_menu_reset_speed(_: wx.CommandEvent) -> None:
         conn_mgr.stage.axes[AxisType.X].speed = 0
         conn_mgr.stage.axes[AxisType.Y].speed = 0
         conn_mgr.stage.axes[AxisType.Z].speed = 0
 
-    def on_image_acquired(self, camera, image):
+    def on_image_acquired(self, _: Camera, image: Image.Image) -> None:
         wx.CallAfter(self.camera_panel.update_image, image)
 
     @staticmethod
-    def on_click_help_menu_about(_):
+    def on_click_help_menu_about(_: wx.CommandEvent) -> None:
         AboutDialog()

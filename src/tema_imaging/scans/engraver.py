@@ -22,6 +22,7 @@ from typing import List
 from PIL import Image, ImageOps
 
 from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.scanner_registry import ScannerMeta
 from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 from tema_imaging.scans import Spot
@@ -63,7 +64,7 @@ class Engraver(metaclass=ScannerMeta):
 
         logger.info("Image pixel count: {}".format(len(list(flipped_image.getdata()))))
 
-        def to_pixel_coords(index):
+        def to_pixel_coords(index: int) -> tuple[int, int]:
             x_pixels = flipped_image.size[0]
 
             x = index // x_pixels
@@ -99,13 +100,13 @@ class Engraver(metaclass=ScannerMeta):
                    params['x_size'].value, params['y_size'].value)
 
     @property
-    def boundary_size(self):
+    def boundary_size(self) -> tuple[float, float]:
         x = max(spot.X for spot in self.coord_list) - min(spot.X for spot in self.coord_list) + self.spot_size
         y = max(spot.Y for spot in self.coord_list) - min(spot.Y for spot in self.coord_list) + self.spot_size
 
         return x, y
 
-    def init_scan(self, measurement):
+    def init_scan(self, measurement: Measurement) -> None:
         conn_mgr.stage.on_movement_completed += self.on_movement_completed
 
         self.blank_delay = measurement.blank_delay
@@ -128,7 +129,7 @@ class Engraver(metaclass=ScannerMeta):
 
         conn_mgr.stage.on_movement_completed -= self.on_movement_completed
 
-    def next_move(self):
+    def next_move(self) -> bool:
         if self._curr_step >= len(self.coord_list):
             return False
 
@@ -148,14 +149,14 @@ class Engraver(metaclass=ScannerMeta):
         self._curr_step += 1
         return True
 
-    def next_shot(self):
+    def next_shot(self) -> None:
         pass
 
-    def done(self):
+    def done(self) -> None:
         conn_mgr.stage.on_frame_completed -= self.on_frame_completed
 
-    def on_frame_completed(self):
+    def on_frame_completed(self) -> None:
         self.frame_event.set()
 
-    def on_movement_completed(self):
+    def on_movement_completed(self) -> None:
         self.movement_completed_event.set()

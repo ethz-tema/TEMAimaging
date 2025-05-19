@@ -14,26 +14,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Any
+
 import wx
 import wx.dataview
 
 
 class SequenceEditorToggleRenderer(wx.dataview.DataViewCustomRenderer):
-    def __init__(self, *args, **kwargs):
-        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_ACTIVATABLE, *args, **kwargs)
+    def __init__(self) -> None:
+        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_ACTIVATABLE)
         self.value = None
 
-    def SetValue(self, value):
+    def SetValue(self, value: Any) -> bool:
         self.value = value
         return True
 
-    def GetValue(self):
+    def GetValue(self) -> Any:
         return False
 
-    def GetSize(self):
+    def GetSize(self) -> wx.Size:
         return wx.RendererNative.Get().GetCheckBoxSize(self.GetView())
 
-    def Render(self, cell, dc, state):
+    def Render(self, cell: wx.Rect, dc: wx.DC, state: int) -> bool:
         if not self.value[0]:
             return True
 
@@ -44,7 +46,8 @@ class SequenceEditorToggleRenderer(wx.dataview.DataViewCustomRenderer):
         wx.RendererNative.Get().DrawCheckBox(self.GetOwner().GetOwner(), dc, cell, flags)
         return True
 
-    def ActivateCell(self, cell, model, item, col, mouseEvent):
+    def ActivateCell(self, cell: wx.Rect, model: wx.dataview.DataViewModel, item: wx.dataview.DataViewItem, col: int,
+                     mouseEvent: wx.MouseEvent) -> bool:
         if mouseEvent:
             if not wx.Rect(self.GetSize()).Contains(mouseEvent.GetPosition()):
                 return False
@@ -54,21 +57,21 @@ class SequenceEditorToggleRenderer(wx.dataview.DataViewCustomRenderer):
 
 
 class SequenceEditorTextRenderer(wx.dataview.DataViewCustomRenderer):
-    def __init__(self, *args, **kwargs):
-        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_EDITABLE, *args, **kwargs)
+    def __init__(self) -> None:
+        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_EDITABLE)
         self.value = ""
 
-    def SetValue(self, value):
+    def SetValue(self, value) -> bool:
         self.value = value
         return True
 
     def GetValue(self):
         return False
 
-    def HasEditorCtrl(self):
+    def HasEditorCtrl(self) -> bool:
         return self.value[0] and self.value[1]
 
-    def CreateEditorCtrl(self, parent, labelRect, value):
+    def CreateEditorCtrl(self, parent: wx.Window, labelRect: wx.Rect, value) -> wx.Window:
         ctrl = wx.TextCtrl(parent,
                            value=value[2],
                            pos=labelRect.Position,
@@ -80,17 +83,17 @@ class SequenceEditorTextRenderer(wx.dataview.DataViewCustomRenderer):
 
         return ctrl
 
-    def GetValueFromEditorCtrl(self, editor):
+    def GetValueFromEditorCtrl(self, editor: wx.TextCtrl):
         return editor.GetValue()
 
-    def Render(self, cell, dc, state):
+    def Render(self, cell: wx.Rect, dc: wx.DC, state: int) -> bool:
         if not self.value[0]:
             return True
 
         self.RenderText(self.value[2], 0, cell, dc, state)
         return True
 
-    def GetSize(self):
+    def GetSize(self) -> wx.Size:
         if self.value[0] and self.value[2]:
             return self.GetTextExtent(self.value[2])
 

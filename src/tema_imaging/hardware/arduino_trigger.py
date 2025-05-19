@@ -29,18 +29,17 @@ logger = logging.getLogger(__name__)
 class ArduTrigger(serial.threaded.LineReader):
     TERMINATOR = b'\n'
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(ArduTrigger, self).__init__()
         self.alive = True
-        self.responses = queue.Queue()
+        self.responses = queue.Queue[str]()
         self.lock = threading.Lock()
-        self._awaiting_response_for = None
+        self._awaiting_response_for: str | None = None
         self.cease_continuous_run = threading.Event()
         self.stop_done_event = threading.Event()
         self.rep_sleep_time = 0
         self.rep_count = 1
-        self.event_responses = queue.Queue()
-        self.events = queue.Queue()
+        self.events = queue.Queue[str | None]()
         self._event_thread = threading.Thread(target=self._run_event)
         self._event_thread.daemon = True
         self._event_thread.name = 'at-event'
@@ -48,7 +47,7 @@ class ArduTrigger(serial.threaded.LineReader):
         self.done = False
         self.send_done_msg = False
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stop the event processing thread, abort pending commands, if any.
         """
@@ -56,7 +55,7 @@ class ArduTrigger(serial.threaded.LineReader):
         self.events.put(None)
         self.responses.put('<exit>')  # TODO: ??
 
-    def _run_event(self):
+    def _run_event(self) -> None:
         """
         Process events in a separate thread so that input thread is not
         blocked.
@@ -67,7 +66,7 @@ class ArduTrigger(serial.threaded.LineReader):
             except:
                 pass
 
-    def handle_line(self, line):
+    def handle_line(self, line: str) -> None:
         """
         Handle input from serial port, check for events.
         """
@@ -76,8 +75,11 @@ class ArduTrigger(serial.threaded.LineReader):
         else:
             self.responses.put(line)
 
-    def handle_event(self, event):
+    def handle_event(self, event: str | None) -> None:
         """Handle events"""
+        if event is None:
+            return
+
         if event == 'D':
             time.sleep(self.rep_sleep_time / 1000)
             self.done = True
@@ -87,12 +89,12 @@ class ArduTrigger(serial.threaded.LineReader):
             wx.CallAfter(pub.sendMessage, 'trigger.step')
             logger.info('Step trigger received')
 
-    def command(self, command):
+    def command(self, command: str) -> None:
         """Send a command that doesn't respond"""
         with self.lock:  # ensure that just one thread is sending commands at once
             self.write_line(command)
 
-    def command_with_response(self, command, response='', timeout=5):
+    def command_with_response(self, command: str) -> str:
         """
         Send a command and wait for the response.
         """
@@ -103,44 +105,44 @@ class ArduTrigger(serial.threaded.LineReader):
             self._awaiting_response_for = None
             return response
 
-    def set_freq(self, freq):
+    def set_freq(self, freq: int) -> None:
         self.command('F{}'.format(freq))
 
-    def set_count(self, counts):
+    def set_count(self, counts: int) -> None:
         self.command('C{}'.format(counts))
 
-    def set_first_only(self, on):
+    def set_first_only(self, on: bool) -> None:
         self.command('O{}'.format(1 if on else 0))
 
-    def go(self):
+    def go(self) -> None:
         logger.info('go')
         self.command('G')
 
-    def go_and_wait(self, cleaning=False, delay=200):
+    def go_and_wait(self, cleaning: bool = False, delay_ms: int = 200) -> None:
         logger.info('go_and_wait (cleaning={})'.format(cleaning))
         if cleaning:
             self.single_shot()
-            time.sleep(delay / 1000)
+            time.sleep(delay_ms / 1000)
         self.command('G')
         self.done = False
         while not self.done:
             time.sleep(0.001)
 
-    def single_shot(self):
+    def single_shot(self) -> None:
         logger.info('single_shot')
         self.command_with_response('I')
 
-    def single_tof(self):
+    def single_tof(self) -> None:
         self.command_with_response('T')
 
-    def start_trigger(self):
+    def start_trigger(self) -> None:
         self.cease_continuous_run.clear()
         self.stop_done_event.clear()
         self.done = False
 
         class ScheduleThread(threading.Thread):
             @classmethod
-            def run(cls):
+            def run(cls) -> None:
                 counter = 1
                 self.command('G')
 
@@ -155,7 +157,7 @@ class ArduTrigger(serial.threaded.LineReader):
         continuous_thread = ScheduleThread()
         continuous_thread.start()
 
-    def stop_trigger(self):
+    def stop_trigger(self) -> None:
         self.cease_continuous_run.set()
         self.command('S')
         self.done = True

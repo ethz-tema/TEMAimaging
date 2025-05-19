@@ -18,17 +18,17 @@ import wx
 
 
 class FloatValidator(wx.Validator):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.Bind(wx.EVT_CHAR, self.on_char)
 
-    def Clone(self):
+    def Clone(self) -> wx.Object:
         return FloatValidator()
 
-    def Validate(self, parent):
+    def Validate(self, parent: wx.Window) -> bool:
         return True
 
-    def on_char(self, event):
+    def on_char(self, event: wx.KeyEvent) -> None:
         key = event.GetKeyCode()
         ctrl = event.GetEventObject()
 

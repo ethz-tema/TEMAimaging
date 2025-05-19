@@ -20,6 +20,7 @@ from threading import Event
 from typing import List
 
 from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.scanner_registry import ScannerMeta
 from tema_imaging.hardware.stage import AxisMovementMode, AxisType
 from tema_imaging.scans import Spot
@@ -39,7 +40,7 @@ class RectangleScan(metaclass=ScannerMeta):
 
     def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
                  direction=0,
-                 x_start=None, y_start=None, z_start=None, zig_zag_mode=False, blank_lines=0):
+                 x_start=None, y_start=None, z_start=None, zig_zag_mode=False, blank_lines=0) -> None:
         self.x_steps = x_size // spot_size
         self.y_steps = y_size // spot_size
         self.spot_size = spot_size
@@ -97,13 +98,13 @@ class RectangleScan(metaclass=ScannerMeta):
                    params['z_start'].value, params['zig_zag_mode'].value, params['blank_lines'].value)
 
     @property
-    def boundary_size(self):
+    def boundary_size(self) -> tuple[float, float]:
         x = max(spot.X for spot in self.coord_list) - min(spot.X for spot in self.coord_list) + self.spot_size
         y = max(spot.Y for spot in self.coord_list) - min(spot.Y for spot in self.coord_list) + self.spot_size
 
         return x, y
 
-    def init_scan(self, measurement):
+    def init_scan(self, measurement: Measurement) -> None:
         conn_mgr.stage.on_movement_completed += self.on_movement_completed
 
         self.blank_delay = measurement.blank_delay
@@ -127,7 +128,7 @@ class RectangleScan(metaclass=ScannerMeta):
 
         conn_mgr.stage.on_movement_completed -= self.on_movement_completed
 
-    def next_move(self):
+    def next_move(self) -> bool:
         if self._curr_step >= len(self.coord_list):
             return False
 
@@ -150,14 +151,14 @@ class RectangleScan(metaclass=ScannerMeta):
         self._curr_step += 1
         return True
 
-    def next_shot(self):
+    def next_shot(self) -> None:
         pass
 
-    def done(self):
+    def done(self) -> None:
         conn_mgr.stage.on_frame_completed -= self.on_frame_completed
 
-    def on_frame_completed(self):
+    def on_frame_completed(self) -> None:
         self.frame_event.set()
 
-    def on_movement_completed(self):
+    def on_movement_completed(self) -> None:
         self.movement_completed_event.set()

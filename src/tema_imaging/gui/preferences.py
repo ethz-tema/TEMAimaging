@@ -21,10 +21,10 @@ from tema_imaging.core.settings import Settings
 
 
 class PreferencesBaseDialog(wx.Dialog):
-    def __init__(self, parent, *args, **kw):
-        super().__init__(parent, *args, **kw)
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent)
 
-        self.ctrl_map = {}
+        self.ctrl_map: dict[str, wx.Control] = {}
 
         self.notebook = wx.Notebook(self, wx.ID_ANY)
         self.sizer = wx.BoxSizer(wx.VERTICAL)
@@ -37,7 +37,7 @@ class PreferencesBaseDialog(wx.Dialog):
 
         self._init_ui()
 
-    def _init_ui(self):
+    def _init_ui(self) -> None:
         self.SetTitle("Preferences")
 
         self.sizer.Add(self.notebook, 1, wx.ALL | wx.EXPAND, 12)
@@ -53,12 +53,12 @@ class PreferencesBaseDialog(wx.Dialog):
         self.SetSizer(self.sizer)
         self.sizer.Fit(self)
 
-    def on_save(self, e):
+    def on_save(self, _: wx.CommandEvent) -> None:
         self._update_settings()
         Settings.save()
         self.EndModal(wx.ID_SAVE)
 
-    def _update_settings(self):
+    def _update_settings(self) -> None:
         for key, ctrl in self.ctrl_map.items():
             if hasattr(ctrl, 'GetValue'):
                 value = ctrl.GetValue()
@@ -75,15 +75,15 @@ class PreferencesBaseDialog(wx.Dialog):
 
 
 class PreferencesDialog(PreferencesBaseDialog):
-    def __init__(self, parent, *args, **kw):
-        super().__init__(parent, *args, **kw)
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent)
 
         self._create_stage_page()
         self._create_camera_page()
 
         self.sizer.Fit(self)
 
-    def _create_stage_page(self):
+    def _create_stage_page(self) -> None:
         panel = wx.Panel(self.notebook, wx.ID_ANY)
 
         border = wx.BoxSizer(wx.VERTICAL)
@@ -186,7 +186,7 @@ class PreferencesDialog(PreferencesBaseDialog):
         panel.SetSizer(border)
         self.notebook.AddPage(panel, "Stage")
 
-    def _create_camera_page(self):
+    def _create_camera_page(self) -> None:
         panel = wx.Panel(self.notebook, wx.ID_ANY)
 
         border = wx.BoxSizer(wx.VERTICAL)

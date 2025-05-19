@@ -14,22 +14,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+from typing import Any
+
 from ruamel.yaml import YAML
 
 
 class SettingsManager:
-    def __init__(self):
-        self.configuration_data = dict()
+    def __init__(self) -> None:
+        self.configuration_data: Any = None
 
         self.yaml = YAML()
 
         self.load()
 
-    def load(self):
+    def load(self) -> None:
         with open('settings.yml', 'r') as file:
             self.configuration_data = self.yaml.load(file)
 
-    def save(self):
+    def save(self) -> None:
         with open('settings.yml', 'w') as file:
             self.yaml.dump(self.configuration_data, file)
 
@@ -39,7 +41,7 @@ class SettingsManager:
     def __setitem__(self, key, value):
         self.configuration_data.__setitem__(key, value)
 
-    def get(self, key):
+    def get(self, key: str) -> Any:
         curr = self.configuration_data
 
         for chunk in key.split('.'):
@@ -50,7 +52,7 @@ class SettingsManager:
 
         return curr
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         curr = self.configuration_data
         chunks = key.split('.')
 

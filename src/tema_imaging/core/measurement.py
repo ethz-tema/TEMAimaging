@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class MeasurementController:
-    def __init__(self):
+    def __init__(self) -> None:
         self._sequence = []
         self._measurement = None
         self._step_trigger_event = threading.Event()
@@ -40,7 +40,7 @@ class MeasurementController:
 
         pub.subscribe(self.on_step_trigger_received, 'trigger.step')
 
-    def init_sequence(self, measurement):
+    def init_sequence(self, measurement: "Measurement") -> None:
         if not self._idle:
             return
 
@@ -54,7 +54,7 @@ class MeasurementController:
                 step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
                                            measurement.cs_delay, step.params))
 
-    def start_sequence(self):
+    def start_sequence(self) -> None:
         if not self._idle:
             return
 
@@ -97,17 +97,17 @@ class MeasurementController:
         thread = MeasureThread()
         thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         self._stop_scan_event.set()
         conn_mgr.stage.stop_all()
         conn_mgr.trigger.stop_trigger()
 
-    def on_step_trigger_received(self):
+    def on_step_trigger_received(self) -> None:
         self._step_trigger_event.set()
 
 
 class Param:
-    def __init__(self, step_index, key, value):
+    def __init__(self, step_index: int, key, value) -> None:
         self.step_index = step_index
         self.key = key
         self.value = value
@@ -120,7 +120,7 @@ class Param:
 
 
 class Step:
-    def __init__(self, index, scan_type, params):
+    def __init__(self, index: int, scan_type, params) -> None:
         self.index = index
         self.scan_type = scan_type
         self.params = params
@@ -154,7 +154,7 @@ class Step:
 
 
 class Measurement:
-    def __init__(self):
+    def __init__(self) -> None:
         self.cs_delay = 0
         self.shot_delay = 0
         self.step_delay = 0
@@ -164,22 +164,22 @@ class Measurement:
 
 
 class MeasurementViewModel(wx.dataview.PyDataViewModel):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # self.UseWeakRefs(False)
 
-        self.measurement = Measurement()  # type: Measurement
+        self.measurement: Measurement = Measurement()
 
-    def GetColumnCount(self):
+    def GetColumnCount(self) -> int:
         return 8
 
-    def GetColumnType(self, col):
+    def GetColumnType(self, col) -> str:
         mapper = {0: 'string', 1: 'PyObject', 2: 'PyObject', 3: 'PyObject', 4: 'PyObject', 5: 'PyObject', 6: 'PyObject',
                   7: 'PyObject'}
         return mapper[col]
 
-    def HasContainerColumns(self, item):
+    def HasContainerColumns(self, item) -> bool:
         return True
 
     def GetChildren(self, item, children):
@@ -195,7 +195,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             return len(node.params)
         return 0
 
-    def IsContainer(self, item):
+    def IsContainer(self, item) -> bool:
         if not item:  # root is container
             return True
 
@@ -275,7 +275,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
                     if notify:
                         self.ItemChanged(self.ObjectToItem(p))
 
-    def dump_model(self, stream):
+    def dump_model(self, stream) -> None:
         yaml = YAML()
         yaml.register_class(Step)
         yaml.register_class(Param)
@@ -307,7 +307,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
 
         pub.sendMessage('measurement.model_loaded')
 
-    def delete_step(self, item):
+    def delete_step(self, item) -> None:
         node = self.ItemToObject(item)
         if isinstance(node, Step):
             self.measurement.steps.remove(node)
@@ -325,7 +325,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             self.ItemAdded(step_item, self.ObjectToItem(param))
         return step_item
 
-    def insert_step(self, typ, position):
+    def insert_step(self, typ, position: int):
         index = len(self.measurement.steps)
         params = {k: Param(index, k, v[1]) for k, v in typ.parameter_map.items()}
         step = Step(len(self.measurement.steps), typ, params)
@@ -337,7 +337,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         self._recalculate_ids()
         return step_item
 
-    def edit_step(self, step):
+    def edit_step(self, step: Step) -> None:
         del self.measurement.steps[step.index]
         self.measurement.steps.insert(step.index, step)
         self.ItemChanged(self.ObjectToItem(step))

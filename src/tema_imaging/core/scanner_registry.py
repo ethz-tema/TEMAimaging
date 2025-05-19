@@ -16,12 +16,13 @@
 
 import os
 from importlib import import_module
+from typing import Any
 
 from tema_imaging.core.utils import get_project_root
 
 
 class ScannerMeta(type):
-    def __new__(mcs, name, bases, attrs):
+    def __new__(mcs, name: str, bases: tuple[type, ...], attrs: dict[str, Any]) -> "ScannerMeta":
         new_cls = super(ScannerMeta, mcs).__new__(mcs, name, bases, attrs)
         # noinspection PyTypeChecker
         register(new_cls)
@@ -33,12 +34,12 @@ scanners_by_display_name = {}
 _param_map = {}
 
 
-def _import_scanners():
+def _import_scanners() -> None:
     for m in os.listdir(get_project_root() / 'src/tema_imaging/scans'):
         import_module('tema_imaging.scans.{}'.format(m.split('.')[0]))
 
 
-def register(scanner):
+def register(scanner) -> None:
     if hasattr(scanner, 'disable') and scanner.disable:
         return
 

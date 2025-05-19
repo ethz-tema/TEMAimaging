@@ -87,34 +87,34 @@ class CompexException(Exception):
 class CompexLaserProtocol(serial.threaded.LineReader):
     TERMINATOR = b'\r'
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(CompexLaserProtocol, self).__init__()
         self.alive = True
-        self.responses = queue.Queue()
+        self.responses = queue.Queue[str]()
         self.lock = threading.Lock()
-        self._awaiting_response_for = None
+        self._awaiting_response_for: str | None = None
 
         self.connection_lost_cb = None
 
-    def stop(self):
+    def stop(self) -> None:
         """
         Stop the event processing thread, abort pending commands, if any.
         """
         self.alive = False
         self.responses.put('<exit>')  # TODO: ??
 
-    def connection_lost(self, exc):
+    def connection_lost(self, exc: Exception) -> None:
         logging.exception(exc)
         if self.connection_lost_cb:
             self.connection_lost_cb(exc)
 
-    def handle_line(self, line):
+    def handle_line(self, line: str) -> None:
         """
         Handle input from serial port, check for events.
         """
         self.responses.put(line)
 
-    def command(self, command):
+    def command(self, command: str) -> None:
         """Send a command that doesn't respond"""
         with self.lock:  # ensure that just one thread is sending commands at once
             try:
@@ -122,7 +122,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
             except serial.SerialException as exc:
                 self.connection_lost(exc)
 
-    def command_with_response(self, command, response='', timeout=5):
+    def command_with_response(self, command: str) -> str:
         """
         Set an Compex command and wait for the response.
         """
@@ -137,10 +137,8 @@ class CompexLaserProtocol(serial.threaded.LineReader):
             return response
 
     @property
-    def opmode(self):
-        data = self.command_with_response('OPMODE?')
-
-        data = data.split(':')
+    def opmode(self) -> tuple[OpMode | None, StatusCodes | None]:
+        data = self.command_with_response('OPMODE?').split(":")
 
         try:
             opmode = OpMode(data[0])
@@ -153,11 +151,11 @@ class CompexLaserProtocol(serial.threaded.LineReader):
             return opmode, None
 
     @opmode.setter
-    def opmode(self, mode):
+    def opmode(self, mode: OpMode) -> None:
         self.command('OPMODE={}'.format(mode.value))
 
     @property
-    def trigger(self):
+    def trigger(self) -> TriggerModes | None:
         data = self.command_with_response('TRIGGER?')
 
         try:
@@ -166,80 +164,80 @@ class CompexLaserProtocol(serial.threaded.LineReader):
             return None
 
     @trigger.setter
-    def trigger(self, mode):
+    def trigger(self, mode: TriggerModes) -> None:
         self.command('TRIGGER={}'.format(mode.value))
 
     @property
-    def reprate(self):
+    def reprate(self) -> int:
         return int(self.command_with_response('REPRATE?'))
 
     @reprate.setter
-    def reprate(self, rate):
+    def reprate(self, rate: int) -> None:
         self.command('REPRATE={}'.format(rate))
 
     @property
-    def counts(self):
+    def counts(self) -> int:
         return int(self.command_with_response('COUNTS?'))
 
     @counts.setter
-    def counts(self, counts):
+    def counts(self, counts: int) -> None:
         self.command('COUNTS={}'.format(counts))
 
     @property
-    def pressure(self):
+    def pressure(self) -> int:
         return int(self.command_with_response('PRESSURE?'))
 
     @property
-    def tube_temp(self):
+    def tube_temp(self) -> str:
         return self.command_with_response('RESERVOIR TEMP?')
 
     @property
-    def tube_temp_control(self):
+    def tube_temp_control(self) -> str:
         return self.command_with_response('TEMP CONTROL?')
 
     @property
-    def hv(self):
+    def hv(self) -> float:
         return float(self.command_with_response('HV?'))
 
     @hv.setter
-    def hv(self, hv):
+    def hv(self, hv: float) -> None:
         self.command('HV={:04.1f}'.format(hv))
 
     @property
-    def egy(self):
+    def egy(self) -> float:
         return float(self.command_with_response('EGY?'))
 
     @property
-    def cod(self):
+    def cod(self) -> str:
         return self.command_with_response('COD?')  # TODO: handle format
 
     @cod.setter
-    def cod(self, cod):
+    def cod(self, cod: str) -> None:
         self.command('COD={}'.format(cod))
 
     @property
-    def filter_contamination(self):
+    def filter_contamination(self) -> int:
         return int(self.command_with_response('FILTER CONTAMINATION?'))
 
-    def reset_filter_contamination(self):
+    def reset_filter_contamination(self) -> None:
         self.command('FILTER CONTAMINATION=RESET')
 
     @property
-    def interlock(self):
+    def interlock(self) -> str:
         return self.command_with_response('INTERLOCK?')  # TODO: handle format
 
     @property
-    def power_stabilization(self):
+    def power_stabilization(self) -> str:
         return self.command_with_response('POWER STABILIZATION ACHIEVED?')  # TODO: handle format
 
     @property
-    def total_counter(self):
+    def total_counter(self) -> int:
         return int(self.command_with_response('TOTALCOUNTER?'))
 
     @property
-    def laser_type(self):
+    def laser_type(self) -> str:
         return self.command_with_response('TYPE OF LASER?')
 
     @property
-    def version(self):
+    def version(self) -> str:
         return self.command_with_response('VERSION?')

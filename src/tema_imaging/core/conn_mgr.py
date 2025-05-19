@@ -17,40 +17,42 @@
 import logging
 
 import serial
+import serial.threaded
+from PIL import Image
 from pubsub import pub
 
 from tema_imaging.core import utils
 from tema_imaging.core.settings import Settings
 from tema_imaging.core.utils import LaserStatusPoller, ShutterStatusPoller
 from tema_imaging.hardware.arduino_trigger import ArduTrigger
-from tema_imaging.hardware.camera import CameraThread, CameraException, Camera, camera_resolutions
+from tema_imaging.hardware.camera import Camera, CameraException, CameraThread, camera_resolutions
 from tema_imaging.hardware.laser_compex import CompexLaserProtocol
-from tema_imaging.hardware.shutter import AIODevice, ShutterException, Shutter
-from tema_imaging.hardware.stage import Stage, AxisType
+from tema_imaging.hardware.shutter import AIODevice, Shutter, ShutterException
+from tema_imaging.hardware.stage import AxisType, Stage
 from tema_imaging.hardware.stage.mcs_stage import MCSStage
 
 
 class ConnectionManager:
-    def __init__(self):
-        self.laser = None
+    def __init__(self) -> None:
+        self.laser: CompexLaserProtocol | None = None
         self.laser_connected = False
-        self._laser_thread = None
-        self._laser_status_poller = None
+        self._laser_thread: serial.threaded.ReaderThread[CompexLaserProtocol] | None = None
+        self._laser_status_poller: LaserStatusPoller | None = None
 
-        self.trigger = None
+        self.trigger: ArduTrigger | None = None
         self.trigger_connected = False
-        self._trigger_thread = None
+        self._trigger_thread: serial.threaded.ReaderThread[ArduTrigger] | None = None
 
-        self.shutter = None
+        self.shutter: Shutter | None = None
         self.shutter_connected = False
-        self._shutter_device = None
-        self._shutter_status_poller = None
+        self._shutter_device: AIODevice | None = None
+        self._shutter_status_poller: ShutterStatusPoller | None = None
 
-        self.stage = None  # type: Stage
+        self.stage: Stage | None = None
         self.stage_connected = False
-        self._stage_position_poller = None
+        self._stage_position_poller: utils.StagePositionPoller | None = None
 
-        self.camera = None
+        self.camera: Camera | None = None
         self.camera_connected = False
         self._camera_thread = None
 
@@ -77,7 +79,7 @@ class ConnectionManager:
             except Exception as e:
                 logging.exception(e)
 
-    def laser_connect(self, port, rate):
+    def laser_connect(self, port: str, rate: int) -> None:
         if not self.laser_connected:
             ser_laser = serial.serial_for_url(port, timeout=1, baudrate=rate)
             self._laser_thread = serial.threaded.ReaderThread(ser_laser, CompexLaserProtocol)
@@ -86,13 +88,14 @@ class ConnectionManager:
 
             transport, self.laser = self._laser_thread.connect()
 
+            assert self.laser is not None
             self._laser_status_poller = LaserStatusPoller(self.laser)
             self._laser_status_poller.start()
 
             self.laser_connected = True
             pub.sendMessage('laser.connection_changed', connected=True)
 
-    def laser_disconnect(self):
+    def laser_disconnect(self) -> None:
         if self.laser_connected:
             self._laser_status_poller.stop()
             self._laser_thread.stop()
@@ -100,12 +103,12 @@ class ConnectionManager:
             self.laser_connected = False
             pub.sendMessage('laser.connection_changed', connected=False)
 
-    def on_laser_connection_lost(self, exc):
+    def on_laser_connection_lost(self, exc: Exception) -> None:
         self.laser_connected = False
         pub.sendMessage('laser.connection_changed', connected=False)
         pub.sendMessage('laser.lost_connection', exc=exc)
 
-    def trigger_connect(self, port, rate):
+    def trigger_connect(self, port: str, rate: int) -> None:
         if not self.trigger_connected:
             ser_trigger = serial.serial_for_url(port, timeout=1, baudrate=rate)
             self._trigger_thread = serial.threaded.ReaderThread(ser_trigger, ArduTrigger)
@@ -116,14 +119,14 @@ class ConnectionManager:
             self.trigger_connected = True
             pub.sendMessage('trigger.connection_changed', connected=True)
 
-    def trigger_disconnect(self):
+    def trigger_disconnect(self) -> None:
         if self.trigger_connected:
             self._trigger_thread.stop()
 
             self.trigger_connected = False
             pub.sendMessage('trigger.connection_changed', connected=False)
 
-    def shutter_connect(self, output):
+    def shutter_connect(self, output: int) -> None:
         if not self.shutter_connected:
             self._shutter_device = AIODevice()
             try:
@@ -140,7 +143,7 @@ class ConnectionManager:
             self.shutter_connected = True
             pub.sendMessage('shutter.connection_changed', connected=True)
 
-    def shutter_disconnect(self):
+    def shutter_disconnect(self) -> None:
         if self.shutter_connected:
             self._shutter_status_poller.stop()
             self._shutter_device.disconnect()
@@ -148,7 +151,7 @@ class ConnectionManager:
             self.shutter_connected = False
             pub.sendMessage('shutter.connection_changed', connected=False)
 
-    def stage_connect(self, port):
+    def stage_connect(self, port: str) -> None:
         if not self.stage_connected:
             self.stage = MCSStage(port)
             self.stage.connect()
@@ -169,7 +172,7 @@ class ConnectionManager:
             self._stage_position_poller = utils.StagePositionPoller(self.stage)
             self._stage_position_poller.start()
 
-    def stage_disconnect(self):
+    def stage_disconnect(self) -> None:
         if self.stage_connected:
             self._stage_position_poller.stop()
             self.stage.disconnect()
@@ -177,7 +180,7 @@ class ConnectionManager:
             self.stage_connected = False
             pub.sendMessage('stage.connection_changed', connected=False)
 
-    def camera_list(self, driver_name):
+    def camera_list(self, driver_name: str) -> list[str]:
         driver = Camera.get_driver_from_name(driver_name)
 
         if driver:
@@ -185,7 +188,7 @@ class ConnectionManager:
         else:
             return []
 
-    def camera_connect(self, driver, dev_id, resolution):
+    def camera_connect(self, driver: str, dev_id: str, resolution: tuple[int, int]) -> None:
         if not self.camera_connected:
             self.camera = Camera.get_driver_from_name(driver)(dev_id, resolution[0], resolution[1])
 
@@ -201,10 +204,10 @@ class ConnectionManager:
                 pub.sendMessage('camera.connection_changed', connected=True)
 
     @staticmethod
-    def camera_notify_image_acquired(camera, image):
+    def camera_notify_image_acquired(camera: Camera, image: Image.Image) -> None:
         pub.sendMessage('camera.image_acquired', camera=camera, image=image)
 
-    def camera_disconnect(self):
+    def camera_disconnect(self) -> None:
         if self.camera_connected:
             self._camera_thread.stop()
             self._camera_thread = None

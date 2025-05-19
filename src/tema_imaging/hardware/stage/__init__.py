@@ -15,9 +15,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import collections
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Tuple, Dict, Type, Callable
+from typing import Any, Callable, Self, Type
 
 from tema_imaging.core.settings import Settings
 from tema_imaging.scans import Spot
@@ -46,50 +46,49 @@ class StageError(Exception):
 
 class EventHandler:
     # TODO: semantics for unregistering event handlers after scan is done
-    def __init__(self):
-        self._handlers = []
+    def __init__(self) -> None:
+        self._handlers: list[Callable[[Any | None], None]] = []
 
-    def __iadd__(self, handler: Callable):
+    def __iadd__(self, handler: Callable[[Any | None], None]) -> Self:
         if handler not in self._handlers:
             self._handlers.append(handler)
         return self
 
-    def __isub__(self, handler: Callable):
+    def __isub__(self, handler: Callable[[Any | None], None]) -> Self:
         if handler in self._handlers:
             self._handlers.remove(handler)
         return self
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> None:
         self._notify(*args, **kwargs)
 
-    def _notify(self, *args, **kwargs):
+    def _notify(self, *args, **kwargs) -> None:
         for handler in self._handlers:
             handler(*args, **kwargs)
 
 
 class Axis(ABC):
-    def __init__(self, name: str, channel: int, stage: 'Stage'):
+    def __init__(self, name: str, channel: int) -> None:
         self._name = name
         self._channel = channel
-        self._stage = stage
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Name: {}, Channel: {}".format(self._name, self._channel)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @abstractmethod
-    def move(self, value: int, auto_commit=True):
+    def move(self, value: int, auto_commit: bool = True) -> None:
         pass
 
     @abstractmethod
-    def stop(self):
+    def stop(self) -> None:
         pass
 
     @abstractmethod
-    def find_reference(self):
+    def find_reference(self) -> None:
         pass
 
     @property
@@ -109,17 +108,17 @@ class Axis(ABC):
 
     @speed.setter
     @abstractmethod
-    def speed(self, speed: int):
+    def speed(self, speed: int) -> None:
         pass
 
     @property
     @abstractmethod
-    def position_limit(self) -> Tuple[int, int]:
+    def position_limit(self) -> tuple[int, int]:
         pass
 
     @position_limit.setter
     @abstractmethod
-    def position_limit(self, limit: Tuple[int, int]):
+    def position_limit(self, limit: tuple[int, int]) -> None:
         pass
 
     @property
@@ -129,7 +128,7 @@ class Axis(ABC):
 
     @movement_mode.setter
     @abstractmethod
-    def movement_mode(self, value: AxisMovementMode):
+    def movement_mode(self, value: AxisMovementMode) -> None:
         pass
 
     @property
@@ -138,12 +137,12 @@ class Axis(ABC):
         pass
 
 
-class MovementQueue(collections.deque):
-    def __init__(self):
+class MovementQueue(collections.deque[dict[AxisType, float]]):
+    def __init__(self) -> None:
         super().__init__()
         self.on_queue_finished = EventHandler()
 
-    def put(self, item):
+    def put(self, item: Spot | dict[AxisType, float]) -> None:
         if isinstance(item, Spot):
             item = {AxisType.X: item.X,
                     AxisType.Y: item.Y,
@@ -156,7 +155,7 @@ class MovementQueue(collections.deque):
 
 
 class Stage(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         self.movement_queue = MovementQueue()
         self.on_movement_completed = EventHandler()
         self.on_frame_completed = EventHandler()
@@ -164,11 +163,11 @@ class Stage(ABC):
         self._connected = False
 
     @abstractmethod
-    def connect(self):
+    def connect(self) -> None:
         pass
 
     @abstractmethod
-    def disconnect(self):
+    def disconnect(self) -> None:
         pass
 
     @property
@@ -176,15 +175,15 @@ class Stage(ABC):
         return self._connected
 
     @property
-    def axes(self) -> Dict[AxisType, Axis]:
+    def axes(self) -> dict[AxisType, Axis]:
         return self._axes
 
     @abstractmethod
-    def stop_all(self):
+    def stop_all(self) -> None:
         for ax in self.axes:
             ax.stop()
 
-    def find_references(self):
+    def find_references(self) -> None:
         if Settings.get('stage.ref_x'):
             self.axes[AxisType.X].find_reference()
         if Settings.get('stage.ref_y'):
@@ -201,13 +200,13 @@ class Stage(ABC):
 
     @property
     @abstractmethod
-    def _num_channels(self):
+    def _num_channels(self) -> int:
         pass
 
     @abstractmethod
-    def trigger_frame(self):
+    def trigger_frame(self) -> None:
         pass
 
     @abstractmethod
-    def commit_move(self):
+    def commit_move(self) -> None:
         pass

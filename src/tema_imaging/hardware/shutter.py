@@ -27,32 +27,32 @@ class ShutterException(Exception):
 
 
 class Shutter:
-    def __init__(self, dev, output):
+    def __init__(self, dev: 'AIODevice', output: int) -> None:
         self.io_device = dev
         self.output = output
 
-    def open(self):
+    def open(self) -> None:
         self.io_device.set_output(self.output, True)
 
-    def close(self):
+    def close(self) -> None:
         self.io_device.set_output(self.output, False)
 
-    def set(self, _open=False):
-        self.io_device.set_output(self.output, _open)
+    def set(self, open_: bool = False) -> None:
+        self.io_device.set_output(self.output, open_)
 
     @property
-    def status(self):
+    def status(self) -> bool:
         return self.io_device.get_output(self.output)
 
 
 class AIODevice:
-    def __init__(self, index=0):
+    def __init__(self, index: int = 0) -> None:
         self.index = index
         self.curr_status = DIOBuf(MAX_DIO_BYTES)
         self.output_mask = NewAIOChannelMaskFromStr("0001")  # Channels A are used as outputs
         self._connected = False
 
-    def connect(self):
+    def connect(self) -> None:
         result = AIOUSB_Init()
         if result != AIOUSB_SUCCESS or AIOUSB_EnsureOpen(self.index) != AIOUSB_SUCCESS:
             self._connected = False
@@ -61,16 +61,16 @@ class AIODevice:
 
         DIO_ReadAllToDIOBuf(self.index, self.curr_status)
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         AIOUSB_Exit()
         self._connected = False
 
-    def set_output(self, output, on):
+    def set_output(self, output: int, on: bool) -> None:
         if self._connected:
             DIOBufSetIndex(self.curr_status, output, 1 if on else 0)
             DIO_ConfigureWithDIOBuf(self.index, AIOUSB_FALSE, self.output_mask, self.curr_status)
 
-    def get_output(self, output):
+    def get_output(self, output: int) -> bool:
         if self._connected:
             DIO_ReadAllToDIOBuf(self.index, self.curr_status)
             return DIOBufGetIndex(self.curr_status, output)

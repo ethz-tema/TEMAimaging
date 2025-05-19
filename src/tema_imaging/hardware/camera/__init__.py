@@ -14,10 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import abc
 import os
 import time
 from importlib import import_module
 from threading import Thread
+from typing import Callable
+
+from PIL import Image
 
 from tema_imaging.core.utils import get_project_root
 
@@ -29,11 +33,11 @@ camera_resolutions = {
 }
 
 
-class Camera:
-    driver_name = None
+class Camera(abc.ABC):
+    driver_name: str
 
     @staticmethod
-    def get_driver_from_name(name):
+    def get_driver_from_name(name: str) -> type["Camera"]:
         subs = Camera.__subclasses__()
         for klass in subs:
             if klass.driver_name == name:
@@ -41,26 +45,32 @@ class Camera:
 
         raise ValueError(f"Invalid driver name '{name}'")
 
-    def __init__(self):
+    def __init__(self, dev_id: str, img_width: int, img_height: int) -> None:
+        self.img_width = img_width
+        self.img_height = img_height
+
+    def init(self) -> None:
         pass
 
-    def init(self):
+    @abc.abstractmethod
+    def get_frame(self) -> Image.Image:
         pass
 
     @staticmethod
-    def get_device_ids():
+    @abc.abstractmethod
+    def get_device_ids() -> list[str]:
         pass
 
 
 class CameraThread(Thread):
-    def __init__(self, camera, notify, timeout=100):
+    def __init__(self, camera: Camera, notify: Callable[[Camera, Image.Image], None], timeout: int = 100) -> None:
         super(CameraThread, self).__init__()
         self.alive = True
         self.camera = camera
         self.notify = notify
         self.timeout = timeout
 
-    def run(self):
+    def run(self) -> None:
         while self.alive:
             # ignore image transfer errors
             try:
@@ -72,13 +82,13 @@ class CameraThread(Thread):
             if self.camera.driver_name == 'v4l2':
                 time.sleep(1 / 30)  # TODO: Fix this; sleep a bit so the UI thread has time to process
 
-    def stop(self):
+    def stop(self) -> None:
         self.alive = False
         self.join()
 
 
 class CameraException(Exception):
-    def __init__(self, fatal):
+    def __init__(self, fatal: bool) -> None:
         self.fatal = fatal
 
 
@@ -87,4 +97,3 @@ for m in os.listdir(get_project_root() / 'src/tema_imaging/hardware/camera'):
         import_module('tema_imaging.hardware.camera.{}'.format(m.split('.')[0]))
     except ImportError:
         pass
-

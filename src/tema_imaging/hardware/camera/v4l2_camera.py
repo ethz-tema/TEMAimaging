@@ -17,6 +17,7 @@
 import glob
 
 from PIL import Image
+
 try:
     from PyV4L2Camera.camera import Camera as PYV4L2Camera
 except ImportError:
@@ -26,30 +27,27 @@ from tema_imaging.hardware.camera import Camera, CameraException
 
 
 class V4L2CameraException(CameraException):
-    def __init__(self, fatal):
-        super().__init__(fatal)
+    pass
 
 
 class V4L2Camera(Camera):
     driver_name = "v4l2"
 
     @staticmethod
-    def get_device_ids():
+    def get_device_ids() -> list[str]:
         devices = glob.glob("/dev/video*")
         return devices
 
-    def __init__(self, dev_id, img_width=640, img_height=480):
-        super().__init__()
+    def __init__(self, dev_id: str, img_width: int = 640, img_height: int = 480) -> None:
+        super().__init__(dev_id, img_width=640, img_height=480)
         self.camera = PYV4L2Camera(dev_id, img_width, img_height)
-        self.img_width = img_width
-        self.img_height = img_height
 
-    def init(self):
+    def init(self) -> None:
         pass
 
-    def get_frame(self):
+    def get_frame(self) -> Image.Image:
         frame = self.camera.get_frame()
         return Image.frombytes('RGB', (self.img_width, self.img_height), frame, 'raw', 'RGB')
 
-    def close(self):
+    def close(self) -> None:
         self.camera.close()

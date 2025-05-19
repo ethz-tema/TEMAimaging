@@ -18,6 +18,7 @@ import math
 from threading import Event
 
 from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.scanner_registry import ScannerMeta
 from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 
@@ -66,13 +67,13 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
                    params['z_start'].value, params['zig_zag_mode'].value)
 
     @property
-    def boundary_size(self):
+    def boundary_size(self) -> tuple[float, float]:
         if self.direction in [0, 90, 180, 270]:
             return self.x_size, self.y_size
         # TODO: rotated rectangle
         return 0, 0
 
-    def init_scan(self, _):
+    def init_scan(self, _: Measurement) -> None:
         conn_mgr.stage.on_movement_completed += self.on_movement_completed
 
         conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
@@ -103,7 +104,7 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_RELATIVE
         conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_RELATIVE
 
-    def next_move(self):
+    def next_move(self) -> bool:
         if self._curr_line >= self.y_steps:
             return False
 
@@ -143,11 +144,11 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         self.movement_completed_event.clear()
         return True
 
-    def next_shot(self):
+    def next_shot(self) -> None:
         pass
 
-    def done(self):
+    def done(self) -> None:
         conn_mgr.stage.on_movement_completed -= self.on_movement_completed
 
-    def on_movement_completed(self):
+    def on_movement_completed(self) -> None:
         self.movement_completed_event.set()

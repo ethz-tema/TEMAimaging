@@ -18,6 +18,7 @@ import math
 from threading import Event
 
 from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.scanner_registry import ScannerMeta
 from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 from tema_imaging.scans import Spot
@@ -72,10 +73,10 @@ class ContinuousLineScan(metaclass=ScannerMeta):
                    params['x_start'].value, params['y_start'].value, params['z_start'].value, dz)
 
     @property
-    def boundary_size(self):
+    def boundary_size(self) -> tuple[float, float]:
         return self._dx, self._dy
 
-    def init_scan(self, _):
+    def init_scan(self, _: Measurement) -> None:
         conn_mgr.stage.on_movement_completed += self.on_movement_completed
 
         conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
@@ -116,7 +117,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         conn_mgr.stage.movement_queue.put(
             Spot(self.x_start + self._dx, self.y_start + self._dy, self.z_start + self._dz))
 
-    def next_move(self):
+    def next_move(self) -> bool:
         if not self.spot_count:
             return False
 
@@ -128,14 +129,14 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         self.on_frame_completed_event.clear()
         return False
 
-    def next_shot(self):
+    def next_shot(self) -> None:
         pass
 
-    def done(self):
+    def done(self) -> None:
         conn_mgr.stage.on_frame_completed -= self.on_frame_completed
 
-    def on_frame_completed(self):
+    def on_frame_completed(self) -> None:
         self.on_frame_completed_event.set()
 
-    def on_movement_completed(self):
+    def on_movement_completed(self) -> None:
         self.movement_completed_event.set()
