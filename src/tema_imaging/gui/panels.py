@@ -893,3 +893,4 @@ class SequencePlotPanel(wx.Panel):
 
         self.figure.tight_layout()
         self.canvas.draw()
+        self.Refresh()
