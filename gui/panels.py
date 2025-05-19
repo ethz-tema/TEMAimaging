@@ -78,18 +78,18 @@ class MeasurementDVContextMenu(wx.Menu):
         self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
 
     def on_click_add(self, _, item):
-        dlg = AddScanDialog(self.dvc)
-        if dlg.ShowModal() == wx.ID_ADD:
-            scan_str = dlg.choice_scan_type.GetStringSelection()
-            scan_type = core.scanner_registry.scanners_by_display_name[scan_str]
-            if item:
-                node = self.dvc.GetModel().ItemToObject(item)
-                if isinstance(node, Step):
-                    step_item = self.dvc.GetModel().insert_step(scan_type, node.index)
+        with AddScanDialog(self.dvc) as dlg:
+            if dlg.ShowModal() == wx.ID_ADD:
+                scan_str = dlg.choice_scan_type.GetStringSelection()
+                scan_type = core.scanner_registry.scanners_by_display_name[scan_str]
+                if item:
+                    node = self.dvc.GetModel().ItemToObject(item)
+                    if isinstance(node, Step):
+                        step_item = self.dvc.GetModel().insert_step(scan_type, node.index)
+                        self.dvc.Expand(step_item)
+                else:
+                    step_item = self.dvc.GetModel().append_step(scan_type)
                     self.dvc.Expand(step_item)
-            else:
-                step_item = self.dvc.GetModel().append_step(scan_type)
-                self.dvc.Expand(step_item)
 
     def on_click_delete(self, _, item):
         node = self.dvc.GetModel().ItemToObject(item)
@@ -241,13 +241,13 @@ class MeasurementPanel(wx.Panel):
         self.plot_panel.plot(measurement_model.measurement.steps)
 
     def on_click_add_step(self, _):
-        dlg = AddScanDialog(self)
-        if dlg.ShowModal() == wx.ID_ADD:
-            scan_str = dlg.choice_scan_type.GetStringSelection()
-            scan_type = core.scanner_registry.scanners_by_display_name[scan_str]
+        with AddScanDialog(self) as dlg:
+            if dlg.ShowModal() == wx.ID_ADD:
+                scan_str = dlg.choice_scan_type.GetStringSelection()
+                scan_type = core.scanner_registry.scanners_by_display_name[scan_str]
 
-            step_item = measurement_model.append_step(scan_type)
-            self.dvc.Expand(step_item)
+                step_item = measurement_model.append_step(scan_type)
+                self.dvc.Expand(step_item)
 
     def on_click_set_start_position(self, _, item):
         if item:

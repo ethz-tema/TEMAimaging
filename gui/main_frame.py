@@ -140,12 +140,12 @@ class MainFrame(wx.Frame):
         self.main_panel.GetParent().Fit()
 
     def on_connection_manager(self, _):
-        dlg = ConnectionManagerDialog(self)
-        dlg.ShowModal()
+        with ConnectionManagerDialog(self) as dlg:
+            dlg.ShowModal()
 
     def on_settings(self, _):
-        dlg = PreferencesDialog(self)
-        dlg.ShowModal()
+        with PreferencesDialog(self) as dlg:
+            dlg.ShowModal()
 
     def on_laser_status_changed(self, status):
         self.status_bar.SetStatusText('Laser status: ' + str(status), 0)
@@ -171,8 +171,8 @@ class MainFrame(wx.Frame):
         self.Destroy()
 
     def on_click_laser_menu_status(self, _):
-        dlg = LaserStatusDialog(self)
-        dlg.ShowModal()
+        with LaserStatusDialog(self) as dlg:
+            dlg.ShowModal()
 
     @staticmethod
     def on_click_stage_menu_reference(_):
