@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-from threading import Thread, Event
+from pathlib import Path
+from threading import Event, Thread
 
 import wx
 from pubsub import pub
 
-from core.settings import Settings
-from hardware.stage import Stage, AxisType
+from tema_imaging.core.settings import Settings
+from tema_imaging.hardware.stage import AxisType, Stage
 
 
 class StatusPoller(Thread):
@@ -74,3 +75,7 @@ class StagePositionPoller(StatusPoller):
                 AxisType.Z: self._stage.axes[AxisType.Z].position
             }
             wx.CallAfter(pub.sendMessage, 'stage.position_changed', position=pos)
+
+
+def get_project_root() -> Path:
+    return Path(__file__).parents[3]

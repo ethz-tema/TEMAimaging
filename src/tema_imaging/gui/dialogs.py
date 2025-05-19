@@ -17,8 +17,8 @@
 import wx
 import wx.adv
 
-import core.scanner_registry
-from core.conn_mgr import conn_mgr
+import tema_imaging.core.scanner_registry
+from tema_imaging.core.conn_mgr import conn_mgr
 
 
 class AddScanDialog(wx.Dialog):
@@ -27,7 +27,7 @@ class AddScanDialog(wx.Dialog):
 
         self.choice_scan_type = wx.Choice(self, wx.ID_ANY,
                                           choices=list(sorted(
-                                              core.scanner_registry.scanners_by_display_name.keys())))  # TODO: use an OrderedDict here, so param order can be defined by devs
+                                              tema_imaging.core.scanner_registry.scanners_by_display_name.keys())))  # TODO: use an OrderedDict here, so param order can be defined by devs
         self.btn_add = wx.Button(self, wx.ID_ADD, "")
         self.btn_cancel = wx.Button(self, wx.ID_CANCEL, "")
 

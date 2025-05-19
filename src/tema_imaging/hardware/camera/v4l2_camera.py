@@ -22,7 +22,7 @@ try:
 except ImportError:
     pass
 
-from hardware.camera import Camera, CameraException
+from tema_imaging.hardware.camera import Camera, CameraException
 
 
 class V4L2CameraException(CameraException):

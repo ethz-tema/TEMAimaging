@@ -21,9 +21,9 @@ from typing import Tuple
 
 from cffi import FFI, error
 
-from core.settings import Settings
-from core.utils import StatusPoller
-from hardware.stage import Stage, Axis, AxisMovementMode, AxisType, AxisStatus, StageError
+from tema_imaging.core.settings import Settings
+from tema_imaging.core.utils import StatusPoller, get_project_root
+from tema_imaging.hardware.stage import Stage, Axis, AxisMovementMode, AxisType, AxisStatus, StageError
 
 
 class SAError(IntEnum):
@@ -116,7 +116,7 @@ class MCSError(StageError):
 
 ffi = FFI()
 try:
-    ffi.cdef(open('hardware/mcs.cdef', 'r').read())
+    ffi.cdef(open(get_project_root() / 'src/hardware/mcs.cdef', 'r').read())
     lib = ffi.dlopen('libmcscontrol.so')
 except error.FFIError:
     pass

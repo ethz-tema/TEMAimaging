@@ -17,9 +17,9 @@
 import wx
 from pubsub import pub
 
-from core.conn_mgr import conn_mgr
-from core.settings import Settings
-from hardware.camera import Camera, camera_resolutions
+from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.settings import Settings
+from tema_imaging.hardware.camera import Camera, camera_resolutions
 
 
 class ConnectionManagerDialog(wx.Dialog):

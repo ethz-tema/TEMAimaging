@@ -25,14 +25,14 @@ import wx.dataview
 from PIL import Image
 from pubsub import pub
 
-import core.scanner_registry
-from core.conn_mgr import conn_mgr
-from core.measurement import measurement_model, Step, MeasurementController
-from gui.dialogs import AddScanDialog
-from gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
-from gui.utils import FloatValidator
-from hardware.laser_compex import OpMode
-from hardware.stage import AxisType, AxisMovementMode
+import tema_imaging.core.scanner_registry
+from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.measurement import measurement_model, Step, MeasurementController
+from tema_imaging.gui.dialogs import AddScanDialog
+from tema_imaging.gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
+from tema_imaging.gui.utils import FloatValidator
+from tema_imaging.hardware.laser_compex import OpMode
+from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 
 
 class MeasurementDVContextMenu(wx.Menu):
@@ -81,7 +81,7 @@ class MeasurementDVContextMenu(wx.Menu):
         with AddScanDialog(self.dvc) as dlg:
             if dlg.ShowModal() == wx.ID_ADD:
                 scan_str = dlg.choice_scan_type.GetStringSelection()
-                scan_type = core.scanner_registry.scanners_by_display_name[scan_str]
+                scan_type = tema_imaging.core.scanner_registry.scanners_by_display_name[scan_str]
                 if item:
                     node = self.dvc.GetModel().ItemToObject(item)
                     if isinstance(node, Step):
@@ -244,7 +244,7 @@ class MeasurementPanel(wx.Panel):
         with AddScanDialog(self) as dlg:
             if dlg.ShowModal() == wx.ID_ADD:
                 scan_str = dlg.choice_scan_type.GetStringSelection()
-                scan_type = core.scanner_registry.scanners_by_display_name[scan_str]
+                scan_type = tema_imaging.core.scanner_registry.scanners_by_display_name[scan_str]
 
                 step_item = measurement_model.append_step(scan_type)
                 self.dvc.Expand(step_item)

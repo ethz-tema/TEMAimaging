@@ -17,6 +17,8 @@
 import os
 from importlib import import_module
 
+from tema_imaging.core.utils import get_project_root
+
 
 class ScannerMeta(type):
     def __new__(mcs, name, bases, attrs):
@@ -32,8 +34,8 @@ _param_map = {}
 
 
 def _import_scanners():
-    for m in os.listdir('scans'):
-        import_module('scans.{}'.format(m.split('.')[0]))
+    for m in os.listdir(get_project_root() / 'src/tema_imaging/scans'):
+        import_module('tema_imaging.scans.{}'.format(m.split('.')[0]))
 
 
 def register(scanner):

@@ -19,8 +19,8 @@ from abc import abstractmethod, ABC
 from enum import Enum
 from typing import Tuple, Dict, Type, Callable
 
-from core.settings import Settings
-from scans import Spot
+from tema_imaging.core.settings import Settings
+from tema_imaging.scans import Spot
 
 
 class AxisType(Enum):

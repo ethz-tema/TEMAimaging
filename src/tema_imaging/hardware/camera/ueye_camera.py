@@ -17,7 +17,7 @@
 from PIL import Image
 from pyueye import ueye
 
-from hardware.camera import Camera, CameraException
+from tema_imaging.hardware.camera import Camera, CameraException
 
 
 class UeyeCameraException(CameraException):

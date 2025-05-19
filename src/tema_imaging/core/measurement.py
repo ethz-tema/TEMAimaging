@@ -23,9 +23,9 @@ import wx.dataview
 from pubsub import pub
 from ruamel.yaml import YAML
 
-import core.scanner_registry
-from core.conn_mgr import conn_mgr
-from hardware.stage import AxisType, StageError
+import tema_imaging.core.scanner_registry
+from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.hardware.stage import AxisType, StageError
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ class Step:
                     param_v.key = param_k
                     self.params[param_k] = param_v
             elif k == 'scan_type':
-                self.scan_type = core.scanner_registry.scanners_by_name.get(v)
+                self.scan_type = tema_imaging.core.scanner_registry.scanners_by_name.get(v)
             else:
                 setattr(self, k, v)
 
@@ -230,12 +230,12 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
 
         elif isinstance(node, Param):
             typ = type(node.value)
-            value = node.value / core.scanner_registry.get_param_scale_factor(node.key) \
-                if core.scanner_registry.get_param_scale_factor(node.key) is not None and (
+            value = node.value / tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) \
+                if tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) is not None and (
                     isinstance(node.value, int) or isinstance(node.value, float)) else node.value
             value = typ(value)
             mapper = {0: "", 1: (False, False, ''),
-                      2: (True, False, str(core.scanner_registry.get_param_display_str(node.key))),
+                      2: (True, False, str(tema_imaging.core.scanner_registry.get_param_display_str(node.key))),
                       3: (True, True, str(value)),
                       4: (False, False, ''),
                       5: (False, False, ''),
@@ -256,8 +256,8 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         elif isinstance(node, Param):
             if col == 3:
                 value = type(node.value)(variant)
-                value = value * core.scanner_registry.get_param_scale_factor(node.key) \
-                    if core.scanner_registry.get_param_scale_factor(node.key) is not None and (
+                value = value * tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) \
+                    if tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) is not None and (
                         isinstance(value, int) or isinstance(value, float)) else value
                 node.value = value
         return True

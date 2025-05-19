@@ -19,6 +19,8 @@ import time
 from importlib import import_module
 from threading import Thread
 
+from tema_imaging.core.utils import get_project_root
+
 camera_resolutions = {
     "640x480": (640, 480),
     "720x576": (720, 576),
@@ -37,7 +39,7 @@ class Camera:
             if klass.driver_name == name:
                 return klass
 
-        raise ValueError("Invalid driver name")
+        raise ValueError(f"Invalid driver name '{name}'")
 
     def __init__(self):
         pass
@@ -80,9 +82,9 @@ class CameraException(Exception):
         self.fatal = fatal
 
 
-for m in os.listdir('hardware/camera'):
+for m in os.listdir(get_project_root() / 'src/tema_imaging/hardware/camera'):
     try:
-        import_module('hardware.camera.{}'.format(m.split('.')[0]))
+        import_module('tema_imaging.hardware.camera.{}'.format(m.split('.')[0]))
     except ImportError:
         pass
 

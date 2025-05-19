@@ -19,15 +19,15 @@ import logging
 import serial
 from pubsub import pub
 
-from core import utils
-from core.settings import Settings
-from core.utils import LaserStatusPoller, ShutterStatusPoller
-from hardware.arduino_trigger import ArduTrigger
-from hardware.camera import CameraThread, CameraException, Camera, camera_resolutions
-from hardware.laser_compex import CompexLaserProtocol
-from hardware.shutter import AIODevice, ShutterException, Shutter
-from hardware.stage import Stage, AxisType
-from hardware.stage.mcs_stage import MCSStage
+from tema_imaging.core import utils
+from tema_imaging.core.settings import Settings
+from tema_imaging.core.utils import LaserStatusPoller, ShutterStatusPoller
+from tema_imaging.hardware.arduino_trigger import ArduTrigger
+from tema_imaging.hardware.camera import CameraThread, CameraException, Camera, camera_resolutions
+from tema_imaging.hardware.laser_compex import CompexLaserProtocol
+from tema_imaging.hardware.shutter import AIODevice, ShutterException, Shutter
+from tema_imaging.hardware.stage import Stage, AxisType
+from tema_imaging.hardware.stage.mcs_stage import MCSStage
 
 
 class ConnectionManager:

@@ -17,7 +17,7 @@
 import wx
 from pubsub import pub
 
-from core.settings import Settings
+from tema_imaging.core.settings import Settings
 
 
 class PreferencesBaseDialog(wx.Dialog):

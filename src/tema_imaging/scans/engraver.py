@@ -21,10 +21,10 @@ from typing import List
 
 from PIL import Image, ImageOps
 
-from core.conn_mgr import conn_mgr
-from core.scanner_registry import ScannerMeta
-from hardware.stage import AxisType, AxisMovementMode
-from scans import Spot
+from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.scanner_registry import ScannerMeta
+from tema_imaging.hardware.stage import AxisType, AxisMovementMode
+from tema_imaging.scans import Spot
 
 logger = logging.getLogger(__name__)
 

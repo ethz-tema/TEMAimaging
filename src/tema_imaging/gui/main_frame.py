@@ -17,14 +17,14 @@
 import wx
 from pubsub import pub
 
-from core.conn_mgr import conn_mgr
-from core.settings import Settings
-from gui.camera_frame import CameraFrame
-from gui.conn_mgr import ConnectionManagerDialog
-from gui.dialogs import LaserStatusDialog, AboutDialog
-from gui.panels import LaserPanel, StagePanel, CameraPanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
-from gui.preferences import PreferencesDialog
-from hardware.stage import AxisType
+from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.settings import Settings
+from tema_imaging.gui.camera_frame import CameraFrame
+from tema_imaging.gui.conn_mgr import ConnectionManagerDialog
+from tema_imaging.gui.dialogs import LaserStatusDialog, AboutDialog
+from tema_imaging.gui.panels import LaserPanel, StagePanel, CameraPanel, LaserManualShootPanel, ScanCtrlPanel, MeasurementPanel
+from tema_imaging.gui.preferences import PreferencesDialog
+from tema_imaging.hardware.stage import AxisType
 
 
 class MainFrame(wx.Frame):

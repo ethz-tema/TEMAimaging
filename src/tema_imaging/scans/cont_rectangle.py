@@ -17,9 +17,9 @@
 import math
 from threading import Event
 
-from core.conn_mgr import conn_mgr
-from core.scanner_registry import ScannerMeta
-from hardware.stage import AxisType, AxisMovementMode
+from tema_imaging.core.conn_mgr import conn_mgr
+from tema_imaging.core.scanner_registry import ScannerMeta
+from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 
 
 class ContinuousRectangleScan(metaclass=ScannerMeta):

@@ -14,26 +14,31 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import wx
-from pubsub import pub
+import logging
 
-from gui.panels import CameraPanel
+import wx.dataview
+import wx.lib.mixins.inspection as wit
+
+DEBUG = False
+
+logging.basicConfig(level=logging.DEBUG)
 
 
-class CameraFrame(wx.Frame):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class TemaImagingApp(wx.App, wit.InspectionMixin):
+    def OnInit(self):
+        if DEBUG:
+            self.Init()
 
-        self.camera_panel = CameraPanel(self, 720 * 2, 576 * 2)
+        from tema_imaging.gui.main_frame import MainFrame
+        frm = MainFrame(None, title="TEMAimaging")
 
-        self.init_ui()
+        frm.Show()
+        return True
 
-    def init_ui(self):
-        sizer = wx.BoxSizer()
-        sizer.Add(self.camera_panel)
 
-        pub.subscribe(self.on_image_acquired, 'camera.image_acquired')
-        self.SetSizerAndFit(sizer)
+def main():
+    TemaImagingApp(False).MainLoop()
 
-    def on_image_acquired(self, camera, image):
-        wx.CallAfter(self.camera_panel.update_image, image)
+
+if __name__ == '__main__':
+    main()
