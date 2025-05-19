@@ -22,7 +22,7 @@ import wx.dataview
 
 class SequenceEditorToggleRenderer(wx.dataview.DataViewCustomRenderer):
     def __init__(self) -> None:
-        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_ACTIVATABLE)
+        super().__init__("PyObject", wx.dataview.DATAVIEW_CELL_ACTIVATABLE)
         self.value = None
 
     def SetValue(self, value: Any) -> bool:
@@ -43,11 +43,19 @@ class SequenceEditorToggleRenderer(wx.dataview.DataViewCustomRenderer):
         if self.value[1]:
             flags |= wx.CONTROL_CHECKED
 
-        wx.RendererNative.Get().DrawCheckBox(self.GetOwner().GetOwner(), dc, cell, flags)
+        wx.RendererNative.Get().DrawCheckBox(
+            self.GetOwner().GetOwner(), dc, cell, flags
+        )
         return True
 
-    def ActivateCell(self, cell: wx.Rect, model: wx.dataview.DataViewModel, item: wx.dataview.DataViewItem, col: int,
-                     mouseEvent: wx.MouseEvent) -> bool:
+    def ActivateCell(
+        self,
+        cell: wx.Rect,
+        model: wx.dataview.DataViewModel,
+        item: wx.dataview.DataViewItem,
+        col: int,
+        mouseEvent: wx.MouseEvent,
+    ) -> bool:
         if mouseEvent:
             if not wx.Rect(self.GetSize()).Contains(mouseEvent.GetPosition()):
                 return False
@@ -58,7 +66,7 @@ class SequenceEditorToggleRenderer(wx.dataview.DataViewCustomRenderer):
 
 class SequenceEditorTextRenderer(wx.dataview.DataViewCustomRenderer):
     def __init__(self) -> None:
-        super().__init__('PyObject', wx.dataview.DATAVIEW_CELL_EDITABLE)
+        super().__init__("PyObject", wx.dataview.DATAVIEW_CELL_EDITABLE)
         self.value = ""
 
     def SetValue(self, value) -> bool:
@@ -71,11 +79,12 @@ class SequenceEditorTextRenderer(wx.dataview.DataViewCustomRenderer):
     def HasEditorCtrl(self) -> bool:
         return self.value[0] and self.value[1]
 
-    def CreateEditorCtrl(self, parent: wx.Window, labelRect: wx.Rect, value) -> wx.Window:
-        ctrl = wx.TextCtrl(parent,
-                           value=value[2],
-                           pos=labelRect.Position,
-                           size=labelRect.Size)
+    def CreateEditorCtrl(
+        self, parent: wx.Window, labelRect: wx.Rect, value
+    ) -> wx.Window:
+        ctrl = wx.TextCtrl(
+            parent, value=value[2], pos=labelRect.Position, size=labelRect.Size
+        )
 
         # select the text and put the caret at the end
         ctrl.SetInsertionPointEnd()
@@ -97,4 +106,6 @@ class SequenceEditorTextRenderer(wx.dataview.DataViewCustomRenderer):
         if self.value[0] and self.value[2]:
             return self.GetTextExtent(self.value[2])
 
-        return wx.Size(wx.dataview.DVC_DEFAULT_RENDERER_SIZE, wx.dataview.DVC_DEFAULT_RENDERER_SIZE)
+        return wx.Size(
+            wx.dataview.DVC_DEFAULT_RENDERER_SIZE, wx.dataview.DVC_DEFAULT_RENDERER_SIZE
+        )

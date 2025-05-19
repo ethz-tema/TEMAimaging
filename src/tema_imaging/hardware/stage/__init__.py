@@ -30,13 +30,13 @@ class AxisType(Enum):
 
 
 class AxisMovementMode(Enum):
-    CL_RELATIVE = 0,
+    CL_RELATIVE = (0,)
     CL_ABSOLUTE = 1
 
 
 class AxisStatus(Enum):
-    STOPPED = 0,
-    MOVING = 1,
+    STOPPED = (0,)
+    MOVING = (1,)
     WAITING = 2
 
 
@@ -144,9 +144,7 @@ class MovementQueue(collections.deque[dict[AxisType, float]]):
 
     def put(self, item: Spot | dict[AxisType, float]) -> None:
         if isinstance(item, Spot):
-            item = {AxisType.X: item.X,
-                    AxisType.Y: item.Y,
-                    AxisType.Z: item.Z}
+            item = {AxisType.X: item.X, AxisType.Y: item.Y, AxisType.Z: item.Z}
             super().appendleft(item)
         elif isinstance(item, dict):
             super().appendleft(item)
@@ -184,11 +182,11 @@ class Stage(ABC):
             ax.stop()
 
     def find_references(self) -> None:
-        if Settings.get('stage.ref_x'):
+        if Settings.get("stage.ref_x"):
             self.axes[AxisType.X].find_reference()
-        if Settings.get('stage.ref_y'):
+        if Settings.get("stage.ref_y"):
             self.axes[AxisType.Y].find_reference()
-        if Settings.get('stage.ref_z'):
+        if Settings.get("stage.ref_z"):
             self.axes[AxisType.Z].find_reference()
 
     @property

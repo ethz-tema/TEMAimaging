@@ -23,30 +23,30 @@ import serial.threaded
 
 
 class OpMode(enum.Enum):
-    OFF = 'OFF'
-    OFF_WAIT = 'OFF,WAIT'
-    ON = 'ON'
-    SKIP = 'SKIP'
-    NEW_FILL = 'NEW FILL'
-    PRESERVATION_FILL = 'PRESERVATION FILL'
-    PURGE_RESERVOIR = 'PURGE RESERVOIR'
-    SAFETY_FILL = 'SAFETY FILL'
-    TRANSPORT_FILL = 'TRANSPORT FILL'
-    FLUSHING = 'FLUSHING'
-    CONT = 'CONT'
-    HI = 'HI'
-    PGR = 'PGR'
-    MANUAL_FILL_INERT = 'MANUAL FILL INERT'
+    OFF = "OFF"
+    OFF_WAIT = "OFF,WAIT"
+    ON = "ON"
+    SKIP = "SKIP"
+    NEW_FILL = "NEW FILL"
+    PRESERVATION_FILL = "PRESERVATION FILL"
+    PURGE_RESERVOIR = "PURGE RESERVOIR"
+    SAFETY_FILL = "SAFETY FILL"
+    TRANSPORT_FILL = "TRANSPORT FILL"
+    FLUSHING = "FLUSHING"
+    CONT = "CONT"
+    HI = "HI"
+    PGR = "PGR"
+    MANUAL_FILL_INERT = "MANUAL FILL INERT"
     # FLUSH <xy> LINE
     # PURGE <xy> LINE
-    CAPACITY_RESET = 'CAPACITY RESET'
-    LL_OFF = 'LL OFF'
-    ENERGY_CAL = 'ENERGY CAL'
+    CAPACITY_RESET = "CAPACITY RESET"
+    LL_OFF = "LL OFF"
+    ENERGY_CAL = "ENERGY CAL"
 
 
 class TriggerModes(enum.Enum):
-    INT = 'INT'
-    EXT = 'EXT'
+    INT = "INT"
+    EXT = "EXT"
 
 
 class StatusCodes(enum.IntEnum):
@@ -85,7 +85,7 @@ class CompexException(Exception):
 
 
 class CompexLaserProtocol(serial.threaded.LineReader):
-    TERMINATOR = b'\r'
+    TERMINATOR = b"\r"
 
     def __init__(self) -> None:
         super(CompexLaserProtocol, self).__init__()
@@ -101,7 +101,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
         Stop the event processing thread, abort pending commands, if any.
         """
         self.alive = False
-        self.responses.put('<exit>')  # TODO: ??
+        self.responses.put("<exit>")  # TODO: ??
 
     def connection_lost(self, exc: Exception) -> None:
         logging.exception(exc)
@@ -138,7 +138,7 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @property
     def opmode(self) -> tuple[OpMode | None, StatusCodes | None]:
-        data = self.command_with_response('OPMODE?').split(":")
+        data = self.command_with_response("OPMODE?").split(":")
 
         try:
             opmode = OpMode(data[0])
@@ -152,11 +152,11 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @opmode.setter
     def opmode(self, mode: OpMode) -> None:
-        self.command('OPMODE={}'.format(mode.value))
+        self.command("OPMODE={}".format(mode.value))
 
     @property
     def trigger(self) -> TriggerModes | None:
-        data = self.command_with_response('TRIGGER?')
+        data = self.command_with_response("TRIGGER?")
 
         try:
             return TriggerModes(data)
@@ -165,79 +165,81 @@ class CompexLaserProtocol(serial.threaded.LineReader):
 
     @trigger.setter
     def trigger(self, mode: TriggerModes) -> None:
-        self.command('TRIGGER={}'.format(mode.value))
+        self.command("TRIGGER={}".format(mode.value))
 
     @property
     def reprate(self) -> int:
-        return int(self.command_with_response('REPRATE?'))
+        return int(self.command_with_response("REPRATE?"))
 
     @reprate.setter
     def reprate(self, rate: int) -> None:
-        self.command('REPRATE={}'.format(rate))
+        self.command("REPRATE={}".format(rate))
 
     @property
     def counts(self) -> int:
-        return int(self.command_with_response('COUNTS?'))
+        return int(self.command_with_response("COUNTS?"))
 
     @counts.setter
     def counts(self, counts: int) -> None:
-        self.command('COUNTS={}'.format(counts))
+        self.command("COUNTS={}".format(counts))
 
     @property
     def pressure(self) -> int:
-        return int(self.command_with_response('PRESSURE?'))
+        return int(self.command_with_response("PRESSURE?"))
 
     @property
     def tube_temp(self) -> str:
-        return self.command_with_response('RESERVOIR TEMP?')
+        return self.command_with_response("RESERVOIR TEMP?")
 
     @property
     def tube_temp_control(self) -> str:
-        return self.command_with_response('TEMP CONTROL?')
+        return self.command_with_response("TEMP CONTROL?")
 
     @property
     def hv(self) -> float:
-        return float(self.command_with_response('HV?'))
+        return float(self.command_with_response("HV?"))
 
     @hv.setter
     def hv(self, hv: float) -> None:
-        self.command('HV={:04.1f}'.format(hv))
+        self.command("HV={:04.1f}".format(hv))
 
     @property
     def egy(self) -> float:
-        return float(self.command_with_response('EGY?'))
+        return float(self.command_with_response("EGY?"))
 
     @property
     def cod(self) -> str:
-        return self.command_with_response('COD?')  # TODO: handle format
+        return self.command_with_response("COD?")  # TODO: handle format
 
     @cod.setter
     def cod(self, cod: str) -> None:
-        self.command('COD={}'.format(cod))
+        self.command("COD={}".format(cod))
 
     @property
     def filter_contamination(self) -> int:
-        return int(self.command_with_response('FILTER CONTAMINATION?'))
+        return int(self.command_with_response("FILTER CONTAMINATION?"))
 
     def reset_filter_contamination(self) -> None:
-        self.command('FILTER CONTAMINATION=RESET')
+        self.command("FILTER CONTAMINATION=RESET")
 
     @property
     def interlock(self) -> str:
-        return self.command_with_response('INTERLOCK?')  # TODO: handle format
+        return self.command_with_response("INTERLOCK?")  # TODO: handle format
 
     @property
     def power_stabilization(self) -> str:
-        return self.command_with_response('POWER STABILIZATION ACHIEVED?')  # TODO: handle format
+        return self.command_with_response(
+            "POWER STABILIZATION ACHIEVED?"
+        )  # TODO: handle format
 
     @property
     def total_counter(self) -> int:
-        return int(self.command_with_response('TOTALCOUNTER?'))
+        return int(self.command_with_response("TOTALCOUNTER?"))
 
     @property
     def laser_type(self) -> str:
-        return self.command_with_response('TYPE OF LASER?')
+        return self.command_with_response("TYPE OF LASER?")
 
     @property
     def version(self) -> str:
-        return self.command_with_response('VERSION?')
+        return self.command_with_response("VERSION?")

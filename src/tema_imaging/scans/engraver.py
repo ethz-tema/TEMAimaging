@@ -31,18 +31,33 @@ logger = logging.getLogger(__name__)
 
 
 class Engraver(metaclass=ScannerMeta):
-    parameter_map = {'x_size': ('X Size', 0, 1000),
-                     'y_size': ('Y Size', 0, 1000),
-                     'x_start': ('X (Start)', 0.0, 1000),
-                     'y_start': ('Y (Start)', 0.0, 1000),
-                     'z_start': ('Z (Start)', 0.0, 1000),
-                     'image_path': ('Image path', "", None),
-                     'blank_spots': ('# of blank spots', 0, None)}
+    parameter_map = {
+        "x_size": ("X Size", 0, 1000),
+        "y_size": ("Y Size", 0, 1000),
+        "x_start": ("X (Start)", 0.0, 1000),
+        "y_start": ("Y (Start)", 0.0, 1000),
+        "z_start": ("Z (Start)", 0.0, 1000),
+        "image_path": ("Image path", "", None),
+        "blank_spots": ("# of blank spots", 0, None),
+    }
 
     display_name = "Engraver"
 
-    def __init__(self, spot_size, shots_per_spot, frequency, image, cleaning=False, cleaning_delay=0, x_start=None,
-                 y_start=None, z_start=None, blank_spots=0, x_size=0, y_size=0):
+    def __init__(
+        self,
+        spot_size,
+        shots_per_spot,
+        frequency,
+        image,
+        cleaning=False,
+        cleaning_delay=0,
+        x_start=None,
+        y_start=None,
+        z_start=None,
+        blank_spots=0,
+        x_size=0,
+        y_size=0,
+    ):
         self.x_size = x_size
         self.y_size = y_size
         self.spot_size = spot_size
@@ -80,7 +95,8 @@ class Engraver(metaclass=ScannerMeta):
                 y_coord = round(y_start + (y_pixel * spot_size))
                 self.coord_list.append(Spot(x_coord, y_coord))
                 conn_mgr.stage.movement_queue.put(
-                    Spot(x_coord, y_coord))  # TODO: move this to init_scan since it modifies hardware state
+                    Spot(x_coord, y_coord)
+                )  # TODO: move this to init_scan since it modifies hardware state
                 black_pixel += 1
 
             i += 1
@@ -91,18 +107,43 @@ class Engraver(metaclass=ScannerMeta):
         self.movement_completed_event = Event()
 
     @classmethod
-    def from_params(cls, spot_size, shots_per_spot, frequency, cleaning, cleaning_delay, params):
-        width = int(params['y_size'].value / spot_size)
-        height = int(params['x_size'].value / spot_size)
-        image = Image.open(params['image_path'].value).convert(mode='1').resize((width, height))
-        return cls(spot_size, shots_per_spot, frequency, image, cleaning, cleaning_delay, params['x_start'].value,
-                   params['y_start'].value, params['z_start'].value, params['blank_spots'].value,
-                   params['x_size'].value, params['y_size'].value)
+    def from_params(
+        cls, spot_size, shots_per_spot, frequency, cleaning, cleaning_delay, params
+    ):
+        width = int(params["y_size"].value / spot_size)
+        height = int(params["x_size"].value / spot_size)
+        image = (
+            Image.open(params["image_path"].value)
+            .convert(mode="1")
+            .resize((width, height))
+        )
+        return cls(
+            spot_size,
+            shots_per_spot,
+            frequency,
+            image,
+            cleaning,
+            cleaning_delay,
+            params["x_start"].value,
+            params["y_start"].value,
+            params["z_start"].value,
+            params["blank_spots"].value,
+            params["x_size"].value,
+            params["y_size"].value,
+        )
 
     @property
     def boundary_size(self) -> tuple[float, float]:
-        x = max(spot.X for spot in self.coord_list) - min(spot.X for spot in self.coord_list) + self.spot_size
-        y = max(spot.Y for spot in self.coord_list) - min(spot.Y for spot in self.coord_list) + self.spot_size
+        x = (
+            max(spot.X for spot in self.coord_list)
+            - min(spot.X for spot in self.coord_list)
+            + self.spot_size
+        )
+        y = (
+            max(spot.Y for spot in self.coord_list)
+            - min(spot.Y for spot in self.coord_list)
+            + self.spot_size
+        )
 
         return x, y
 

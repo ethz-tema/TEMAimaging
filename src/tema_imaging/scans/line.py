@@ -27,18 +27,33 @@ from tema_imaging.scans import Spot
 
 
 class LineScan(metaclass=ScannerMeta):
-    parameter_map = {'spot_count': ('Spot Count', 1, None),
-                     'direction': ('Direction', 0.0, None),
-                     'x_start': ('X (Start)', 0.0, 1000),
-                     'y_start': ('Y (Start)', 0.0, 1000),
-                     'z_start': ('Z (Start)', 0.0, 1000),
-                     'z_end': ('Z (End)', 0.0, 1000),
-                     'blank_spots': ('# of blank spots', 0, None)}
+    parameter_map = {
+        "spot_count": ("Spot Count", 1, None),
+        "direction": ("Direction", 0.0, None),
+        "x_start": ("X (Start)", 0.0, 1000),
+        "y_start": ("Y (Start)", 0.0, 1000),
+        "z_start": ("Z (Start)", 0.0, 1000),
+        "z_end": ("Z (End)", 0.0, 1000),
+        "blank_spots": ("# of blank spots", 0, None),
+    }
 
     display_name = "Line Scan"
 
-    def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, spot_count=1,
-                 direction=0, x_start=None, y_start=None, z_start=None, z_end=None, blank_spots=0):
+    def __init__(
+        self,
+        spot_size,
+        shots_per_spot=1,
+        frequency=1,
+        cleaning=False,
+        cleaning_delay=0,
+        spot_count=1,
+        direction=0,
+        x_start=None,
+        y_start=None,
+        z_start=None,
+        z_end=None,
+        blank_spots=0,
+    ):
         self.spot_size = spot_size
         self.spot_count = spot_count
         self.direction = math.radians(direction)
@@ -72,17 +87,38 @@ class LineScan(metaclass=ScannerMeta):
         self.movement_completed_event = Event()
 
     @classmethod
-    def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
-        spot_count = params['spot_count'].value
+    def from_params(
+        cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params
+    ):
+        spot_count = params["spot_count"].value
 
-        return cls(spot_size, shot_count, frequency, cleaning, cleaning_delay, spot_count, params['direction'].value,
-                   params['x_start'].value, params['y_start'].value, params['z_start'].value, params['z_end'].value,
-                   params['blank_spots'].value)
+        return cls(
+            spot_size,
+            shot_count,
+            frequency,
+            cleaning,
+            cleaning_delay,
+            spot_count,
+            params["direction"].value,
+            params["x_start"].value,
+            params["y_start"].value,
+            params["z_start"].value,
+            params["z_end"].value,
+            params["blank_spots"].value,
+        )
 
     @property
     def boundary_size(self) -> tuple[float, float]:
-        x = max(spot.X for spot in self.coord_list) - min(spot.X for spot in self.coord_list) + self.spot_size
-        y = max(spot.Y for spot in self.coord_list) - min(spot.Y for spot in self.coord_list) + self.spot_size
+        x = (
+            max(spot.X for spot in self.coord_list)
+            - min(spot.X for spot in self.coord_list)
+            + self.spot_size
+        )
+        y = (
+            max(spot.Y for spot in self.coord_list)
+            - min(spot.Y for spot in self.coord_list)
+            + self.spot_size
+        )
 
         return x, y
 

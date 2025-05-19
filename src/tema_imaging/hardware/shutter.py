@@ -27,7 +27,7 @@ class ShutterException(Exception):
 
 
 class Shutter:
-    def __init__(self, dev: 'AIODevice', output: int) -> None:
+    def __init__(self, dev: "AIODevice", output: int) -> None:
         self.io_device = dev
         self.output = output
 
@@ -49,7 +49,9 @@ class AIODevice:
     def __init__(self, index: int = 0) -> None:
         self.index = index
         self.curr_status = DIOBuf(MAX_DIO_BYTES)
-        self.output_mask = NewAIOChannelMaskFromStr("0001")  # Channels A are used as outputs
+        self.output_mask = NewAIOChannelMaskFromStr(
+            "0001"
+        )  # Channels A are used as outputs
         self._connected = False
 
     def connect(self) -> None:
@@ -68,7 +70,9 @@ class AIODevice:
     def set_output(self, output: int, on: bool) -> None:
         if self._connected:
             DIOBufSetIndex(self.curr_status, output, 1 if on else 0)
-            DIO_ConfigureWithDIOBuf(self.index, AIOUSB_FALSE, self.output_mask, self.curr_status)
+            DIO_ConfigureWithDIOBuf(
+                self.index, AIOUSB_FALSE, self.output_mask, self.curr_status
+            )
 
     def get_output(self, output: int) -> bool:
         if self._connected:

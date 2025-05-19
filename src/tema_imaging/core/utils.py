@@ -47,9 +47,11 @@ class LaserStatusPoller(StatusPoller):
     def run(self) -> None:
         self._run.clear()
         while not self._run.wait(0.7):
-            wx.CallAfter(pub.sendMessage, 'laser.status_changed', status=self._laser.opmode)
-            wx.CallAfter(pub.sendMessage, 'laser.hv_changed', hv=self._laser.hv)
-            wx.CallAfter(pub.sendMessage, 'laser.egy_changed', egy=self._laser.egy)
+            wx.CallAfter(
+                pub.sendMessage, "laser.status_changed", status=self._laser.opmode
+            )
+            wx.CallAfter(pub.sendMessage, "laser.hv_changed", hv=self._laser.hv)
+            wx.CallAfter(pub.sendMessage, "laser.egy_changed", egy=self._laser.egy)
 
 
 class ShutterStatusPoller(StatusPoller):
@@ -60,7 +62,9 @@ class ShutterStatusPoller(StatusPoller):
     def run(self) -> None:
         self._run.clear()
         while not self._run.wait(1):
-            wx.CallAfter(pub.sendMessage, 'shutter.status_changed', open=self._shutter.status)
+            wx.CallAfter(
+                pub.sendMessage, "shutter.status_changed", open=self._shutter.status
+            )
 
 
 class StagePositionPoller(StatusPoller):
@@ -70,13 +74,13 @@ class StagePositionPoller(StatusPoller):
 
     def run(self) -> None:
         self._run.clear()
-        while not self._run.wait(Settings.get('stage.position_poll_rate')):
+        while not self._run.wait(Settings.get("stage.position_poll_rate")):
             pos = {
                 AxisType.X: self._stage.axes[AxisType.X].position,
                 AxisType.Y: self._stage.axes[AxisType.Y].position,
-                AxisType.Z: self._stage.axes[AxisType.Z].position
+                AxisType.Z: self._stage.axes[AxisType.Z].position,
             }
-            wx.CallAfter(pub.sendMessage, 'stage.position_changed', position=pos)
+            wx.CallAfter(pub.sendMessage, "stage.position_changed", position=pos)
 
 
 def get_project_root() -> Path:

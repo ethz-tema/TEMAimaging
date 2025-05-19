@@ -38,7 +38,9 @@ class V4L2Camera(Camera):
         devices = glob.glob("/dev/video*")
         return devices
 
-    def __init__(self, dev_id: str, img_width: int = 640, img_height: int = 480) -> None:
+    def __init__(
+        self, dev_id: str, img_width: int = 640, img_height: int = 480
+    ) -> None:
         super().__init__(dev_id, img_width=640, img_height=480)
         self.camera = PYV4L2Camera(dev_id, img_width, img_height)
 
@@ -47,7 +49,9 @@ class V4L2Camera(Camera):
 
     def get_frame(self) -> Image.Image:
         frame = self.camera.get_frame()
-        return Image.frombytes('RGB', (self.img_width, self.img_height), frame, 'raw', 'RGB')
+        return Image.frombytes(
+            "RGB", (self.img_width, self.img_height), frame, "raw", "RGB"
+        )
 
     def close(self) -> None:
         self.camera.close()

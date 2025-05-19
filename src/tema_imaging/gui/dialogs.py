@@ -25,9 +25,15 @@ class AddScanDialog(wx.Dialog):
     def __init__(self, parent: wx.Window) -> None:
         super().__init__(parent)
 
-        self.choice_scan_type = wx.Choice(self, wx.ID_ANY,
-                                          choices=list(sorted(
-                                              tema_imaging.core.scanner_registry.scanners_by_display_name.keys())))  # TODO: use an OrderedDict here, so param order can be defined by devs
+        self.choice_scan_type = wx.Choice(
+            self,
+            wx.ID_ANY,
+            choices=list(
+                sorted(
+                    tema_imaging.core.scanner_registry.scanners_by_display_name.keys()
+                )
+            ),
+        )  # TODO: use an OrderedDict here, so param order can be defined by devs
         self.btn_add = wx.Button(self, wx.ID_ADD, "")
         self.btn_cancel = wx.Button(self, wx.ID_CANCEL, "")
 
@@ -47,7 +53,9 @@ class AddScanDialog(wx.Dialog):
 
         btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
         btn_sizer.Add(self.btn_cancel, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-        btn_sizer.Add(self.btn_add, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.RIGHT | wx.TOP, 5)
+        btn_sizer.Add(
+            self.btn_add, 0, wx.ALIGN_CENTER_VERTICAL | wx.BOTTOM | wx.RIGHT | wx.TOP, 5
+        )
         sizer.Add(btn_sizer, 1, wx.ALIGN_RIGHT, 0)
 
         self.Bind(wx.EVT_BUTTON, self.on_click_add, self.btn_add)
@@ -67,24 +75,30 @@ class LaserStatusDialog(wx.Dialog):
         self.stxt_pressure = wx.StaticText(self)
         self.stxt_pressure.SetLabel("Pressure: {} mbar".format(conn_mgr.laser.pressure))
         self.stxt_filter_contamination = wx.StaticText(self)
-        self.stxt_filter_contamination.SetLabel('Filter contamination: {}'.format(conn_mgr.laser.filter_contamination))
+        self.stxt_filter_contamination.SetLabel(
+            "Filter contamination: {}".format(conn_mgr.laser.filter_contamination)
+        )
 
         self.stxt_interlock = wx.StaticText(self)
-        self.stxt_interlock.SetLabel('Interlock: {}'.format(conn_mgr.laser.interlock))
+        self.stxt_interlock.SetLabel("Interlock: {}".format(conn_mgr.laser.interlock))
         self.stxt_total_counter = wx.StaticText(self)
-        self.stxt_total_counter.SetLabel('Total counter: {}'.format(conn_mgr.laser.total_counter))
+        self.stxt_total_counter.SetLabel(
+            "Total counter: {}".format(conn_mgr.laser.total_counter)
+        )
 
         self.stxt_laser_type = wx.StaticText(self)
-        self.stxt_laser_type.SetLabel('Type: {}'.format(conn_mgr.laser.laser_type))
+        self.stxt_laser_type.SetLabel("Type: {}".format(conn_mgr.laser.laser_type))
         self.stxt_laser_version = wx.StaticText(self)
-        self.stxt_laser_version.SetLabel('Version: {}'.format(conn_mgr.laser.version))
+        self.stxt_laser_version.SetLabel("Version: {}".format(conn_mgr.laser.version))
 
         self.stxt_laser_temp = wx.StaticText(self)
         temp = conn_mgr.laser.tube_temp
-        self.stxt_laser_temp.SetLabel('Temperature:    {} °C'.format(temp))
+        self.stxt_laser_temp.SetLabel("Temperature:    {} °C".format(temp))
 
         self.stxt_laser_temp_ctrl = wx.StaticText(self)
-        self.stxt_laser_temp_ctrl.SetLabel('Temp. control: {}'.format(conn_mgr.laser.tube_temp_control))
+        self.stxt_laser_temp_ctrl.SetLabel(
+            "Temp. control: {}".format(conn_mgr.laser.tube_temp_control)
+        )
 
         self.init_ui()
 
@@ -112,7 +126,7 @@ class AboutDialog:
         info = wx.adv.AboutDialogInfo()
 
         info.Name = "TEMAimaging"
-        info.Icon = wx.Icon('logo.png')
+        info.Icon = wx.Icon("logo.png")
         info.Copyright = "Copyright (c) 2020, ETH Zurich and others"
         info.Licence = """This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -128,6 +142,7 @@ General Public License for more details.
 
         try:
             from tema_imaging._version import __version__
+
             info.Version = __version__
         except ImportError:
             info.Version = "unknown"

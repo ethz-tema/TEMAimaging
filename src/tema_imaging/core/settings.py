@@ -28,11 +28,11 @@ class SettingsManager:
         self.load()
 
     def load(self) -> None:
-        with open('settings.yml', 'r') as file:
+        with open("settings.yml", "r") as file:
             self.configuration_data = self.yaml.load(file)
 
     def save(self) -> None:
-        with open('settings.yml', 'w') as file:
+        with open("settings.yml", "w") as file:
             self.yaml.dump(self.configuration_data, file)
 
     def __getitem__(self, item):
@@ -44,7 +44,7 @@ class SettingsManager:
     def get(self, key: str) -> Any:
         curr = self.configuration_data
 
-        for chunk in key.split('.'):
+        for chunk in key.split("."):
             try:
                 curr = curr[chunk]
             except KeyError:
@@ -54,7 +54,7 @@ class SettingsManager:
 
     def set(self, key: str, value: Any) -> None:
         curr = self.configuration_data
-        chunks = key.split('.')
+        chunks = key.split(".")
 
         for chunk in chunks[:-1]:
             try:

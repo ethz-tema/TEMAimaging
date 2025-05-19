@@ -24,18 +24,32 @@ from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 
 
 class ContinuousRectangleScan(metaclass=ScannerMeta):
-    parameter_map = {'x_size': ('X Size', 0, 1000),
-                     'y_size': ('Y Size', 0, 1000),
-                     'direction': ('Direction', 0.0, None),
-                     'x_start': ('X (Start)', 0.0, 1000),
-                     'y_start': ('Y (Start)', 0.0, 1000),
-                     'z_start': ('Z (Start)', 0.0, 1000),
-                     'zig_zag_mode': ('Zig Zag', False, None)}
+    parameter_map = {
+        "x_size": ("X Size", 0, 1000),
+        "y_size": ("Y Size", 0, 1000),
+        "direction": ("Direction", 0.0, None),
+        "x_start": ("X (Start)", 0.0, 1000),
+        "y_start": ("Y (Start)", 0.0, 1000),
+        "z_start": ("Z (Start)", 0.0, 1000),
+        "zig_zag_mode": ("Zig Zag", False, None),
+    }
 
     display_name = "Cont. Rectangle Scan"
 
-    def __init__(self, spot_size, shots_per_spot=1, frequency=1, _=None, x_size=1, y_size=1, direction=0,
-                 x_start=None, y_start=None, z_start=None, zig_zag_mode=False):
+    def __init__(
+        self,
+        spot_size,
+        shots_per_spot=1,
+        frequency=1,
+        _=None,
+        x_size=1,
+        y_size=1,
+        direction=0,
+        x_start=None,
+        y_start=None,
+        z_start=None,
+        zig_zag_mode=False,
+    ):
         self.x_size = x_size
         self.y_size = y_size
         self.x_steps = x_size // spot_size
@@ -52,8 +66,12 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
         self.zig_zag_mode = zig_zag_mode
 
         self._curr_line = 0
-        self._vx = math.cos(self.direction) * self.spot_size * self.frequency / shots_per_spot
-        self._vy = math.sin(self.direction) * self.spot_size * self.frequency / shots_per_spot
+        self._vx = (
+            math.cos(self.direction) * self.spot_size * self.frequency / shots_per_spot
+        )
+        self._vy = (
+            math.sin(self.direction) * self.spot_size * self.frequency / shots_per_spot
+        )
 
         self._dx = math.cos(self.direction) * self.spot_size * self.x_steps
         self._dy = math.sin(self.direction) * self.spot_size * self.y_steps
@@ -62,9 +80,19 @@ class ContinuousRectangleScan(metaclass=ScannerMeta):
 
     @classmethod
     def from_params(cls, spot_size, shot_count, frequency, cleaning, _, params):
-        return cls(spot_size, shot_count, frequency, cleaning, params['x_size'].value, params['y_size'].value,
-                   params['direction'].value, params['x_start'].value, params['y_start'].value,
-                   params['z_start'].value, params['zig_zag_mode'].value)
+        return cls(
+            spot_size,
+            shot_count,
+            frequency,
+            cleaning,
+            params["x_size"].value,
+            params["y_size"].value,
+            params["direction"].value,
+            params["x_start"].value,
+            params["y_start"].value,
+            params["z_start"].value,
+            params["zig_zag_mode"].value,
+        )
 
     @property
     def boundary_size(self) -> tuple[float, float]:

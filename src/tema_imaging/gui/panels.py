@@ -29,31 +29,48 @@ import tema_imaging.core.scanner_registry
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import MeasurementController, Step, measurement_model
 from tema_imaging.gui.dialogs import AddScanDialog
-from tema_imaging.gui.renderers import SequenceEditorTextRenderer, SequenceEditorToggleRenderer
+from tema_imaging.gui.renderers import (
+    SequenceEditorTextRenderer,
+    SequenceEditorToggleRenderer,
+)
 from tema_imaging.gui.utils import FloatValidator
 from tema_imaging.hardware.laser_compex import OpMode, StatusCodes
 from tema_imaging.hardware.stage import AxisMovementMode, AxisType
 
 
 class MeasurementDVContextMenu(wx.Menu):
-    def __init__(self, parent: "MeasurementPanel", dv_item: wx.dataview.DataViewItem) -> None:
+    def __init__(
+        self, parent: "MeasurementPanel", dv_item: wx.dataview.DataViewItem
+    ) -> None:
         super().__init__()
 
         self.dvc = parent.dvc  # type: wx.dataview.DataViewCtrl
 
         if dv_item:
             menu_item = self.Append(wx.ID_ANY, "&Set start position\tCtrl-S")
-            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_start_position(e, item), menu_item)
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, item=dv_item: parent.on_click_set_start_position(e, item),
+                menu_item,
+            )
             if not conn_mgr.stage_connected:
                 menu_item.Enable(False)
 
             menu_item = self.Append(wx.ID_ANY, "&Set end position (Z only)\tCtrl-E")
-            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_set_end_position(e, item), menu_item)
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, item=dv_item: parent.on_click_set_end_position(e, item),
+                menu_item,
+            )
             if not conn_mgr.stage_connected:
                 menu_item.Enable(False)
 
             menu_item = self.Append(wx.ID_ANY, "&Go to start position\tCtrl-G")
-            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: parent.on_click_go_to_start(e, item), menu_item)
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, item=dv_item: parent.on_click_go_to_start(e, item),
+                menu_item,
+            )
             if not conn_mgr.stage_connected:
                 menu_item.Enable(False)
 
@@ -61,69 +78,103 @@ class MeasurementDVContextMenu(wx.Menu):
 
             if self.dvc.GetModel().ItemToObject(dv_item).index >= 1:
                 menu_item = self.Append(wx.ID_ANY, "Align in X+")
-                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 0), menu_item)
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, item=dv_item: self.on_click_align(e, item, 0),
+                    menu_item,
+                )
                 menu_item = self.Append(wx.ID_ANY, "Align in X-")
-                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 1), menu_item)
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, item=dv_item: self.on_click_align(e, item, 1),
+                    menu_item,
+                )
                 menu_item = self.Append(wx.ID_ANY, "Align in Y+")
-                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 2), menu_item)
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, item=dv_item: self.on_click_align(e, item, 2),
+                    menu_item,
+                )
                 menu_item = self.Append(wx.ID_ANY, "Align in Y-")
-                self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_align(e, item, 3), menu_item)
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, item=dv_item: self.on_click_align(e, item, 3),
+                    menu_item,
+                )
 
                 self.AppendSeparator()
 
             menu_item = self.Append(wx.ID_DELETE, "Delete")
-            self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_delete(e, item), menu_item)
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, item=dv_item: self.on_click_delete(e, item),
+                menu_item,
+            )
 
         menu_item = self.Append(wx.ID_ADD, "Add step")
-        self.Bind(wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item)
+        self.Bind(
+            wx.EVT_MENU, lambda e, item=dv_item: self.on_click_add(e, item), menu_item
+        )
 
     def on_click_add(self, _: wx.CommandEvent, item: wx.dataview.DataViewItem) -> None:
         with AddScanDialog(self.dvc) as dlg:
             if dlg.ShowModal() == wx.ID_ADD:
                 scan_str = dlg.choice_scan_type.GetStringSelection()
-                scan_type = tema_imaging.core.scanner_registry.scanners_by_display_name[scan_str]
+                scan_type = tema_imaging.core.scanner_registry.scanners_by_display_name[
+                    scan_str
+                ]
                 if item:
                     node = self.dvc.GetModel().ItemToObject(item)
                     if isinstance(node, Step):
-                        step_item = self.dvc.GetModel().insert_step(scan_type, node.index)
+                        step_item = self.dvc.GetModel().insert_step(
+                            scan_type, node.index
+                        )
                         self.dvc.Expand(step_item)
                 else:
                     step_item = self.dvc.GetModel().append_step(scan_type)
                     self.dvc.Expand(step_item)
 
-    def on_click_delete(self, _: wx.CommandEvent, item: wx.dataview.DataViewItem) -> None:
+    def on_click_delete(
+        self, _: wx.CommandEvent, item: wx.dataview.DataViewItem
+    ) -> None:
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             self.dvc.GetModel().delete_step(item)
 
-    def on_click_align(self, _: wx.CommandEvent, item: wx.dataview.DataViewItem, direction: int) -> None:
+    def on_click_align(
+        self, _: wx.CommandEvent, item: wx.dataview.DataViewItem, direction: int
+    ) -> None:
         index = self.dvc.GetModel().ItemToObject(item).index
         if index >= 1:
             prev_step = self.dvc.GetModel().measurement.steps[index - 1]
 
-            prev_scan = prev_step.scan_type.from_params(prev_step.spot_size, prev_step.shots_per_spot,
-                                                        prev_step.frequency,
-                                                        prev_step.cleaning_shot,
-                                                        0, prev_step.params)
+            prev_scan = prev_step.scan_type.from_params(
+                prev_step.spot_size,
+                prev_step.shots_per_spot,
+                prev_step.frequency,
+                prev_step.cleaning_shot,
+                0,
+                prev_step.params,
+            )
 
             x, y = prev_scan.boundary_size
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
                 if direction == 0:
-                    node.params['x_start'].value = prev_scan.x_start + x
-                    node.params['y_start'].value = prev_scan.y_start
+                    node.params["x_start"].value = prev_scan.x_start + x
+                    node.params["y_start"].value = prev_scan.y_start
                     self.dvc.GetModel().edit_step(node)
                 elif direction == 1:
-                    node.params['x_start'].value = prev_scan.x_start - x
-                    node.params['y_start'].value = prev_scan.y_start
+                    node.params["x_start"].value = prev_scan.x_start - x
+                    node.params["y_start"].value = prev_scan.y_start
                     self.dvc.GetModel().edit_step(node)
                 elif direction == 2:
-                    node.params['x_start'].value = prev_scan.x_start
-                    node.params['y_start'].value = prev_scan.y_start + y
+                    node.params["x_start"].value = prev_scan.x_start
+                    node.params["y_start"].value = prev_scan.y_start + y
                     self.dvc.GetModel().edit_step(node)
                 elif direction == 3:
-                    node.params['x_start'].value = prev_scan.x_start
-                    node.params['y_start'].value = prev_scan.y_start - y
+                    node.params["x_start"].value = prev_scan.x_start
+                    node.params["y_start"].value = prev_scan.y_start - y
                     self.dvc.GetModel().edit_step(node)
 
 
@@ -131,9 +182,13 @@ class MeasurementPanel(wx.Panel):
     def __init__(self, parent: wx.Window) -> None:
         super(MeasurementPanel, self).__init__(parent, wx.ID_ANY)
 
-        self.dvc = wx.dataview.DataViewCtrl(self,
-                                            style=wx.BORDER_THEME | wx.dataview.DV_ROW_LINES |
-                                                  wx.dataview.DV_VERT_RULES | wx.dataview.DV_MULTIPLE)
+        self.dvc = wx.dataview.DataViewCtrl(
+            self,
+            style=wx.BORDER_THEME
+            | wx.dataview.DV_ROW_LINES
+            | wx.dataview.DV_VERT_RULES
+            | wx.dataview.DV_MULTIPLE,
+        )
 
         self.dvc.SetMinSize((800, 300))
 
@@ -141,34 +196,38 @@ class MeasurementPanel(wx.Panel):
 
         self.dvc.AssociateModel(measurement_model)
 
-        c0 = self.dvc.AppendTextColumn('Step', 0)
+        c0 = self.dvc.AppendTextColumn("Step", 0)
         c0.SetMinWidth(50)
 
-        c1 = wx.dataview.DataViewColumn('Type', SequenceEditorTextRenderer(), 1)
+        c1 = wx.dataview.DataViewColumn("Type", SequenceEditorTextRenderer(), 1)
         c1.SetMinWidth(100)
         self.dvc.AppendColumn(c1)
 
-        c2 = wx.dataview.DataViewColumn('', SequenceEditorTextRenderer(), 2)
+        c2 = wx.dataview.DataViewColumn("", SequenceEditorTextRenderer(), 2)
         c2.SetMinWidth(100)
         self.dvc.AppendColumn(c2)
 
-        c3 = wx.dataview.DataViewColumn('', SequenceEditorTextRenderer(), 3)
+        c3 = wx.dataview.DataViewColumn("", SequenceEditorTextRenderer(), 3)
         c3.SetMinWidth(100)
         self.dvc.AppendColumn(c3)
 
-        c4 = wx.dataview.DataViewColumn('Spot Size', SequenceEditorTextRenderer(), 4)
+        c4 = wx.dataview.DataViewColumn("Spot Size", SequenceEditorTextRenderer(), 4)
         c4.SetMinWidth(70)
         self.dvc.AppendColumn(c4)
 
-        c5 = wx.dataview.DataViewColumn('Frequency', SequenceEditorTextRenderer(), 5)
+        c5 = wx.dataview.DataViewColumn("Frequency", SequenceEditorTextRenderer(), 5)
         c5.SetMinWidth(75)
         self.dvc.AppendColumn(c5)
 
-        c6 = wx.dataview.DataViewColumn('Shots per Spot', SequenceEditorTextRenderer(), 6)
+        c6 = wx.dataview.DataViewColumn(
+            "Shots per Spot", SequenceEditorTextRenderer(), 6
+        )
         c6.SetMinWidth(100)
         self.dvc.AppendColumn(c6)
 
-        c7 = wx.dataview.DataViewColumn("Cleaning shot", SequenceEditorToggleRenderer(), 7)
+        c7 = wx.dataview.DataViewColumn(
+            "Cleaning shot", SequenceEditorToggleRenderer(), 7
+        )
         c7.SetMinWidth(50)
         self.dvc.AppendColumn(c7)
 
@@ -212,27 +271,35 @@ class MeasurementPanel(wx.Panel):
         self.SetSizerAndFit(sizer)
 
     def on_click_open_sequence(self, _: wx.CommandEvent) -> None:
-        with wx.FileDialog(self, "Open Sequence", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as fd:
+        with wx.FileDialog(
+            self, "Open Sequence", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+        ) as fd:
             if fd.ShowModal() == wx.ID_CANCEL:
                 return
 
             path = fd.GetPath()
             try:
-                with open(path, 'r') as file:
+                with open(path, "r") as file:
                     self.dvc.GetModel().load_model(file)
             except IOError:
                 raise
             except ValueError:
-                wx.MessageBox('The file you tried to load is invalid.', 'Invalid file', wx.OK | wx.ICON_ERROR)
+                wx.MessageBox(
+                    "The file you tried to load is invalid.",
+                    "Invalid file",
+                    wx.OK | wx.ICON_ERROR,
+                )
 
     def on_click_save_sequence(self, _: wx.CommandEvent) -> None:
-        with wx.FileDialog(self, "Save sequence", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as fd:
+        with wx.FileDialog(
+            self, "Save sequence", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+        ) as fd:
             if fd.ShowModal() == wx.ID_CANCEL:
                 return
 
             path = fd.GetPath()
             try:
-                with open(path, 'w') as file:
+                with open(path, "w") as file:
                     self.dvc.GetModel().dump_model(file)
             except IOError:
                 raise
@@ -244,36 +311,52 @@ class MeasurementPanel(wx.Panel):
         with AddScanDialog(self) as dlg:
             if dlg.ShowModal() == wx.ID_ADD:
                 scan_str = dlg.choice_scan_type.GetStringSelection()
-                scan_type = tema_imaging.core.scanner_registry.scanners_by_display_name[scan_str]
+                scan_type = tema_imaging.core.scanner_registry.scanners_by_display_name[
+                    scan_str
+                ]
 
                 step_item = measurement_model.append_step(scan_type)
                 self.dvc.Expand(step_item)
 
-    def on_click_set_start_position(self, _: wx.CommandEvent, item: wx.dataview.DataViewItem) -> None:
+    def on_click_set_start_position(
+        self, _: wx.CommandEvent, item: wx.dataview.DataViewItem
+    ) -> None:
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['x_start'].value = float(conn_mgr.stage.axes[AxisType.X].position)
-                node.params['y_start'].value = float(conn_mgr.stage.axes[AxisType.Y].position)
-                node.params['z_start'].value = float(conn_mgr.stage.axes[AxisType.Z].position)
+                node.params["x_start"].value = float(
+                    conn_mgr.stage.axes[AxisType.X].position
+                )
+                node.params["y_start"].value = float(
+                    conn_mgr.stage.axes[AxisType.Y].position
+                )
+                node.params["z_start"].value = float(
+                    conn_mgr.stage.axes[AxisType.Z].position
+                )
                 self.dvc.GetModel().edit_step(node)
 
-    def on_click_set_end_position(self, _: wx.CommandEvent, item: wx.dataview.DataViewItem) -> None:
+    def on_click_set_end_position(
+        self, _: wx.CommandEvent, item: wx.dataview.DataViewItem
+    ) -> None:
         if item:
             node = self.dvc.GetModel().ItemToObject(item)
             if isinstance(node, Step):
-                node.params['z_end'].value = float(conn_mgr.stage.axes[AxisType.Z].position)
+                node.params["z_end"].value = float(
+                    conn_mgr.stage.axes[AxisType.Z].position
+                )
                 self.dvc.GetModel().edit_step(node)
 
-    def on_click_go_to_start(self, _: wx.CommandEvent, item: wx.dataview.DataViewItem) -> None:
+    def on_click_go_to_start(
+        self, _: wx.CommandEvent, item: wx.dataview.DataViewItem
+    ) -> None:
         node = self.dvc.GetModel().ItemToObject(item)
         if isinstance(node, Step):
             conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.X].move(node.params['x_start'].value)
+            conn_mgr.stage.axes[AxisType.X].move(node.params["x_start"].value)
             conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.Y].move(node.params['y_start'].value)
+            conn_mgr.stage.axes[AxisType.Y].move(node.params["y_start"].value)
             conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.Z].move(node.params['z_start'].value)
+            conn_mgr.stage.axes[AxisType.Z].move(node.params["z_start"].value)
 
     def on_context_menu(self, e: wx.dataview.DataViewEvent) -> None:
         item = e.GetItem()
@@ -294,13 +377,13 @@ class MeasurementPanel(wx.Panel):
                 if isinstance(node, Step):
                     self.dvc.GetModel().delete_step(item)
         elif ctrl:
-            if key == ord('E'):
+            if key == ord("E"):
                 if self.dvc.HasSelection():
                     self.on_click_set_end_position(e, self.dvc.GetSelection())
-            elif key == ord('S'):
+            elif key == ord("S"):
                 if self.dvc.HasSelection():
                     self.on_click_set_start_position(e, self.dvc.GetSelection())
-            elif key == ord('G'):
+            elif key == ord("G"):
                 if self.dvc.HasSelection():
                     self.on_click_go_to_start(e, self.dvc.GetSelection())
 
@@ -342,15 +425,17 @@ class LaserPanel(wx.Panel):
         self.txt_laser_energy = wx.TextCtrl(self, size=(110, -1))
 
         self.shutter_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Shutter")
-        self.btn_shutter_close = wx.Button(self.shutter_box.GetStaticBox(), label="Close")
+        self.btn_shutter_close = wx.Button(
+            self.shutter_box.GetStaticBox(), label="Close"
+        )
         self.btn_shutter_open = wx.Button(self.shutter_box.GetStaticBox(), label="Open")
 
-        pub.subscribe(self.on_laser_connection_changed, 'laser.connection_changed')
-        pub.subscribe(self.on_shutter_connection_changed, 'shutter.connection_changed')
-        pub.subscribe(self.on_laser_status_changed, 'laser.status_changed')
-        pub.subscribe(self.on_laser_hv_changed, 'laser.hv_changed')
-        pub.subscribe(self.on_laser_egy_changed, 'laser.egy_changed')
-        pub.subscribe(self.on_shutter_status_changed, 'shutter.status_changed')
+        pub.subscribe(self.on_laser_connection_changed, "laser.connection_changed")
+        pub.subscribe(self.on_shutter_connection_changed, "shutter.connection_changed")
+        pub.subscribe(self.on_laser_status_changed, "laser.status_changed")
+        pub.subscribe(self.on_laser_hv_changed, "laser.hv_changed")
+        pub.subscribe(self.on_laser_egy_changed, "laser.egy_changed")
+        pub.subscribe(self.on_shutter_status_changed, "shutter.status_changed")
 
         self.init_ui()
 
@@ -362,17 +447,27 @@ class LaserPanel(wx.Panel):
         self.btn_laser_off.SetMinSize((40, 40))
         self.btn_laser_on.SetMinSize((40, 40))
 
-        laser_grid.Add(self.btn_laser_off, (0, 0), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        laser_grid.Add(self.btn_laser_on, (0, 1), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL)
-        laser_grid.Add(wx.StaticText(self, label="HV (kV):"), (0, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        laser_grid.Add(
+            self.btn_laser_off, (0, 0), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL
+        )
+        laser_grid.Add(
+            self.btn_laser_on, (0, 1), span=(2, 1), flag=wx.ALIGN_CENTER_VERTICAL
+        )
+        laser_grid.Add(
+            wx.StaticText(self, label="HV (kV):"), (0, 2), flag=wx.ALIGN_CENTER_VERTICAL
+        )
         laser_grid.Add(self.num_laser_voltage, (0, 3))
-        laser_grid.Add(wx.StaticText(self, label="E (mJ):"), (1, 2), flag=wx.ALIGN_CENTER_VERTICAL)
+        laser_grid.Add(
+            wx.StaticText(self, label="E (mJ):"), (1, 2), flag=wx.ALIGN_CENTER_VERTICAL
+        )
         laser_grid.Add(self.txt_laser_energy, (1, 3))
 
         self.btn_shutter_close.SetMinSize((40, 40))
         self.btn_shutter_open.SetMinSize((40, 40))
 
-        self.shutter_box.Add(self.btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5)
+        self.shutter_box.Add(
+            self.btn_shutter_close, 0, wx.LEFT | wx.BOTTOM | wx.RIGHT, border=5
+        )
         self.shutter_box.Add(self.btn_shutter_open, 0, wx.RIGHT, border=5)
 
         laser_box = wx.StaticBoxSizer(wx.HORIZONTAL, self, label="Laser")
@@ -472,7 +567,7 @@ class LaserManualShootPanel(wx.Panel):
     def __init__(self, parent: wx.Window) -> None:
         super().__init__(parent, wx.ID_ANY)
 
-        self.btn_start_stop = wx.Button(self, label='Start')
+        self.btn_start_stop = wx.Button(self, label="Start")
 
         self.num_shots = wx.SpinCtrl(self, wx.ID_ANY, min=1, max=100000, initial=100)
         self.num_frequency = wx.SpinCtrl(self, wx.ID_ANY, min=1, max=100, initial=10)
@@ -482,12 +577,20 @@ class LaserManualShootPanel(wx.Panel):
         self.init_ui()
 
     def init_ui(self) -> None:
-        main_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label='Manual Laser Control')
+        main_sizer = wx.StaticBoxSizer(wx.VERTICAL, self, label="Manual Laser Control")
         grid_sizer = wx.GridBagSizer(5, 5)
 
-        grid_sizer.Add(wx.StaticText(self, wx.ID_ANY, 'Shots: '), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        grid_sizer.Add(
+            wx.StaticText(self, wx.ID_ANY, "Shots: "),
+            (0, 0),
+            flag=wx.ALIGN_CENTER_VERTICAL,
+        )
         grid_sizer.Add(self.num_shots, (0, 1))
-        grid_sizer.Add(wx.StaticText(self, wx.ID_ANY, 'Frequency (Hz): '), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        grid_sizer.Add(
+            wx.StaticText(self, wx.ID_ANY, "Frequency (Hz): "),
+            (1, 0),
+            flag=wx.ALIGN_CENTER_VERTICAL,
+        )
         grid_sizer.Add(self.num_frequency, (1, 1))
         grid_sizer.Add(self.btn_start_stop, (2, 0), (1, 2), flag=wx.EXPAND)
 
@@ -496,8 +599,8 @@ class LaserManualShootPanel(wx.Panel):
         self.btn_start_stop.Bind(wx.EVT_BUTTON, self.on_click_start_stop)
         self.num_frequency.Bind(wx.EVT_SPINCTRL, self.on_num_frequency_changed)
 
-        pub.subscribe(self.on_trigger_connection_changed, 'trigger.connection_changed')
-        pub.subscribe(self.on_trigger_done, 'trigger.done')
+        pub.subscribe(self.on_trigger_connection_changed, "trigger.connection_changed")
+        pub.subscribe(self.on_trigger_done, "trigger.done")
 
         if not conn_mgr.trigger_connected:
             self.num_shots.Disable()
@@ -509,10 +612,10 @@ class LaserManualShootPanel(wx.Panel):
     def toogle_ui(self, enable: bool) -> None:
         if enable:
             self.num_shots.Enable()
-            self.btn_start_stop.SetLabelText('Start')
+            self.btn_start_stop.SetLabelText("Start")
         else:
             self.num_shots.Disable()
-            self.btn_start_stop.SetLabelText('Stop')
+            self.btn_start_stop.SetLabelText("Stop")
 
     def on_click_start_stop(self, _: wx.CommandEvent) -> None:
         if self.trigger_running:
@@ -613,8 +716,13 @@ class StagePanel(wx.Panel):
         button_sizer.Add(self.stage_focus_fp, (2, 4), flag=wx.LEFT, border=2)
         button_sizer.Add(self.stage_focus_fn, (0, 4), flag=wx.LEFT, border=2)
 
-        button_sizer.Add(wx.StaticText(self, wx.ID_ANY, "Focus", style=wx.ALIGN_CENTER), (1, 3), (1, 2),
-                         wx.ALIGN_CENTER | wx.LEFT, border=10)
+        button_sizer.Add(
+            wx.StaticText(self, wx.ID_ANY, "Focus", style=wx.ALIGN_CENTER),
+            (1, 3),
+            (1, 2),
+            wx.ALIGN_CENTER | wx.LEFT,
+            border=10,
+        )
 
         pos_sizer = wx.FlexGridSizer(3, 3, 5, 5)
         s_txt = wx.StaticText(self, wx.ID_ANY, "X (µm)")
@@ -639,20 +747,52 @@ class StagePanel(wx.Panel):
         main_sizer.Add(pos_sizer, 0, wx.ALL, 10)
         main_sizer.Add(self.btn_stage_goto, 0, wx.ALL | wx.EXPAND, 10)
 
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.X, d=1: self.on_click_move(e, a, d), self.stage_move_xp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.X, d=-1: self.on_click_move(e, a, d), self.stage_move_xn)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Y, d=1: self.on_click_move(e, a, d), self.stage_move_yp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Y, d=-1: self.on_click_move(e, a, d), self.stage_move_yn)
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.X, d=1: self.on_click_move(e, a, d),
+            self.stage_move_xp,
+        )
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.X, d=-1: self.on_click_move(e, a, d),
+            self.stage_move_xn,
+        )
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.Y, d=1: self.on_click_move(e, a, d),
+            self.stage_move_yp,
+        )
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.Y, d=-1: self.on_click_move(e, a, d),
+            self.stage_move_yn,
+        )
 
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=1: self.on_click_focus_c(e, d), self.stage_focus_cp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=-1: self.on_click_focus_c(e, d), self.stage_focus_cn)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=1: self.on_click_focus_f(e, d), self.stage_focus_fp)
-        self.Bind(wx.EVT_BUTTON, lambda e, a=AxisType.Z, d=-1: self.on_click_focus_f(e, d), self.stage_focus_fn)
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.Z, d=1: self.on_click_focus_c(e, d),
+            self.stage_focus_cp,
+        )
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.Z, d=-1: self.on_click_focus_c(e, d),
+            self.stage_focus_cn,
+        )
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.Z, d=1: self.on_click_focus_f(e, d),
+            self.stage_focus_fp,
+        )
+        self.Bind(
+            wx.EVT_BUTTON,
+            lambda e, a=AxisType.Z, d=-1: self.on_click_focus_f(e, d),
+            self.stage_focus_fn,
+        )
 
         self.Bind(wx.EVT_BUTTON, self.on_click_goto, self.btn_stage_goto)
 
-        pub.subscribe(self.on_stage_position_changed, 'stage.position_changed')
-        pub.subscribe(self.on_stage_connection_changed, 'stage.connection_changed')
+        pub.subscribe(self.on_stage_position_changed, "stage.position_changed")
+        pub.subscribe(self.on_stage_connection_changed, "stage.connection_changed")
 
         if not conn_mgr.stage_connected:
             self.stage_move_xp.Disable()
@@ -679,17 +819,23 @@ class StagePanel(wx.Panel):
     def on_click_goto(self, _: wx.CommandEvent) -> None:
         try:
             conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.X].move(float(self.txt_x_pos.GetValue()) * 1000)
+            conn_mgr.stage.axes[AxisType.X].move(
+                float(self.txt_x_pos.GetValue()) * 1000
+            )
         except ValueError:
             pass
         try:
             conn_mgr.stage.axes[AxisType.Y].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.Y].move(float(self.txt_y_pos.GetValue()) * 1000)
+            conn_mgr.stage.axes[AxisType.Y].move(
+                float(self.txt_y_pos.GetValue()) * 1000
+            )
         except ValueError:
             pass
         try:
             conn_mgr.stage.axes[AxisType.Z].movement_mode = AxisMovementMode.CL_ABSOLUTE
-            conn_mgr.stage.axes[AxisType.Z].move(float(self.txt_z_pos.GetValue()) * 1000)
+            conn_mgr.stage.axes[AxisType.Z].move(
+                float(self.txt_z_pos.GetValue()) * 1000
+            )
         except ValueError:
             pass
 
@@ -745,8 +891,8 @@ class ScanCtrlPanel(wx.Panel):
 
         self.meas_ctlr = MeasurementController()
 
-        self.btn_start_scan = wx.Button(self, wx.ID_ANY, 'Start')
-        self.btn_stop_scan = wx.Button(self, wx.ID_ANY, 'Stop')
+        self.btn_start_scan = wx.Button(self, wx.ID_ANY, "Start")
+        self.btn_stop_scan = wx.Button(self, wx.ID_ANY, "Stop")
 
         self.num_cleaning_shot_delay = wx.SpinCtrl(self, max=500, initial=200)
         self.num_shot_delay = wx.SpinCtrl(self, max=1000)
@@ -755,14 +901,16 @@ class ScanCtrlPanel(wx.Panel):
 
         self.chk_step_trigger = wx.CheckBox(self, label="Use step trigger")
 
-        self.num_cleaning_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_cleaning_shot_delay_changed)
+        self.num_cleaning_shot_delay.Bind(
+            wx.EVT_SPINCTRL, self.on_num_cleaning_shot_delay_changed
+        )
         self.num_shot_delay.Bind(wx.EVT_SPINCTRL, self.on_num_shot_delay_changed)
         self.num_step_delay.Bind(wx.EVT_SPINCTRL, self.on_num_step_delay_changed)
         self.num_blank_delay.Bind(wx.EVT_SPINCTRL, self.on_num_blank_delay_changed)
         self.chk_step_trigger.Bind(wx.EVT_CHECKBOX, self.on_chk_step_trigger_changed)
 
-        pub.subscribe(self.on_model_loaded, 'measurement.model_loaded')
-        pub.subscribe(self.on_measurement_done, 'measurement.done')
+        pub.subscribe(self.on_model_loaded, "measurement.model_loaded")
+        pub.subscribe(self.on_measurement_done, "measurement.done")
 
         self.init_ui()
 
@@ -778,13 +926,29 @@ class ScanCtrlPanel(wx.Panel):
         scan_grid = wx.GridBagSizer(5, 5)
         scan_btn_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        scan_grid.Add(wx.StaticText(self, label='CS Delay (ms):'), (0, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(
+            wx.StaticText(self, label="CS Delay (ms):"),
+            (0, 0),
+            flag=wx.ALIGN_CENTER_VERTICAL,
+        )
         scan_grid.Add(self.num_cleaning_shot_delay, (0, 1))
-        scan_grid.Add(wx.StaticText(self, label='Shot Delay (ms):'), (1, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(
+            wx.StaticText(self, label="Shot Delay (ms):"),
+            (1, 0),
+            flag=wx.ALIGN_CENTER_VERTICAL,
+        )
         scan_grid.Add(self.num_shot_delay, (1, 1))
-        scan_grid.Add(wx.StaticText(self, label='Step Delay (ms):'), (2, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(
+            wx.StaticText(self, label="Step Delay (ms):"),
+            (2, 0),
+            flag=wx.ALIGN_CENTER_VERTICAL,
+        )
         scan_grid.Add(self.num_step_delay, (2, 1))
-        scan_grid.Add(wx.StaticText(self, label='Blank Delay (ms):'), (3, 0), flag=wx.ALIGN_CENTER_VERTICAL)
+        scan_grid.Add(
+            wx.StaticText(self, label="Blank Delay (ms):"),
+            (3, 0),
+            flag=wx.ALIGN_CENTER_VERTICAL,
+        )
         scan_grid.Add(self.num_blank_delay, (3, 1))
         scan_grid.Add(self.chk_step_trigger, (4, 0))
         scan_btn_sizer.Add(self.btn_start_scan, 1, wx.RIGHT, 2)
@@ -850,7 +1014,9 @@ class SequencePlotPanel(wx.Panel):
     def __init__(self, parent: wx.Window) -> None:
         super().__init__(parent)
         self.figure = matplotlib.figure.Figure((2, 3))
-        self.canvas = matplotlib.backends.backend_wxagg.FigureCanvasWxAgg(self, -1, self.figure)
+        self.canvas = matplotlib.backends.backend_wxagg.FigureCanvasWxAgg(
+            self, -1, self.figure
+        )
 
         self.init_ui()
 
@@ -865,10 +1031,17 @@ class SequencePlotPanel(wx.Panel):
         sequence = []
         for step in steps:
             sequence.append(
-                step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
-                                           measurement_model.measurement.cs_delay, step.params))
+                step.scan_type.from_params(
+                    step.spot_size,
+                    step.shots_per_spot,
+                    step.frequency,
+                    step.cleaning_shot,
+                    measurement_model.measurement.cs_delay,
+                    step.params,
+                )
+            )
 
-        map = matplotlib.cm.get_cmap('gist_rainbow')
+        map = matplotlib.cm.get_cmap("gist_rainbow")
         map_norm = matplotlib.colors.Normalize(vmin=0, vmax=len(sequence))
         scalar_map = matplotlib.cm.ScalarMappable(norm=map_norm, cmap=map)
 
@@ -878,17 +1051,30 @@ class SequencePlotPanel(wx.Panel):
             size = [step.spot_size / 1000 for _ in step.coord_list]
             angle = [0 for _ in step.coord_list]
             offsets = [(spot.X / 1000, spot.Y / 1000) for spot in step.coord_list]
-            ax.add_collection(matplotlib.collections.EllipseCollection(size, size, angle, offsets=offsets, units='x',
-                                                                       transOffset=ax.transData,
-                                                                       facecolors=scalar_map.to_rgba(i), alpha=0.5))
+            ax.add_collection(
+                matplotlib.collections.EllipseCollection(
+                    size,
+                    size,
+                    angle,
+                    offsets=offsets,
+                    units="x",
+                    transOffset=ax.transData,
+                    facecolors=scalar_map.to_rgba(i),
+                    alpha=0.5,
+                )
+            )
 
-            legend_entries.append(matplotlib.patches.Circle([0, 0], color=scalar_map.to_rgba(i), alpha=0.5))
+            legend_entries.append(
+                matplotlib.patches.Circle(
+                    [0, 0], color=scalar_map.to_rgba(i), alpha=0.5
+                )
+            )
 
             i += 1
 
         ax.grid(True)
-        ax.set_aspect('equal')
-        ax.axis('scaled')
+        ax.set_aspect("equal")
+        ax.axis("scaled")
         ax.legend(legend_entries, range(len(sequence)), bbox_to_anchor=(1, 1))
 
         self.figure.tight_layout()

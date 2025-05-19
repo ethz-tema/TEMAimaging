@@ -30,6 +30,7 @@ class TemaImagingApp(wx.App, wit.InspectionMixin):
             self.Init()
 
         from tema_imaging.gui.main_frame import MainFrame
+
         frm = MainFrame("TEMAimaging")
 
         frm.Show()
@@ -40,5 +41,5 @@ def main() -> None:
     TemaImagingApp(False).MainLoop()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

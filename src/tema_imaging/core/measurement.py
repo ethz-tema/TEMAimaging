@@ -38,7 +38,7 @@ class MeasurementController:
         self._stop_scan_event = threading.Event()
         self._idle = True
 
-        pub.subscribe(self.on_step_trigger_received, 'trigger.step')
+        pub.subscribe(self.on_step_trigger_received, "trigger.step")
 
     def init_sequence(self, measurement: "Measurement") -> None:
         if not self._idle:
@@ -51,8 +51,15 @@ class MeasurementController:
         conn_mgr.stage.movement_queue.clear()
         for step in measurement.steps:
             self._sequence.append(
-                step.scan_type.from_params(step.spot_size, step.shots_per_spot, step.frequency, step.cleaning_shot,
-                                           measurement.cs_delay, step.params))
+                step.scan_type.from_params(
+                    step.spot_size,
+                    step.shots_per_spot,
+                    step.frequency,
+                    step.cleaning_shot,
+                    measurement.cs_delay,
+                    step.params,
+                )
+            )
 
     def start_sequence(self) -> None:
         if not self._idle:
@@ -69,8 +76,16 @@ class MeasurementController:
                         if self._stop_scan_event.is_set():
                             break
                         scan.init_scan(self._measurement)
-                        wx.CallAfter(pub.sendMessage, 'measurement.step_changed', current_step=current_step)
-                        while self._measurement.step_trigger and not self._step_trigger_event.is_set() and not self._stop_scan_event.is_set():
+                        wx.CallAfter(
+                            pub.sendMessage,
+                            "measurement.step_changed",
+                            current_step=current_step,
+                        )
+                        while (
+                            self._measurement.step_trigger
+                            and not self._step_trigger_event.is_set()
+                            and not self._stop_scan_event.is_set()
+                        ):
                             time.sleep(0.01)
                         while not self._stop_scan_event.is_set() and scan.next_move():
                             scan.next_shot()
@@ -87,8 +102,16 @@ class MeasurementController:
                         current_step += 1
                     end_time = time.time()
 
-                    logger.info('measurement done; duration (s): {}'.format(end_time - start_time))
-                    wx.CallAfter(pub.sendMessage, 'measurement.done', duration=end_time - start_time)
+                    logger.info(
+                        "measurement done; duration (s): {}".format(
+                            end_time - start_time
+                        )
+                    )
+                    wx.CallAfter(
+                        pub.sendMessage,
+                        "measurement.done",
+                        duration=end_time - start_time,
+                    )
                 except StageError as e:
                     logger.exception(e)
                 finally:
@@ -113,10 +136,10 @@ class Param:
         self.value = value
 
     def __getstate__(self):
-        return {'value': self.value}
+        return {"value": self.value}
 
     def __setstate__(self, state):
-        self.value = state['value']
+        self.value = state["value"]
 
 
 class Step:
@@ -131,24 +154,27 @@ class Step:
 
     def __getstate__(self):
         return {
-            'scan_type': self.scan_type.__name__,
-            'params': self.params,
-            'spot_size': self.spot_size,
-            'frequency': self.frequency,
-            'shots_per_spot': self.shots_per_spot,
-            'cleaning_shot': self.cleaning_shot}
+            "scan_type": self.scan_type.__name__,
+            "params": self.params,
+            "spot_size": self.spot_size,
+            "frequency": self.frequency,
+            "shots_per_spot": self.shots_per_spot,
+            "cleaning_shot": self.cleaning_shot,
+        }
 
     def __setstate__(self, state):
         self.index = None
         for k, v in state.items():
-            if k == 'params':
+            if k == "params":
                 self.params = {}
                 for param_k, param_v in v.items():
                     param_v.step_index = None
                     param_v.key = param_k
                     self.params[param_k] = param_v
-            elif k == 'scan_type':
-                self.scan_type = tema_imaging.core.scanner_registry.scanners_by_name.get(v)
+            elif k == "scan_type":
+                self.scan_type = (
+                    tema_imaging.core.scanner_registry.scanners_by_name.get(v)
+                )
             else:
                 setattr(self, k, v)
 
@@ -175,8 +201,16 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         return 8
 
     def GetColumnType(self, col) -> str:
-        mapper = {0: 'string', 1: 'PyObject', 2: 'PyObject', 3: 'PyObject', 4: 'PyObject', 5: 'PyObject', 6: 'PyObject',
-                  7: 'PyObject'}
+        mapper = {
+            0: "string",
+            1: "PyObject",
+            2: "PyObject",
+            3: "PyObject",
+            4: "PyObject",
+            5: "PyObject",
+            6: "PyObject",
+            7: "PyObject",
+        }
         return mapper[col]
 
     def HasContainerColumns(self, item) -> bool:
@@ -221,25 +255,47 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         node = self.ItemToObject(item)
 
         if isinstance(node, Step):
-            mapper = {0: str(node.index), 1: (True, False, node.scan_type.display_name), 2: (False, False, ''),
-                      3: (False, False, ''),
-                      4: (True, True, str(node.spot_size / 1000)),
-                      5: (True, True, str(node.frequency)), 6: (True, True, str(node.shots_per_spot)),
-                      7: (True, node.cleaning_shot)}
+            mapper = {
+                0: str(node.index),
+                1: (True, False, node.scan_type.display_name),
+                2: (False, False, ""),
+                3: (False, False, ""),
+                4: (True, True, str(node.spot_size / 1000)),
+                5: (True, True, str(node.frequency)),
+                6: (True, True, str(node.shots_per_spot)),
+                7: (True, node.cleaning_shot),
+            }
             return mapper[col]
 
         elif isinstance(node, Param):
             typ = type(node.value)
-            value = node.value / tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) \
-                if tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) is not None and (
-                    isinstance(node.value, int) or isinstance(node.value, float)) else node.value
+            value = (
+                node.value
+                / tema_imaging.core.scanner_registry.get_param_scale_factor(node.key)
+                if tema_imaging.core.scanner_registry.get_param_scale_factor(node.key)
+                is not None
+                and (isinstance(node.value, int) or isinstance(node.value, float))
+                else node.value
+            )
             value = typ(value)
-            mapper = {0: "", 1: (False, False, ''),
-                      2: (True, False, str(tema_imaging.core.scanner_registry.get_param_display_str(node.key))),
-                      3: (True, True, str(value)),
-                      4: (False, False, ''),
-                      5: (False, False, ''),
-                      6: (False, False, ''), 7: (False, False)}
+            mapper = {
+                0: "",
+                1: (False, False, ""),
+                2: (
+                    True,
+                    False,
+                    str(
+                        tema_imaging.core.scanner_registry.get_param_display_str(
+                            node.key
+                        )
+                    ),
+                ),
+                3: (True, True, str(value)),
+                4: (False, False, ""),
+                5: (False, False, ""),
+                6: (False, False, ""),
+                7: (False, False),
+            }
             return mapper[col]
 
     def SetValue(self, variant, item, col):
@@ -256,9 +312,18 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
         elif isinstance(node, Param):
             if col == 3:
                 value = type(node.value)(variant)
-                value = value * tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) \
-                    if tema_imaging.core.scanner_registry.get_param_scale_factor(node.key) is not None and (
-                        isinstance(value, int) or isinstance(value, float)) else value
+                value = (
+                    value
+                    * tema_imaging.core.scanner_registry.get_param_scale_factor(
+                        node.key
+                    )
+                    if tema_imaging.core.scanner_registry.get_param_scale_factor(
+                        node.key
+                    )
+                    is not None
+                    and (isinstance(value, int) or isinstance(value, float))
+                    else value
+                )
                 node.value = value
         return True
 
@@ -296,7 +361,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             self.Cleared()
             self.measurement = data
         else:
-            raise ValueError('Invalid file')
+            raise ValueError("Invalid file")
 
         self._recalculate_ids(False)
         for step in self.measurement.steps:
@@ -305,7 +370,7 @@ class MeasurementViewModel(wx.dataview.PyDataViewModel):
             for param in step.params.values():
                 self.ItemAdded(step_item, self.ObjectToItem(param))
 
-        pub.sendMessage('measurement.model_loaded')
+        pub.sendMessage("measurement.model_loaded")
 
     def delete_step(self, item) -> None:
         node = self.ItemToObject(item)

@@ -25,17 +25,30 @@ from tema_imaging.scans import Spot
 
 
 class ContinuousLineScan(metaclass=ScannerMeta):
-    parameter_map = {'spot_count': ('Spot Count', 1, None),
-                     'direction': ('Direction', 0.0, None),
-                     'x_start': ('X (Start)', 0.0, 1000),
-                     'y_start': ('Y (Start)', 0.0, 1000),
-                     'z_start': ('Z (Start)', 0.0, 1000),
-                     'z_end': ('Z (End)', 0.0, 1000)}
+    parameter_map = {
+        "spot_count": ("Spot Count", 1, None),
+        "direction": ("Direction", 0.0, None),
+        "x_start": ("X (Start)", 0.0, 1000),
+        "y_start": ("Y (Start)", 0.0, 1000),
+        "z_start": ("Z (Start)", 0.0, 1000),
+        "z_end": ("Z (End)", 0.0, 1000),
+    }
 
     display_name = "Cont. Line Scan"
 
-    def __init__(self, spot_size, shots_per_spot=1, frequency=1, _=None, spot_count=1, direction=0, x_start=None,
-                 y_start=None, z_start=None, dz=None):
+    def __init__(
+        self,
+        spot_size,
+        shots_per_spot=1,
+        frequency=1,
+        _=None,
+        spot_count=1,
+        direction=0,
+        x_start=None,
+        y_start=None,
+        z_start=None,
+        dz=None,
+    ):
         self.spot_size = spot_size
         self.spot_count = spot_count
         self.shots_per_spot = shots_per_spot
@@ -45,8 +58,12 @@ class ContinuousLineScan(metaclass=ScannerMeta):
         self.z_start = z_start
         self.frequency = frequency
 
-        self._vx = math.sin(self.direction) * self.spot_size * self.frequency / shots_per_spot
-        self._vy = math.cos(self.direction) * self.spot_size * self.frequency / shots_per_spot
+        self._vx = (
+            math.sin(self.direction) * self.spot_size * self.frequency / shots_per_spot
+        )
+        self._vy = (
+            math.cos(self.direction) * self.spot_size * self.frequency / shots_per_spot
+        )
 
         v = math.sqrt(math.pow(self._vx, 2) + math.pow(self._vy, 2))
 
@@ -62,15 +79,25 @@ class ContinuousLineScan(metaclass=ScannerMeta):
 
     @classmethod
     def from_params(cls, spot_size, shots_per_spot, frequency, cleaning, _, params):
-        spot_count = params['spot_count'].value
+        spot_count = params["spot_count"].value
 
-        if spot_count > 1 and params['z_start'].value and params['z_end']:
-            dz = params['z_end'].value - params['z_start'].value
+        if spot_count > 1 and params["z_start"].value and params["z_end"]:
+            dz = params["z_end"].value - params["z_start"].value
         else:
             dz = 0
 
-        return cls(spot_size, shots_per_spot, frequency, cleaning, spot_count, params['direction'].value,
-                   params['x_start'].value, params['y_start'].value, params['z_start'].value, dz)
+        return cls(
+            spot_size,
+            shots_per_spot,
+            frequency,
+            cleaning,
+            spot_count,
+            params["direction"].value,
+            params["x_start"].value,
+            params["y_start"].value,
+            params["z_start"].value,
+            dz,
+        )
 
     @property
     def boundary_size(self) -> tuple[float, float]:
@@ -115,7 +142,12 @@ class ContinuousLineScan(metaclass=ScannerMeta):
 
         conn_mgr.stage.on_frame_completed += self.on_frame_completed
         conn_mgr.stage.movement_queue.put(
-            Spot(self.x_start + self._dx, self.y_start + self._dy, self.z_start + self._dz))
+            Spot(
+                self.x_start + self._dx,
+                self.y_start + self._dy,
+                self.z_start + self._dz,
+            )
+        )
 
     def next_move(self) -> bool:
         if not self.spot_count:

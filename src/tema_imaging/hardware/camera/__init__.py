@@ -29,7 +29,7 @@ camera_resolutions = {
     "640x480": (640, 480),
     "720x576": (720, 576),
     "1280x1024": (1280, 1024),
-    "1920x1080": (1920, 1080)
+    "1920x1080": (1920, 1080),
 }
 
 
@@ -63,7 +63,12 @@ class Camera(abc.ABC):
 
 
 class CameraThread(Thread):
-    def __init__(self, camera: Camera, notify: Callable[[Camera, Image.Image], None], timeout: int = 100) -> None:
+    def __init__(
+        self,
+        camera: Camera,
+        notify: Callable[[Camera, Image.Image], None],
+        timeout: int = 100,
+    ) -> None:
         super(CameraThread, self).__init__()
         self.alive = True
         self.camera = camera
@@ -79,8 +84,10 @@ class CameraThread(Thread):
             except CameraException as e:
                 if e.fatal:
                     raise e
-            if self.camera.driver_name == 'v4l2':
-                time.sleep(1 / 30)  # TODO: Fix this; sleep a bit so the UI thread has time to process
+            if self.camera.driver_name == "v4l2":
+                time.sleep(
+                    1 / 30
+                )  # TODO: Fix this; sleep a bit so the UI thread has time to process
 
     def stop(self) -> None:
         self.alive = False
@@ -92,8 +99,8 @@ class CameraException(Exception):
         self.fatal = fatal
 
 
-for m in os.listdir(get_project_root() / 'src/tema_imaging/hardware/camera'):
+for m in os.listdir(get_project_root() / "src/tema_imaging/hardware/camera"):
     try:
-        import_module('tema_imaging.hardware.camera.{}'.format(m.split('.')[0]))
+        import_module("tema_imaging.hardware.camera.{}".format(m.split(".")[0]))
     except ImportError:
         pass

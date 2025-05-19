@@ -29,7 +29,7 @@ class UeyeCameraException(CameraException):
         self.error_code = error_code
 
     def __str__(self) -> str:
-        return 'ERR{:04d}'.format(self.error_code)
+        return "ERR{:04d}".format(self.error_code)
 
 
 class UeyeCamera(Camera):
@@ -74,8 +74,13 @@ class UeyeCamera(Camera):
             ueye.IS_CM_CBYCRY_PACKED: 16,
         }[color_mode]
 
-    def __init__(self, dev_id: str, img_width: int = 1280, img_height: int = 1024,
-                 color_mode=ueye.IS_CM_RGB8_PACKED) -> None:
+    def __init__(
+        self,
+        dev_id: str,
+        img_width: int = 1280,
+        img_height: int = 1024,
+        color_mode=ueye.IS_CM_RGB8_PACKED,
+    ) -> None:
         super().__init__(dev_id, img_width, img_height)
         self.h_cam = ueye.HIDS(int(dev_id))
         self.color_mode = color_mode
@@ -97,9 +102,12 @@ class UeyeCamera(Camera):
     def __enter__(self) -> None:
         self.init()
 
-    def __exit__(self, exc_type: type[BaseException] | None,
-                 exc_val: BaseException | None,
-                 exc_tb: TracebackType | None) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.close()
 
     def init(self) -> None:
@@ -107,23 +115,55 @@ class UeyeCamera(Camera):
 
         UeyeCamera.check_code(ueye.is_SetColorMode(self.h_cam, self.color_mode))
         UeyeCamera.check_code(ueye.is_SetDisplayMode(self.h_cam, ueye.IS_SET_DM_DIB))
-        UeyeCamera.check_code(ueye.is_AOI(self.h_cam, ueye.IS_AOI_IMAGE_SET_AOI, self.aoi, ueye.sizeof(self.aoi)))
+        UeyeCamera.check_code(
+            ueye.is_AOI(
+                self.h_cam, ueye.IS_AOI_IMAGE_SET_AOI, self.aoi, ueye.sizeof(self.aoi)
+            )
+        )
 
         UeyeCamera.check_code(
-            ueye.is_AllocImageMem(self.h_cam, self.img_width, self.img_height, self.bpp, self.mem_ptr, self.mem_id))
-        UeyeCamera.check_code(ueye.is_SetImageMem(self.h_cam, self.mem_ptr, self.mem_id))
+            ueye.is_AllocImageMem(
+                self.h_cam,
+                self.img_width,
+                self.img_height,
+                self.bpp,
+                self.mem_ptr,
+                self.mem_id,
+            )
+        )
+        UeyeCamera.check_code(
+            ueye.is_SetImageMem(self.h_cam, self.mem_ptr, self.mem_id)
+        )
         UeyeCamera.check_code(ueye.is_CaptureVideo(self.h_cam, ueye.IS_DONT_WAIT))
         UeyeCamera.check_code(
-            ueye.is_InquireImageMem(self.h_cam, self.mem_ptr, self.mem_id, self.x, self.y, self.bits, self.pitch))
+            ueye.is_InquireImageMem(
+                self.h_cam,
+                self.mem_ptr,
+                self.mem_id,
+                self.x,
+                self.y,
+                self.bits,
+                self.pitch,
+            )
+        )
 
         ueye.is_EnableEvent(self.h_cam, ueye.IS_SET_EVENT_FRAME)
 
     def get_frame(self) -> Image.Image:
-        if ueye.is_WaitEvent(self.h_cam, ueye.IS_SET_EVENT_FRAME, 1000) == ueye.IS_SUCCESS:
-            raw_data = ueye.get_data(self.mem_ptr, self.x, self.y, self.bits, self.pitch, False)
+        if (
+            ueye.is_WaitEvent(self.h_cam, ueye.IS_SET_EVENT_FRAME, 1000)
+            == ueye.IS_SUCCESS
+        ):
+            raw_data = ueye.get_data(
+                self.mem_ptr, self.x, self.y, self.bits, self.pitch, False
+            )
             if self.n_channels == 1:
-                return Image.frombytes('L', (self.img_width, self.img_height), raw_data, 'raw', 'L')
-            return Image.frombytes('RGB', (self.img_width, self.img_height), raw_data, 'raw', 'RGB')
+                return Image.frombytes(
+                    "L", (self.img_width, self.img_height), raw_data, "raw", "L"
+                )
+            return Image.frombytes(
+                "RGB", (self.img_width, self.img_height), raw_data, "raw", "RGB"
+            )
 
     def close(self) -> None:
         ueye.is_DisableEvent(self.h_cam, ueye.IS_SET_EVENT_FRAME)

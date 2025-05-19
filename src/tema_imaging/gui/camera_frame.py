@@ -34,7 +34,7 @@ class CameraFrame(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.camera_panel)
 
-        pub.subscribe(self.on_image_acquired, 'camera.image_acquired')
+        pub.subscribe(self.on_image_acquired, "camera.image_acquired")
         self.SetSizerAndFit(sizer)
 
     def on_image_acquired(self, _: Camera, image: Image.Image) -> None:

@@ -27,20 +27,35 @@ from tema_imaging.scans import Spot
 
 
 class RectangleScan(metaclass=ScannerMeta):
-    parameter_map = {'x_size': ('X Size', 0, 1000),
-                     'y_size': ('Y Size', 0, 1000),
-                     'direction': ('Direction', 0.0, None),
-                     'x_start': ('X (Start)', 0.0, 1000),
-                     'y_start': ('Y (Start)', 0.0, 1000),
-                     'z_start': ('Z (Start)', 0.0, 1000),
-                     'zig_zag_mode': ('Zig Zag', False, None),
-                     'blank_lines': ('# of blank lines', 0, None)}
+    parameter_map = {
+        "x_size": ("X Size", 0, 1000),
+        "y_size": ("Y Size", 0, 1000),
+        "direction": ("Direction", 0.0, None),
+        "x_start": ("X (Start)", 0.0, 1000),
+        "y_start": ("Y (Start)", 0.0, 1000),
+        "z_start": ("Z (Start)", 0.0, 1000),
+        "zig_zag_mode": ("Zig Zag", False, None),
+        "blank_lines": ("# of blank lines", 0, None),
+    }
 
     display_name = "Rectangle Scan"
 
-    def __init__(self, spot_size, shots_per_spot=1, frequency=1, cleaning=False, cleaning_delay=0, x_size=1, y_size=1,
-                 direction=0,
-                 x_start=None, y_start=None, z_start=None, zig_zag_mode=False, blank_lines=0) -> None:
+    def __init__(
+        self,
+        spot_size,
+        shots_per_spot=1,
+        frequency=1,
+        cleaning=False,
+        cleaning_delay=0,
+        x_size=1,
+        y_size=1,
+        direction=0,
+        x_start=None,
+        y_start=None,
+        z_start=None,
+        zig_zag_mode=False,
+        blank_lines=0,
+    ) -> None:
         self.x_steps = x_size // spot_size
         self.y_steps = y_size // spot_size
         self.spot_size = spot_size
@@ -79,28 +94,63 @@ class RectangleScan(metaclass=ScannerMeta):
                 x_step = 1 if not backwards else -1
                 y_step = 0
 
-            dx = round(spot_size * (math.cos(self.direction) * x_step + math.sin(self.direction) * y_step))
-            dy = round(spot_size * (math.cos(self.direction) * y_step - math.sin(self.direction) * x_step))
+            dx = round(
+                spot_size
+                * (
+                    math.cos(self.direction) * x_step
+                    + math.sin(self.direction) * y_step
+                )
+            )
+            dy = round(
+                spot_size
+                * (
+                    math.cos(self.direction) * y_step
+                    - math.sin(self.direction) * x_step
+                )
+            )
 
             prev_spot = self.coord_list[i - 1]
             spot = Spot(prev_spot.X + dx, prev_spot.Y + dy)
             self.coord_list.append(spot)
-            conn_mgr.stage.movement_queue.put(spot)  # TODO: move this to init_scan since it modifies hardware state
+            conn_mgr.stage.movement_queue.put(
+                spot
+            )  # TODO: move this to init_scan since it modifies hardware state
 
         self.frame_event = Event()
         self.movement_completed_event = Event()
 
     @classmethod
-    def from_params(cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params):
-        return cls(spot_size, shot_count, frequency, cleaning, cleaning_delay, params['x_size'].value,
-                   params['y_size'].value,
-                   params['direction'].value, params['x_start'].value, params['y_start'].value,
-                   params['z_start'].value, params['zig_zag_mode'].value, params['blank_lines'].value)
+    def from_params(
+        cls, spot_size, shot_count, frequency, cleaning, cleaning_delay, params
+    ):
+        return cls(
+            spot_size,
+            shot_count,
+            frequency,
+            cleaning,
+            cleaning_delay,
+            params["x_size"].value,
+            params["y_size"].value,
+            params["direction"].value,
+            params["x_start"].value,
+            params["y_start"].value,
+            params["z_start"].value,
+            params["zig_zag_mode"].value,
+            params["blank_lines"].value,
+        )
 
     @property
     def boundary_size(self) -> tuple[float, float]:
-        x = max(spot.X for spot in self.coord_list) - min(spot.X for spot in self.coord_list) + self.spot_size
-        y = max(spot.Y for spot in self.coord_list) - min(spot.Y for spot in self.coord_list) + self.spot_size
+        x = (
+            max(spot.X for spot in self.coord_list)
+            - min(spot.X for spot in self.coord_list)
+            + self.spot_size
+        )
+        y = (
+            max(spot.Y for spot in self.coord_list)
+            - min(spot.Y for spot in self.coord_list)
+            + self.spot_size
+        )
 
         return x, y
 

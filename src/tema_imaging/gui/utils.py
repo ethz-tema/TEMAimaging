@@ -32,7 +32,13 @@ class FloatValidator(wx.Validator):
         key = event.GetKeyCode()
         ctrl = event.GetEventObject()
 
-        if key in (wx.WXK_DELETE, wx.WXK_BACK, wx.WXK_CONTROL_X, wx.WXK_CONTROL_A, wx.WXK_CONTROL_C):
+        if key in (
+            wx.WXK_DELETE,
+            wx.WXK_BACK,
+            wx.WXK_CONTROL_X,
+            wx.WXK_CONTROL_A,
+            wx.WXK_CONTROL_C,
+        ):
             event.Skip()
             return
         elif key == wx.WXK_CONTROL_V:
@@ -55,16 +61,16 @@ class FloatValidator(wx.Validator):
                 ctrl.SetValue(str(value))
 
         # Allow ASCII numerics
-        if ord('0') <= key <= ord('9'):
+        if ord("0") <= key <= ord("9"):
             event.Skip()
             return
 
         # Allow decimal points and minus sign
-        if key == ord('.') or key == ord('-'):
+        if key == ord(".") or key == ord("-"):
             event.Skip()
             return
 
         # Allow tabs, for tab navigation between TextCtrls
-        if key == ord('\t'):
+        if key == ord("\t"):
             event.Skip()
             return
