@@ -124,5 +124,12 @@ WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 General Public License for more details.
 """
+        info.SetWebSite("https://github.com/ethz-tema/TEMAimaging")
+
+        try:
+            from tema_imaging._version import __version__
+            info.Version = __version__
+        except ImportError:
+            info.Version = "unknown"
 
         wx.adv.AboutBox(info)

@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tema-imaging"
+authors = [
+    { name = "Peter Keresztes Schmidt", email = "peter.keresztes@unibe.ch" }
+]
+description = "Imaging control system for LA-ICP-TOFMS"
+dynamic = ["version"]
+requires-python = ">=3.13"
+dependencies = [
+    # "AIOUSB"
+    "cffi",
+    "matplotlib",
+    "numpy",
+    "pillow",
+    "pypubsub",
+    "pyserial",
+    "ruamel.yaml",
+    "wxPython",
+]
+
+[project.optional-dependencies]
+camera = [
+    "pyueye",
+    "PyV4L2Camera",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/ethz-tema/TEMAimaging"
+
+[project.scripts]
+tema-imaging = 'tema_imaging.app:main'
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/tema_imaging/_version.py"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src"]
+sources = ["src"]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+[tool.mypy]
+python_version = "3.13"
+mypy_path = "src"
+strict = true
