@@ -17,7 +17,6 @@
 import math
 import time
 from threading import Event
-from typing import List
 
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
@@ -75,7 +74,7 @@ class RectangleScan(Scan):
         self._curr_step = 0
         self._curr_blank = 0
 
-        self.coord_list = []  # type: List[Spot]
+        self.coord_list: list[Spot] = []
         self.coord_list.append(Spot(x_start, y_start))
         conn_mgr.stage.movement_queue.put(Spot(x_start, y_start))
 

@@ -44,7 +44,7 @@ class MeasurementDVContextMenu(wx.Menu):
     ) -> None:
         super().__init__()
 
-        self.dvc = parent.dvc  # type: wx.dataview.DataViewCtrl
+        self.dvc: wx.dataview.DataViewCtrl = parent.dvc
 
         if dv_item:
             menu_item = self.Append(wx.ID_ANY, "&Set start position\tCtrl-S")

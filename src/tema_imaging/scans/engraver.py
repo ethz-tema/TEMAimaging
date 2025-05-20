@@ -17,7 +17,6 @@
 import logging
 import time
 from threading import Event
-from typing import List
 
 from PIL import Image, ImageOps
 
@@ -74,7 +73,7 @@ class Engraver(Scan):
         self.blank_spots = blank_spots
         self.blank_delay = 0
 
-        self.coord_list = []  # type: List[Spot]
+        self.coord_list: list[Spot] = []
 
         flipped_image = ImageOps.flip(image)
 

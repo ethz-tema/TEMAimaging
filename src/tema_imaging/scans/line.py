@@ -17,12 +17,11 @@
 import math
 import time
 from threading import Event
-from typing import List
 
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.scanner_registry import register_scan
-from tema_imaging.hardware.stage import AxisType, AxisMovementMode
+from tema_imaging.hardware.stage import AxisMovementMode, AxisType
 from tema_imaging.scans import Scan, Spot
 
 
@@ -71,7 +70,7 @@ class LineScan(Scan):
 
         self._curr_step = 0
 
-        self.coord_list = []  # type: List[Spot]
+        self.coord_list: list[Spot] = []
 
         if spot_count <= 1:
             dz = 0
