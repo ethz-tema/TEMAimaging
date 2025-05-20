@@ -64,12 +64,13 @@ class ConnectionManager:
         self._camera_thread = None
 
         if Settings.get("general.connect_on_startup"):
-            try:
-                self.laser_connect(
-                    Settings.get("laser.conn.port"), Settings.get("laser.conn.rate")
-                )
-            except Exception as e:
-                logging.exception(e)
+            # try:
+            #     self.laser_connect(
+            #         Settings.get("laser.conn.port"), Settings.get("laser.conn.rate")
+            #     )
+            # except Exception as e:
+            #     logging.exception(e)
+
             try:
                 self.trigger_connect(
                     Settings.get("trigger.conn.port"), Settings.get("trigger.conn.rate")
