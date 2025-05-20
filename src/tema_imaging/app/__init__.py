@@ -21,7 +21,15 @@ import wx.lib.mixins.inspection as wit
 
 DEBUG = False
 
-logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+logging.basicConfig(
+    level=logging.DEBUG if DEBUG else logging.INFO,
+    filename="tema-imaging.log",
+    format="[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s",
+)
+
+console = logging.StreamHandler()
+console.setLevel(logging.DEBUG if DEBUG else logging.INFO)
+logging.getLogger().addHandler(console)
 
 
 class TemaImagingApp(wx.App, wit.InspectionMixin):
