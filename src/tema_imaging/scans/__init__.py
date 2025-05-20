@@ -14,9 +14,52 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+import abc
+import datetime
+import time
+from pathlib import Path
+from typing import final
+
+from tema_imaging.core.measurement import Measurement
+from tema_imaging.core.utils import get_project_root
+
 
 class Spot:
     def __init__(self, x: float, y: float, z: float | None = None):
         self.X = x
         self.Y = y
         self.Z = z
+
+
+class Scan(abc.ABC):
+    _meas_log_dir = Path(get_project_root() / "logs")
+
+    def __init__(self):
+        self._meas_log_path: Path | None = None
+        self._start_timestamp = 0.0
+
+    @final
+    def init_scan(self, measurement: Measurement) -> None:
+        self._meas_log_dir.mkdir(parents=True, exist_ok=True)
+
+        self._init_scan(measurement)
+        self._start_timestamp = time.time()
+
+        self._meas_log_path = (
+            self._meas_log_dir
+            / f"measurement_{datetime.datetime.now().isoformat()}.txt"
+        )
+        self._meas_log_path.touch()
+
+    @abc.abstractmethod
+    def _init_scan(self, measurement: Measurement) -> None:
+        pass
+
+    def log_spot(self, spot: Spot) -> None:
+        if self._meas_log_path is None:
+            return
+
+        with self._meas_log_path.open("a") as f:
+            f.write(
+                f"{time.time() - self._start_timestamp},{spot.X},{spot.Y},{spot.Z}\n"
+            )

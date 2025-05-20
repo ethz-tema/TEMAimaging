@@ -25,12 +25,12 @@ from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.scanner_registry import ScannerMeta
 from tema_imaging.hardware.stage import AxisType, AxisMovementMode
-from tema_imaging.scans import Spot
+from tema_imaging.scans import Scan, Spot
 
 logger = logging.getLogger(__name__)
 
 
-class Engraver(metaclass=ScannerMeta):
+class Engraver(Scan, metaclass=ScannerMeta):
     parameter_map = {
         "x_size": ("X Size", 0, 1000),
         "y_size": ("Y Size", 0, 1000),
@@ -147,7 +147,7 @@ class Engraver(metaclass=ScannerMeta):
 
         return x, y
 
-    def init_scan(self, measurement: Measurement) -> None:
+    def _init_scan(self, measurement: Measurement) -> None:
         conn_mgr.stage.on_movement_completed += self.on_movement_completed
 
         self.blank_delay = measurement.blank_delay
@@ -185,6 +185,7 @@ class Engraver(metaclass=ScannerMeta):
         self.frame_event.wait()
         self.frame_event.clear()
 
+        self.log_spot(self.coord_list[self._curr_step])
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
         self._curr_step += 1

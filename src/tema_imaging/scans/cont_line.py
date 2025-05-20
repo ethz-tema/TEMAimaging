@@ -21,10 +21,10 @@ from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.scanner_registry import ScannerMeta
 from tema_imaging.hardware.stage import AxisType, AxisMovementMode
-from tema_imaging.scans import Spot
+from tema_imaging.scans import Scan, Spot
 
 
-class ContinuousLineScan(metaclass=ScannerMeta):
+class ContinuousLineScan(Scan, metaclass=ScannerMeta):
     parameter_map = {
         "spot_count": ("Spot Count", 1, None),
         "direction": ("Direction", 0.0, None),
@@ -103,7 +103,7 @@ class ContinuousLineScan(metaclass=ScannerMeta):
     def boundary_size(self) -> tuple[float, float]:
         return self._dx, self._dy
 
-    def init_scan(self, _: Measurement) -> None:
+    def _init_scan(self, _: Measurement) -> None:
         conn_mgr.stage.on_movement_completed += self.on_movement_completed
 
         conn_mgr.stage.axes[AxisType.X].movement_mode = AxisMovementMode.CL_ABSOLUTE
