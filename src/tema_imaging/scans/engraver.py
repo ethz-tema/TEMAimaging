@@ -23,14 +23,15 @@ from PIL import Image, ImageOps
 
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
-from tema_imaging.core.scanner_registry import ScannerMeta
+from tema_imaging.core.scanner_registry import register_scan
 from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 from tema_imaging.scans import Scan, Spot
 
 logger = logging.getLogger(__name__)
 
 
-class Engraver(Scan, metaclass=ScannerMeta):
+@register_scan
+class Engraver(Scan):
     parameter_map = {
         "x_size": ("X Size", 0, 1000),
         "y_size": ("Y Size", 0, 1000),

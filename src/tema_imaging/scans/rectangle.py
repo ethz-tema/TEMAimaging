@@ -21,12 +21,13 @@ from typing import List
 
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
-from tema_imaging.core.scanner_registry import ScannerMeta
+from tema_imaging.core.scanner_registry import register_scan
 from tema_imaging.hardware.stage import AxisMovementMode, AxisType
 from tema_imaging.scans import Scan, Spot
 
 
-class RectangleScan(Scan, metaclass=ScannerMeta):
+@register_scan
+class RectangleScan(Scan):
     parameter_map = {
         "x_size": ("X Size", 0, 1000),
         "y_size": ("Y Size", 0, 1000),

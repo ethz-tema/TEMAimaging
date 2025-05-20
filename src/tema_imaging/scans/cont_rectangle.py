@@ -19,12 +19,13 @@ from threading import Event
 
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
-from tema_imaging.core.scanner_registry import ScannerMeta
+from tema_imaging.core.scanner_registry import register_scan
 from tema_imaging.hardware.stage import AxisType, AxisMovementMode
 from tema_imaging.scans import Scan
 
 
-class ContinuousRectangleScan(Scan, metaclass=ScannerMeta):
+@register_scan
+class ContinuousRectangleScan(Scan):
     parameter_map = {
         "x_size": ("X Size", 0, 1000),
         "y_size": ("Y Size", 0, 1000),

@@ -16,20 +16,9 @@
 
 import os
 from importlib import import_module
-from typing import Any
 
 from tema_imaging.core.utils import get_project_root
-
-
-class ScannerMeta(type):
-    def __new__(
-        mcs, name: str, bases: tuple[type, ...], attrs: dict[str, Any]
-    ) -> "ScannerMeta":
-        new_cls = super(ScannerMeta, mcs).__new__(mcs, name, bases, attrs)
-        # noinspection PyTypeChecker
-        register(new_cls)
-        return new_cls
-
+from tema_imaging.scans import Scan
 
 scanners_by_name = {}
 scanners_by_display_name = {}
@@ -49,6 +38,12 @@ def register(scanner) -> None:
         _param_map.update(scanner.parameter_map)
     scanners_by_name[scanner.__name__] = scanner
     scanners_by_display_name[scanner.display_name] = scanner
+
+
+def register_scan(scan_class: type[Scan]) -> type[Scan]:
+    register(scan_class)
+
+    return scan_class
 
 
 def get_param_display_str(name):

@@ -18,10 +18,12 @@ import abc
 import datetime
 import time
 from pathlib import Path
-from typing import final
+from typing import TYPE_CHECKING, final
 
-from tema_imaging.core.measurement import Measurement
 from tema_imaging.core.utils import get_project_root
+
+if TYPE_CHECKING:
+    from tema_imaging.core.measurement import Measurement
 
 
 class Spot:
@@ -39,7 +41,7 @@ class Scan(abc.ABC):
         self._start_timestamp = 0.0
 
     @final
-    def init_scan(self, measurement: Measurement) -> None:
+    def init_scan(self, measurement: "Measurement") -> None:
         self._meas_log_dir.mkdir(parents=True, exist_ok=True)
 
         self._init_scan(measurement)
@@ -52,7 +54,7 @@ class Scan(abc.ABC):
         self._meas_log_path.touch()
 
     @abc.abstractmethod
-    def _init_scan(self, measurement: Measurement) -> None:
+    def _init_scan(self, measurement: "Measurement") -> None:
         pass
 
     def log_spot(self, spot: Spot) -> None:

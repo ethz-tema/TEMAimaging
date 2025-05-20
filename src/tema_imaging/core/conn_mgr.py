@@ -21,9 +21,7 @@ import serial.threaded
 from PIL import Image
 from pubsub import pub
 
-from tema_imaging.core import utils
 from tema_imaging.core.settings import Settings
-from tema_imaging.core.utils import LaserStatusPoller, ShutterStatusPoller
 from tema_imaging.hardware.arduino_trigger import ArduTrigger
 from tema_imaging.hardware.camera import (
     Camera,
@@ -35,6 +33,11 @@ from tema_imaging.hardware.laser_compex import CompexLaserProtocol
 from tema_imaging.hardware.shutter import AIODevice, Shutter, ShutterException
 from tema_imaging.hardware.stage import AxisType, Stage
 from tema_imaging.hardware.stage.mcs_stage import MCSStage
+from tema_imaging.hardware.utils import (
+    LaserStatusPoller,
+    ShutterStatusPoller,
+    StagePositionPoller,
+)
 
 
 class ConnectionManager:
@@ -57,7 +60,7 @@ class ConnectionManager:
 
         self.stage: Stage | None = None
         self.stage_connected = False
-        self._stage_position_poller: utils.StagePositionPoller | None = None
+        self._stage_position_poller: StagePositionPoller | None = None
 
         self.camera: Camera | None = None
         self.camera_connected = False
@@ -196,7 +199,7 @@ class ConnectionManager:
             self.stage_connected = True
             pub.sendMessage("stage.connection_changed", connected=True)
 
-            self._stage_position_poller = utils.StagePositionPoller(self.stage)
+            self._stage_position_poller = StagePositionPoller(self.stage)
             self._stage_position_poller.start()
 
     def stage_disconnect(self) -> None:

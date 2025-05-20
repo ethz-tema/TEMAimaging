@@ -19,12 +19,14 @@ from threading import Event
 
 from tema_imaging.core.conn_mgr import conn_mgr
 from tema_imaging.core.measurement import Measurement
-from tema_imaging.core.scanner_registry import ScannerMeta
-from tema_imaging.hardware.stage import AxisType, AxisMovementMode
+from tema_imaging.core.scanner_registry import register_scan
+
+from tema_imaging.hardware.stage import AxisMovementMode, AxisType
 from tema_imaging.scans import Scan, Spot
 
 
-class ContinuousLineScan(Scan, metaclass=ScannerMeta):
+@register_scan
+class ContinuousLineScan(Scan):
     parameter_map = {
         "spot_count": ("Spot Count", 1, None),
         "direction": ("Direction", 0.0, None),

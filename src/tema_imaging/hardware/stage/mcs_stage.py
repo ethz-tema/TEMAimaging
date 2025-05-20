@@ -21,7 +21,7 @@ from enum import IntEnum
 from cffi import FFI, error
 
 from tema_imaging.core.settings import Settings
-from tema_imaging.core.utils import StatusPoller, get_project_root
+from tema_imaging.core.utils import get_project_root
 from tema_imaging.hardware.stage import (
     Axis,
     AxisMovementMode,
@@ -30,6 +30,7 @@ from tema_imaging.hardware.stage import (
     Stage,
     StageError,
 )
+from tema_imaging.hardware.utils import StatusPoller
 
 
 class SAError(IntEnum):
@@ -122,7 +123,9 @@ class MCSError(StageError):
 
 ffi = FFI()
 try:
-    ffi.cdef(open(get_project_root() / "src/tema_imaging/hardware/mcs.cdef", "r").read())
+    ffi.cdef(
+        open(get_project_root() / "src/tema_imaging/hardware/mcs.cdef", "r").read()
+    )
     lib = ffi.dlopen("libmcscontrol.so")
 except error.FFIError:
     pass
