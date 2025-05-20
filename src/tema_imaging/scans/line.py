@@ -176,7 +176,12 @@ class LineScan(Scan):
         self.movement_completed_event.wait()
         self.movement_completed_event.clear()
 
-        self.log_spot(self.coord_list[self._curr_step])
+        curr_pos = Spot(
+            conn_mgr.stage.axes[AxisType.X].position,
+            conn_mgr.stage.axes[AxisType.Y].position,
+            conn_mgr.stage.axes[AxisType.Z].position,
+        )
+        self.log_spot(curr_pos)
         conn_mgr.trigger.go_and_wait(self._cleaning, self._cleaning_delay)
 
         self._curr_step += 1

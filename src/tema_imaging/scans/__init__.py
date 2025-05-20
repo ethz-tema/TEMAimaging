@@ -61,7 +61,10 @@ class Scan(abc.ABC):
         if self._meas_log_path is None:
             return
 
+        if spot.Z is None:
+            spot_str = f"{spot.X},{spot.Y}"
+        else:
+            spot_str = f"{spot.X},{spot.Y},{spot.Z}"
+
         with self._meas_log_path.open("a") as f:
-            f.write(
-                f"{time.time() - self._start_timestamp},{spot.X},{spot.Y},{spot.Z}\n"
-            )
+            f.write(f"{time.time() - self._start_timestamp},{spot_str}\n")
