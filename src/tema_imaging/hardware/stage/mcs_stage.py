@@ -122,7 +122,7 @@ class MCSError(StageError):
 
 ffi = FFI()
 try:
-    ffi.cdef(open(get_project_root() / "src/hardware/mcs.cdef", "r").read())
+    ffi.cdef(open(get_project_root() / "src/tema_imaging/hardware/mcs.cdef", "r").read())
     lib = ffi.dlopen("libmcscontrol.so")
 except error.FFIError:
     pass
