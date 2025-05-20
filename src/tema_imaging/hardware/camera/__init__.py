@@ -15,7 +15,6 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import abc
-import os
 import time
 from importlib import import_module
 from threading import Thread
@@ -99,8 +98,8 @@ class CameraException(Exception):
         self.fatal = fatal
 
 
-for m in os.listdir(get_project_root() / "src/tema_imaging/hardware/camera"):
+for m in (get_project_root() / "src/tema_imaging/hardware/camera").iterdir():
     try:
-        import_module("tema_imaging.hardware.camera.{}".format(m.split(".")[0]))
+        import_module(f"tema_imaging.hardware.camera.{m.stem}")
     except ImportError:
         pass

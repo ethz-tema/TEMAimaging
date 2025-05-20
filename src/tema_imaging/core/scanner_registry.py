@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import os
 from importlib import import_module
 
 from tema_imaging.core.utils import get_project_root
@@ -26,8 +25,8 @@ _param_map = {}
 
 
 def _import_scanners() -> None:
-    for m in os.listdir(get_project_root() / "src/tema_imaging/scans"):
-        import_module("tema_imaging.scans.{}".format(m.split(".")[0]))
+    for m in (get_project_root() / "src/tema_imaging/scans").iterdir():
+        import_module(f"tema_imaging.scans.{m.stem}")
 
 
 def register(scanner) -> None:
