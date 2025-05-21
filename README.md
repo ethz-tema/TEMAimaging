@@ -1,7 +1,7 @@
 # TEMAimaging
 
 ## Setup
-The program depends on python3. Additionally python3 development files have to be installed.
+The program depends on python3. Additionally, python3 development files have to be installed.
 
 ### Prerequisites
 
@@ -22,3 +22,10 @@ The program depends on python3. Additionally python3 development files have to b
 
 ### Installation
 * Install the software with `.venv/bin/pip install -e .`
+
+## License
+
+The source code is released under the [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.en.html).
+
+Please cite the software as:
+Neff, C.; Keresztes Schmidt, P.; Garofalo, P. S.; Schwarz, G.; Günther, D. **Capabilities of Automated LA-ICP-TOFMS Imaging of Geological Samples**. *J. Anal. At. Spectrom. 2020*, 10.1039.D0JA00238K. https://doi.org/10.1039/D0JA00238K
